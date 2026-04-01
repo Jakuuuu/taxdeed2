@@ -1,0 +1,22 @@
+﻿default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: 5
+
+development:
+  <<: *default
+  database: tax_sale_resources_development
+  host: localhost
+  username: postgres
+  password: ""
+
+test:
+  <<: *default
+  database: tax_sale_resources_test
+  host: localhost
+  username: postgres
+  password: ""
+
+production:
+  <<: *default
+  url: <%= ENV["DATABASE_URL"] %>

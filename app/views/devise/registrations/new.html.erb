@@ -1,0 +1,104 @@
+﻿<%# app/views/devise/registrations/new.html.erb %>
+<% content_for :title, "Start Your Trial — Tax Sale Resources" %>
+
+<div class="auth-page">
+  <div class="auth-page__brand">
+    <div class="brand-logo">Tax Sale <span>Resources</span></div>
+    <div class="brand-tagline">
+      Professional Tax Deed Research.<br>Start Free for 7 Days.
+      <small>No credit card required to create your account.<br>Your trial starts immediately.</small>
+    </div>
+  </div>
+
+  <div class="auth-page__form-wrap">
+    <div class="auth-card">
+      <span class="auth-card__logo">Tax Sale <span>Resources</span></span>
+
+      <div class="steps">
+        <div class="step active">
+          <span class="step__num">1</span> Account
+        </div>
+        <span class="step-line"></span>
+        <div class="step">
+          <span class="step__num">2</span> Billing
+        </div>
+      </div>
+
+      <h1 class="auth-card__title">Create your account</h1>
+      <p class="auth-card__subtitle">Choose a plan and start your 7-day free trial.</p>
+
+      <div class="trial-notice">
+        <strong>7-day free trial.</strong> Then billed annually — cancel anytime before the trial ends.
+      </div>
+
+      <%= form_for(resource, as: resource_name, url: registration_path(resource_name)) do |f| %>
+
+        <%# Plan selector %>
+        <div class="plan-grid" id="plan-grid">
+          <label class="plan-card selected" id="plan-standard">
+            <%= f.radio_button :plan, "standard", checked: true, id: "plan_standard" %>
+            <div class="plan-name">Standard</div>
+            <div class="plan-price">$497<small>/yr</small></div>
+          </label>
+
+          <label class="plan-card" id="plan-pro">
+            <span class="plan-badge">Most Popular</span>
+            <%= f.radio_button :plan, "pro", id: "plan_pro" %>
+            <div class="plan-name">Pro</div>
+            <div class="plan-price">$697<small>/yr</small></div>
+          </label>
+
+          <label class="plan-card" id="plan-premier">
+            <%= f.radio_button :plan, "premier", id: "plan_premier" %>
+            <div class="plan-name">Premier</div>
+            <div class="plan-price">$3,997<small>/yr</small></div>
+          </label>
+        </div>
+
+        <%# Personal info %>
+        <div class="form-row">
+          <div class="form-group">
+            <%= f.label :first_name, "First name", class: "form-label" %>
+            <%= f.text_field :first_name, class: "form-input", placeholder: "Jane", autofocus: true, autocomplete: "given-name" %>
+          </div>
+          <div class="form-group">
+            <%= f.label :last_name, "Last name", class: "form-label" %>
+            <%= f.text_field :last_name, class: "form-input", placeholder: "Smith", autocomplete: "family-name" %>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <%= f.label :email, "Email address", class: "form-label" %>
+          <%= f.email_field :email, class: "form-input", placeholder: "you@example.com", autocomplete: "email" %>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <%= f.label :password, "Password", class: "form-label" %>
+            <%= f.password_field :password, class: "form-input", placeholder: "8+ characters", autocomplete: "new-password" %>
+          </div>
+          <div class="form-group">
+            <%= f.label :password_confirmation, "Confirm", class: "form-label" %>
+            <%= f.password_field :password_confirmation, class: "form-input", placeholder: "Repeat", autocomplete: "new-password" %>
+          </div>
+        </div>
+
+        <%= f.submit "Continue to Billing →", class: "btn btn--primary", id: "register-btn" %>
+      <% end %>
+
+      <div class="auth-footer">
+        Already have an account? <%= link_to "Sign in", new_user_session_path %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Plan card selector — highlight selected card
+  document.querySelectorAll('.plan-card input[type="radio"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      document.querySelectorAll('.plan-card').forEach(function(c) { c.classList.remove('selected'); });
+      radio.closest('.plan-card').classList.add('selected');
+    });
+  });
+</script>

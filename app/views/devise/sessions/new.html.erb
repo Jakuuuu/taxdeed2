@@ -1,0 +1,46 @@
+﻿<%# app/views/devise/sessions/new.html.erb %>
+<% content_for :title, "Sign In — Tax Sale Resources" %>
+
+<div class="auth-page">
+  <div class="auth-page__brand">
+    <div class="brand-logo">Tax Sale <span>Resources</span></div>
+    <div class="brand-tagline">
+      Research Tax Deed Properties<br>with Confidence.
+      <small>Access auction data, property insights,<br>and investment tools — all in one place.</small>
+    </div>
+  </div>
+
+  <div class="auth-page__form-wrap">
+    <div class="auth-card">
+      <span class="auth-card__logo">Tax Sale <span>Resources</span></span>
+      <h1 class="auth-card__title">Welcome back</h1>
+      <p class="auth-card__subtitle">Sign in to your account to continue researching.</p>
+
+      <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+        <div class="form-group">
+          <%= f.label :email, "Email address", class: "form-label" %>
+          <%= f.email_field :email, class: "form-input", placeholder: "you@example.com", autofocus: true, autocomplete: "email" %>
+        </div>
+
+        <div class="form-group">
+          <%= f.label :password, "Password", class: "form-label" %>
+          <%= f.password_field :password, class: "form-input", placeholder: "••••••••", autocomplete: "current-password" %>
+        </div>
+
+        <div class="form-group" style="display:flex; align-items:center; justify-content:space-between;">
+          <label style="display:flex; align-items:center; gap:.45rem; font-size:.8125rem; cursor:pointer;">
+            <%= f.check_box :remember_me, style:"width:15px; height:15px; accent-color: var(--color-navy);" %>
+            Remember me
+          </label>
+        </div>
+
+        <%= f.submit "Sign in", class: "btn btn--primary", id: "sign-in-btn" %>
+      <% end %>
+
+      <div class="auth-footer">
+        Don't have an account?
+        <%= link_to "Start your 7-day trial", new_user_registration_path %>
+      </div>
+    </div>
+  </div>
+</div>

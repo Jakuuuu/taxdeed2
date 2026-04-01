@@ -1,0 +1,34 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Tax Sale Resources — Research tax deed properties with confidence.">
+    <title><%= content_for?(:title) ? yield(:title) : "Tax Sale Resources" %></title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="<%= controller_name %>-<%= action_name %>">
+    <% if notice.present? %>
+      <div class="flash flash--notice" role="alert">
+        <%= notice %>
+        <button class="flash__close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
+      </div>
+    <% end %>
+
+    <% if alert.present? %>
+      <div class="flash flash--alert" role="alert">
+        <%= alert %>
+        <button class="flash__close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
+      </div>
+    <% end %>
+
+    <%= yield %>
+  </body>
+</html>

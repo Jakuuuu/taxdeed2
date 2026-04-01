@@ -1,0 +1,75 @@
+﻿# render.yaml — Infraestructura completa para Tax Sale Resources en Render
+# Docs: https://render.com/docs/yaml-spec
+databases:
+  - name: tax-sale-db
+    databaseName: tax_sale_resources
+    user: tax_sale_app
+    plan: starter
+
+services:
+  # --- Web (Rails + Puma) ---
+  - type: web
+    name: tax-sale-web
+    runtime: ruby
+    plan: starter
+    buildCommand: |
+      bundle install
+      bundle exec rails assets:precompile
+      bundle exec rails db:migrate
+    startCommand: bundle exec puma -C config/puma.rb
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: RAILS_MASTER_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tax-sale-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: tax-sale-redis
+          property: connectionString
+      - key: RAILS_SERVE_STATIC_FILES
+        value: "true"
+      - key: RAILS_LOG_TO_STDOUT
+        value: "true"
+      - key: GOOGLE_SHEETS_SHEET_ID
+        sync: false
+      # --- Stripe (descomentar al activar) ---
+      # - key: STRIPE_SECRET_KEY
+      #   sync: false
+      # - key: STRIPE_PUBLISHABLE_KEY
+      #   sync: false
+      # - key: STRIPE_WEBHOOK_SECRET
+      #   sync: false
+    healthCheckPath: /up
+
+  # --- Worker (Sidekiq) ---
+  - type: worker
+    name: tax-sale-worker
+    runtime: ruby
+    plan: starter
+    buildCommand: bundle install
+    startCommand: bundle exec sidekiq -C config/sidekiq.yml
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: RAILS_MASTER_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tax-sale-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: tax-sale-redis
+          property: connectionString
+
+  # --- Redis ---
+  - type: redis
+    name: tax-sale-redis
+    plan: starter
+    maxmemoryPolicy: noeviction
