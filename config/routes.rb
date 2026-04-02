@@ -1,7 +1,7 @@
-﻿# frozen_string_literal: true
+# frozen_string_literal: true
 
 Rails.application.routes.draw do
-  root "devise/sessions#new"
+  root to: redirect("/users/sign_in")
 
   devise_for :users,
     controllers: { registrations: "registrations" }
