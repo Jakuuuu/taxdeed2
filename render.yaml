@@ -1,6 +1,6 @@
 databases:
   - name: tax-sale-db
-    plan: starter
+    plan:  free
 
 services:
   - type: web
