@@ -1,4 +1,4 @@
-﻿databases:
+databases:
   - name: tax-sale-db
     plan: starter
 
@@ -55,4 +55,5 @@ services:
   - type: redis
     name: tax-sale-redis
     plan: starter
+    ipAllowList: []
     maxmemoryPolicy: noeviction
