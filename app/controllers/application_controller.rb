@@ -1,7 +1,12 @@
-﻿# frozen_string_literal: true
+# frozen_string_literal: true
 
 class ApplicationController < ActionController::Base
   before_action :authenticate_user!
+
+  # Redirige usuarios autenticados al dashboard, no al root (evita loop con login page)
+  def after_sign_in_path_for(resource)
+    research_parcels_path
+  end
 
   private
 
@@ -24,6 +29,6 @@ class ApplicationController < ActionController::Base
   end
 
   def require_admin!
-    redirect_to root_path, alert: "Unauthorized." unless current_user&.admin?
+    redirect_to research_parcels_path, alert: "Unauthorized." unless current_user&.admin?
   end
 end
