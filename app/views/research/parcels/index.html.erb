@@ -10,7 +10,7 @@
       <span class="topbar__user">
         <%= current_user.first_name %> <%= current_user.last_name %>
         <% if current_user.subscription %>
-          <span class="topbar__plan topbar__plan--<%= current_user.subscription.plan %>"><%= current_user.subscription.plan&.capitalize %></span>
+          <span class="topbar__plan topbar__plan--<%= current_user.subscription.plan_name %>"><%= current_user.subscription.plan_name&.capitalize %></span>
         <% end %>
       </span>
       <%= link_to "Sign out", destroy_user_session_path, data: { turbo_method: :delete }, class: "topbar__signout" %>
