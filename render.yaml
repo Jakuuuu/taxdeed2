@@ -1,4 +1,4 @@
-# render.yaml # render.yaml - Infraestructura completa para Tax Sale Resources en Render
+# render.yaml - Infraestructura completa para Tax Sale Resources en Render
 # Docs: https://render.com/docs/yaml-spec
 databases:
 - name: tax-sale-db
@@ -38,7 +38,6 @@ databases:
                                                                                                   - key: GOOGLE_SHEETS_SHEET_ID
                                                                                                       sync: false
                                                                                                         healthCheckPath: /up
-                                                                                                        
                                                                                                         
                                                                                                         # --- Worker (Sidekiq) ---
                                                                                                         - type: worker
