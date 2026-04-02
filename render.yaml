@@ -71,5 +71,10 @@ services:
   # --- Redis ---
   - type: redis
     name: tax-sale-redis
+      plan: free
+        ipAllowList: []
+          maxmemoryPolicy: noeviction
+  
+    
     plan: free
     maxmemoryPolicy: noeviction
