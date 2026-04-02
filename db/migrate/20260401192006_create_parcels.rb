@@ -1,4 +1,4 @@
-﻿# frozen_string_literal: true
+# frozen_string_literal: true
 
 class CreateParcels < ActiveRecord::Migration[7.2]
   def change
@@ -80,10 +80,9 @@ class CreateParcels < ActiveRecord::Migration[7.2]
       t.timestamps null: false
     end
 
-    add_index :parcels, :auction_id
-    add_index :parcels, [:state, :county], name: "idx_parcels_state_county"
-    add_index :parcels, [:latitude, :longitude], name: "idx_parcels_lat_lng"
-    add_index :parcels, :parcel_id
-    # NO existe tabla parcel_comps -- comparables Zillow son datos internos del equipo
+    # NOTE: index_parcels_on_auction_id is auto-created by t.references above
+    add_index :parcels, [:state, :county], name: "idx_parcels_state_county", if_not_exists: true
+    add_index :parcels, [:latitude, :longitude], name: "idx_parcels_lat_lng", if_not_exists: true
+    add_index :parcels, :parcel_id, if_not_exists: true
   end
 end
