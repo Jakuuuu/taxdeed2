@@ -1,269 +1,69 @@
-<% content_for :title, "Research Dashboard — Tax Sale Resources" %>
+<% content_for :title, "Tax Sale Resources" %>
 
-<div class="dashboard">
-  <!-- Topbar -->
-  <header class="topbar">
-    <div class="topbar__brand">
-      <span class="topbar__logo">Tax Sale <span class="topbar__logo-accent">Resources</span></span>
-    </div>
-    <nav class="topbar__nav">
-      <span class="topbar__user">
-        <%= current_user.first_name %> <%= current_user.last_name %>
-        <% if current_user.subscription %>
-          <span class="topbar__plan topbar__plan--<%= current_user.subscription.plan_name %>"><%= current_user.subscription.plan_name&.capitalize %></span>
-        <% end %>
-      </span>
-      <%= link_to "Sign out", destroy_user_session_path, data: { turbo_method: :delete }, class: "topbar__signout" %>
-    </nav>
-  </header>
+<div style="
+  min-height: 100vh;
+  background: #0f2044;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+">
+  <!-- Logo -->
+  <div style="margin-bottom: 2.5rem; text-align: center;">
+    <h1 style="color: #fff; font-size: 1.75rem; font-weight: 800; margin: 0;">
+      Tax Sale <span style="color: #c9a84c;">Resources</span>
+    </h1>
+  </div>
 
-  <!-- Page content -->
-  <main class="dashboard__main">
-    <div class="dashboard__header">
-      <div>
-        <h1 class="dashboard__title">Property Research</h1>
-        <p class="dashboard__subtitle">Tax deed properties available at auction</p>
-      </div>
-      <div class="dashboard__stats">
-        <div class="stat-pill">
-          <span class="stat-pill__num"><%= @parcels.size %></span>
-          <span class="stat-pill__label">Properties</span>
-        </div>
-      </div>
-    </div>
-
-    <% if @parcels.empty? %>
-      <div class="empty-state">
-        <div class="empty-state__icon">🏠</div>
-        <h2 class="empty-state__title">No properties yet</h2>
-        <p class="empty-state__body">Properties will appear here once data is synced from your auction sources.</p>
-      </div>
-    <% else %>
-      <div class="parcels-grid">
-        <% @parcels.each do |parcel| %>
-          <article class="parcel-card">
-            <div class="parcel-card__header">
-              <div class="parcel-card__address">
-                <h3 class="parcel-card__street"><%= parcel.address.presence || parcel.property_address || "Address not available" %></h3>
-                <p class="parcel-card__location"><%= [parcel.city, parcel.state, parcel.county].compact.join(", ") %></p>
-              </div>
-              <span class="parcel-card__status parcel-card__status--<%= parcel.auction_status %>">
-                <%= parcel.auction_status&.capitalize || "Available" %>
-              </span>
-            </div>
-
-            <div class="parcel-card__metrics">
-              <div class="metric">
-                <span class="metric__label">Opening Bid</span>
-                <span class="metric__value metric__value--accent">
-                  <%= parcel.opening_bid ? number_to_currency(parcel.opening_bid, precision: 0) : "—" %>
-                </span>
-              </div>
-              <div class="metric">
-                <span class="metric__label">Market Value</span>
-                <span class="metric__value">
-                  <%= parcel.market_value ? number_to_currency(parcel.market_value, precision: 0) : "—" %>
-                </span>
-              </div>
-              <div class="metric">
-                <span class="metric__label">Lot Size</span>
-                <span class="metric__value">
-                  <%= parcel.lot_area_acres ? "#{parcel.lot_area_acres.to_f.round(2)} ac" : "—" %>
-                </span>
-              </div>
-              <div class="metric">
-                <span class="metric__label">Type</span>
-                <span class="metric__value"><%= parcel.land_use&.titleize || parcel.property_type&.titleize || "—" %></span>
-              </div>
-            </div>
-
-            <div class="parcel-card__tags">
-              <% if parcel.crime_level.present? %>
-                <span class="tag tag--crime-<%= parcel.crime_level&.downcase %>">Crime: <%= parcel.crime_level %></span>
-              <% end %>
-              <% if parcel.homestead_flag.present? %>
-                <span class="tag tag--homestead"><%= parcel.homestead_flag %></span>
-              <% end %>
-              <% if parcel.wetlands? %>
-                <span class="tag tag--warning">⚠ Wetlands</span>
-              <% end %>
-              <% if parcel.hoa&.downcase == "yes" %>
-                <span class="tag tag--info">HOA</span>
-              <% end %>
-            </div>
-
-            <div class="parcel-card__footer">
-              <% if parcel.parcel_id.present? %>
-                <span class="parcel-card__id">ID: <%= parcel.parcel_id %></span>
-              <% end %>
-              <div class="parcel-card__links">
-                <% if parcel.google_maps_url.present? %>
-                  <%= link_to "📍 Map", parcel.google_maps_url, target: "_blank", class: "parcel-link" %>
-                <% end %>
-                <% if parcel.clerk_url.present? %>
-                  <%= link_to "📄 Clerk", parcel.clerk_url, target: "_blank", class: "parcel-link" %>
-                <% end %>
-              </div>
-            </div>
-          </article>
-        <% end %>
-      </div>
-    <% end %>
-  </main>
-</div>
-
-<style>
-  /* ============================================================
-     DASHBOARD LAYOUT
-  ============================================================ */
-  .dashboard {
-    min-height: 100vh;
-    background: #f4f5f7;
-    font-family: 'Inter', sans-serif;
-  }
-
-  /* TOPBAR */
-  .topbar {
-    background: #0f2044;
-    padding: 0 2rem;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .topbar__logo { color: #fff; font-size: 1.1rem; font-weight: 700; }
-  .topbar__logo-accent { color: #c9a84c; }
-  .topbar__nav { display: flex; align-items: center; gap: 1rem; }
-  .topbar__user { color: #a0aec0; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; }
-  .topbar__plan {
-    font-size: 0.7rem; font-weight: 700; padding: 2px 8px;
-    border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em;
-  }
-  .topbar__plan--standard { background: #2d3748; color: #a0aec0; }
-  .topbar__plan--pro { background: #c9a84c; color: #0f2044; }
-  .topbar__plan--premier { background: linear-gradient(135deg, #c9a84c, #f0d48a); color: #0f2044; }
-  .topbar__signout {
-    color: #a0aec0; font-size: 0.8rem; text-decoration: none;
-    padding: 6px 12px; border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 6px; transition: all 0.2s;
-  }
-  .topbar__signout:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
-
-  /* MAIN */
-  .dashboard__main {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 2rem;
-  }
-  .dashboard__header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 2rem;
-  }
-  .dashboard__title { font-size: 1.75rem; font-weight: 800; color: #0f2044; margin: 0; }
-  .dashboard__subtitle { font-size: 0.9rem; color: #718096; margin: 0.25rem 0 0; }
-
-  /* STATS */
-  .stat-pill {
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
-    padding: 0.75rem 1.25rem; text-align: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  }
-  .stat-pill__num { display: block; font-size: 1.5rem; font-weight: 800; color: #0f2044; }
-  .stat-pill__label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; }
-
-  /* EMPTY STATE */
-  .empty-state {
-    text-align: center; padding: 5rem 2rem;
-    background: #fff; border-radius: 16px; border: 2px dashed #e2e8f0;
-  }
-  .empty-state__icon { font-size: 3rem; margin-bottom: 1rem; }
-  .empty-state__title { font-size: 1.25rem; font-weight: 700; color: #0f2044; margin: 0 0 0.5rem; }
-  .empty-state__body { color: #718096; font-size: 0.9rem; }
-
-  /* PARCELS GRID */
-  .parcels-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 1.25rem;
-  }
-
-  /* PARCEL CARD */
-  .parcel-card {
+  <!-- Card -->
+  <div style="
     background: #fff;
-    border-radius: 14px;
-    border: 1px solid #e8ecf0;
-    padding: 1.25rem;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-  }
-  .parcel-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(15,32,68,0.1);
-  }
-  .parcel-card__header {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    margin-bottom: 1rem; gap: 0.5rem;
-  }
-  .parcel-card__street {
-    font-size: 0.95rem; font-weight: 700; color: #0f2044; margin: 0 0 0.25rem;
-    line-height: 1.3;
-  }
-  .parcel-card__location { font-size: 0.8rem; color: #718096; margin: 0; }
-  .parcel-card__status {
-    font-size: 0.7rem; font-weight: 700; padding: 3px 10px;
-    border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em;
-    white-space: nowrap; flex-shrink: 0;
-  }
-  .parcel-card__status--available { background: #c6f6d5; color: #276749; }
-  .parcel-card__status--sold { background: #fed7d7; color: #9b2c2c; }
-  .parcel-card__status--unsold { background: #feebc8; color: #975a16; }
+    border-radius: 16px;
+    padding: 2.5rem 3rem;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  ">
+    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🏠</div>
+    <h2 style="color: #0f2044; font-size: 1.25rem; font-weight: 700; margin: 0 0 0.75rem;">
+      Account active
+    </h2>
+    <p style="color: #718096; font-size: 0.9rem; margin: 0 0 0.5rem; line-height: 1.6;">
+      Welcome, <strong><%= current_user.first_name %></strong>.
+      Your account is set up and your subscription is being configured.
+    </p>
+    <% if current_user.subscription %>
+      <p style="color: #718096; font-size: 0.85rem; margin: 0 0 2rem;">
+        Plan: <strong style="color: #0f2044;"><%= current_user.subscription.plan_name&.capitalize %></strong>
+        &nbsp;·&nbsp;
+        Status: <strong style="color: #276749;"><%= current_user.subscription.status&.capitalize %></strong>
+      </p>
+    <% else %>
+      <p style="color: #718096; font-size: 0.85rem; margin: 0 0 2rem;">
+        Setting up your subscription...
+      </p>
+    <% end %>
 
-  /* METRICS */
-  .parcel-card__metrics {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 0.75rem; margin-bottom: 1rem;
-    padding: 1rem;
-    background: #f8fafc;
-    border-radius: 10px;
-  }
-  .metric__label { display: block; font-size: 0.7rem; color: #718096; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
-  .metric__value { font-size: 0.95rem; font-weight: 700; color: #0f2044; }
-  .metric__value--accent { color: #c9a84c; }
+    <div style="padding: 1rem; background: #f0f4f8; border-radius: 10px; margin-bottom: 2rem; font-size: 0.82rem; color: #4a5568; line-height: 1.5;">
+      🚧 The research platform is being prepared.<br>You'll be notified when it's ready.
+    </div>
 
-  /* TAGS */
-  .parcel-card__tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
-  .tag {
-    font-size: 0.7rem; font-weight: 600; padding: 2px 8px;
-    border-radius: 6px; border: 1px solid transparent;
-  }
-  .tag--crime-low { background: #c6f6d5; color: #276749; border-color: #9ae6b4; }
-  .tag--crime-moderate { background: #feebc8; color: #975a16; border-color: #fbd38d; }
-  .tag--crime-high { background: #fed7d7; color: #9b2c2c; border-color: #feb2b2; }
-  .tag--homestead { background: #e9d8fd; color: #553c9a; border-color: #d6bcfa; }
-  .tag--warning { background: #fefcbf; color: #975a16; border-color: #faf089; }
-  .tag--info { background: #bee3f8; color: #2a4365; border-color: #90cdf4; }
-
-  /* CARD FOOTER */
-  .parcel-card__footer {
-    display: flex; justify-content: space-between; align-items: center;
-    padding-top: 0.75rem; border-top: 1px solid #f0f0f0;
-  }
-  .parcel-card__id { font-size: 0.7rem; color: #a0aec0; font-family: monospace; }
-  .parcel-card__links { display: flex; gap: 0.5rem; }
-  .parcel-link {
-    font-size: 0.75rem; color: #4a6fa5; text-decoration: none;
-    padding: 3px 8px; border: 1px solid #bee3f8; border-radius: 6px;
-    transition: all 0.15s;
-  }
-  .parcel-link:hover { background: #ebf8ff; }
-
-  @media (max-width: 640px) {
-    .dashboard__main { padding: 1rem; }
-    .parcels-grid { grid-template-columns: 1fr; }
-    .dashboard__header { flex-direction: column; align-items: flex-start; gap: 1rem; }
-  }
-</style>
+    <%= link_to destroy_user_session_path,
+        data: { turbo_method: :delete },
+        style: "
+          display: inline-block;
+          padding: 10px 24px;
+          background: #0f2044;
+          color: #fff;
+          border-radius: 8px;
+          text-decoration: none;
+          font-size: 0.875rem;
+          font-weight: 600;
+        " do %>
+      Sign out
+    <% end %>
+  </div>
+</div>
