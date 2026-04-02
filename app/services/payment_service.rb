@@ -49,7 +49,7 @@ class PaymentService
     if MOCK_MODE
       { id: "sub_MOCK_#{SecureRandom.hex(8)}", status: "trialing" }
     else
-      price_id = Rails.application.credentials.stripe[:send(:"price_#{plan}")]
+      price_id = Rails.application.credentials.dig(:stripe, :"price_#{plan}")
       sub = Stripe::Subscription.create(
         customer:          customer_id,
         items:             [{ price: price_id }],
