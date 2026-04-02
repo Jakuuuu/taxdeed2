@@ -4,14 +4,14 @@ databases:
   - name: tax-sale-db
     databaseName: tax_sale_resources
     user: tax_sale_app
-    plan: starter
+    plan: free
 
 services:
   # --- Web (Rails + Puma) ---
   - type: web
     name: tax-sale-web
     runtime: ruby
-    plan: starter
+    plan: free
     buildCommand: |
       bundle install
       bundle exec rails assets:precompile
@@ -50,7 +50,7 @@ services:
   - type: worker
     name: tax-sale-worker
     runtime: ruby
-    plan: starter
+    plan: free
     buildCommand: bundle install
     startCommand: bundle exec sidekiq -C config/sidekiq.yml
     envVars:
@@ -71,5 +71,5 @@ services:
   # --- Redis ---
   - type: redis
     name: tax-sale-redis
-    plan: starter
+    plan: free
     maxmemoryPolicy: noeviction
