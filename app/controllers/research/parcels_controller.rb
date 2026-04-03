@@ -1,11 +1,18 @@
-﻿# frozen_string_literal: true
+# frozen_string_literal: true
 
 module Research
-  class ParcelsController < ApplicationController
-    before_action :require_active_subscription!
-
+  class ParcelsController < BaseController
     def index
-      @parcels = Parcel.includes(:auction).order(created_at: :desc).limit(20)
+      @auctions = Auction.order(sale_date: :asc)
+      @parcels  = Parcel.includes(:auction)
+
+      @parcels = @parcels.where(auction_id: params[:auction_id]) if params[:auction_id].present?
+      @parcels = @parcels.where("address ILIKE ?", "%#{params[:q]}%") if params[:q].present?
+      @parcels = @parcels.order(created_at: :desc).page(params[:page]).per(25)
+    end
+
+    def show
+      @parcel = Parcel.includes(:auction, :parcel_liens).find(params[:id])
     end
   end
 end

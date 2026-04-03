@@ -1,0 +1,139 @@
+<% content_for :title, "#{@auction.jurisdiction} Auction — Tax Sale Resources" %>
+
+<div class="rn-content">
+  <!-- Breadcrumb -->
+  <nav style="font-size: 0.8125rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
+    <%= link_to "← Auctions", research_auctions_path, style: "color: var(--color-accent); font-weight: 500;" %>
+    <span style="margin: 0 0.4rem;">/</span>
+    <%= @auction.jurisdiction %>
+  </nav>
+
+  <!-- Header -->
+  <div class="rn-page-header">
+    <div>
+      <h1 class="rn-page-title"><%= @auction.county %>, <%= @auction.state %></h1>
+      <p class="rn-page-subtitle">
+        Tax Deed Auction &nbsp;·&nbsp;
+        <% if @auction.sale_date %>
+          <%= @auction.sale_date.strftime("%B %d, %Y") %>
+        <% else %>
+          Date TBD
+        <% end %>
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.6rem; align-items: center;">
+      <span class="badge badge-<%= @auction.status %>"><%= @auction.status_label %></span>
+      <% if @auction.bidding_url.present? %>
+        <%= link_to "Bid Online →", @auction.bidding_url, target: "_blank", rel: "noopener",
+            class: "btn-sm btn-sm-primary" %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="stat-row" style="margin-bottom: 1.5rem;">
+    <div class="stat-card">
+      <p class="stat-card__label">Parcels Listed</p>
+      <p class="stat-card__value"><%= @auction.parcel_count || @parcels.count %></p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-card__label">Total Amount</p>
+      <p class="stat-card__value">
+        <% if @auction.total_amount&.positive? %>
+          $<%= number_with_delimiter(@auction.total_amount.to_i) %>
+        <% else %>
+          —
+        <% end %>
+      </p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-card__label">State</p>
+      <p class="stat-card__value"><%= @auction.state || '—' %></p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-card__label">Auction Type</p>
+      <p class="stat-card__value">Tax Deed</p>
+    </div>
+  </div>
+
+  <!-- Parcels Table -->
+  <div class="rn-page-header" style="margin-bottom: 0.75rem;">
+    <h2 style="font-size: 1rem; font-weight: 700; color: var(--color-primary); margin: 0;">
+      Parcels (<%= @parcels.count %>)
+    </h2>
+    <%= link_to "View All in Search →", research_parcels_path(auction_id: @auction.id),
+        class: "btn-sm btn-sm-outline" %>
+  </div>
+
+  <% if @parcels.any? %>
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Parcel ID</th>
+            <th>Address</th>
+            <th>Opening Bid</th>
+            <th>Assessed Value</th>
+            <th>Max Bid (30%)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @parcels.first(50).each do |parcel| %>
+            <tr>
+              <td style="font-family: monospace; font-size: 0.8rem;"><%= parcel.parcel_id || '—' %></td>
+              <td style="max-width: 280px;">
+                <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  <%= parcel.address || '—' %>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--color-text-muted);">
+                  <%= [parcel.city, parcel.zip_code].compact.join(', ') %>
+                </div>
+              </td>
+              <td>
+                <% if parcel.opening_bid %>
+                  <strong>$<%= number_with_delimiter(parcel.opening_bid.to_i) %></strong>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td>
+                <% if parcel.assessed_value %>
+                  $<%= number_with_delimiter(parcel.assessed_value.to_i) %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td>
+                <% if parcel.max_bid_30 %>
+                  <span style="color: var(--color-success); font-weight: 600;">
+                    $<%= number_with_delimiter(parcel.max_bid_30.to_i) %>
+                  </span>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td>
+                <%= link_to "Details →", research_parcel_path(parcel), class: "btn-sm btn-sm-outline" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+      <% if @parcels.count > 50 %>
+        <div class="pagination">
+          <span>Showing 50 of <%= @parcels.count %> parcels</span>
+          <%= link_to "View all in Search", research_parcels_path(auction_id: @auction.id),
+              class: "btn-sm btn-sm-primary" %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="empty-state">
+      <div class="empty-state__icon">📋</div>
+      <h2 class="empty-state__title">No parcels yet</h2>
+      <p class="empty-state__desc">This auction's parcel data will be available after the next sync from the data source.</p>
+    </div>
+  <% end %>
+</div>

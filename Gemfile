@@ -26,6 +26,9 @@ gem "sidekiq-cron"
 gem "google-apis-sheets_v4"
 gem "googleauth"
 
+# ── Pagination ────────────────────────────────────────────────────────────────
+gem "kaminari"
+
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
   gem "brakeman", require: false

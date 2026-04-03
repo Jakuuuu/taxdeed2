@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Tax Sale Resources — Research Platform">
+    <title><%= content_for?(:title) ? yield(:title) : "Tax Sale Resources" %></title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+
+    <% if content_for?(:head) %>
+      <%= yield(:head) %>
+    <% end %>
+  </head>
+
+  <body class="research-layout">
+    <!-- Top Navbar -->
+    <header class="rn-header">
+      <div class="rn-header__left">
+        <a href="<%= research_parcels_path %>" class="rn-logo">
+          Tax Sale <span>Resources</span>
+        </a>
+        <nav class="rn-nav">
+          <a href="<%= research_auctions_path %>"
+             class="rn-nav__link <%= 'active' if controller_name == 'auctions' %>">
+            Auctions
+          </a>
+          <a href="<%= research_parcels_path %>"
+             class="rn-nav__link <%= 'active' if controller_name == 'parcels' %>">
+            Search
+          </a>
+          <a href="<%= research_purchased_reports_path %>"
+             class="rn-nav__link <%= 'active' if controller_name == 'purchased_reports' %>">
+            Reports
+          </a>
+        </nav>
+      </div>
+
+      <div class="rn-header__right">
+        <% if current_user&.subscription %>
+          <span class="rn-plan-badge"><%= current_user.subscription.plan_name&.capitalize %></span>
+        <% end %>
+        <div class="rn-user-menu" data-controller="dropdown">
+          <button class="rn-user-btn" onclick="this.nextElementSibling.classList.toggle('open')">
+            <span class="rn-avatar"><%= current_user&.first_name&.first&.upcase %></span>
+            <span class="rn-username"><%= current_user&.first_name %></span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+          <div class="rn-dropdown">
+            <a href="<%= research_settings_path %>" class="rn-dropdown__item">Settings</a>
+            <div class="rn-dropdown__divider"></div>
+            <%= link_to "Sign out", destroy_user_session_path,
+                data: { turbo_method: :delete },
+                class: "rn-dropdown__item rn-dropdown__item--danger" %>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Flash Messages -->
+    <% if notice.present? %>
+      <div class="flash flash--notice" role="alert">
+        <%= notice %>
+        <button class="flash__close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
+      </div>
+    <% end %>
+    <% if alert.present? %>
+      <div class="flash flash--alert" role="alert">
+        <%= alert %>
+        <button class="flash__close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
+      </div>
+    <% end %>
+
+    <!-- Main content -->
+    <main class="rn-main">
+      <%= yield %>
+    </main>
+
+    <script>
+      // Close dropdown on outside click
+      document.addEventListener('click', function(e) {
+        document.querySelectorAll('.rn-dropdown.open').forEach(function(d) {
+          if (!d.previousElementSibling.contains(e.target)) d.classList.remove('open');
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -15,9 +15,13 @@ Rails.application.routes.draw do
 
   # Investigacion privada (requiere subscripcion activa)
   namespace :research do
-    resources :parcels, only: [:index, :show]
-    resources :auctions, only: [:index]
+    resources :parcels,           only: [:index, :show]
+    resources :auctions,          only: [:index, :show]
     resources :purchased_reports, only: [:index]
+    resource  :settings,          only: [:show] do
+      patch  :profile
+      delete :subscription, action: :cancel_subscription
+    end
   end
 
   # Webhooks de Stripe (endpoint publico, verificado por firma)

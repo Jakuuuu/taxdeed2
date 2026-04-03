@@ -1,0 +1,338 @@
+<% content_for :title, "Auctions — Tax Sale Resources" %>
+
+<%# Inject Google Maps API key and page-level head tags %>
+<% content_for :head do %>
+  <style>
+    .auction-map { height: calc(100vh - var(--rn-header-h) - 120px); min-height: 400px; }
+    .auction-card {
+      background: #fff;
+      border: 1px solid var(--color-border, #DEE2E6);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s;
+      margin-bottom: 0.75rem;
+    }
+    .auction-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); border-color: var(--color-accent, #2E86C1); }
+    .auction-card.highlighted { border-color: var(--color-accent, #2E86C1); box-shadow: 0 0 0 2px rgba(46,134,193,.2); }
+    .auction-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .auction-card__title { font-size: 0.9375rem; font-weight: 700; color: var(--color-primary, #1E3A5F); margin: 0; }
+    .auction-card__meta { font-size: 0.8rem; color: var(--color-text-muted, #6C757D); margin-bottom: 0.5rem; }
+    .auction-card__stats { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .auction-card__stat { font-size: 0.8rem; }
+    .auction-card__stat span { font-weight: 600; color: var(--color-primary, #1E3A5F); }
+    .list-scroll { overflow-y: auto; height: calc(100vh - var(--rn-header-h) - 180px); padding-right: 0.25rem; }
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
+    @media (max-width: 900px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
+    .map-info-window { font-family: 'Inter', sans-serif; min-width: 200px; }
+    .map-info-window h4 { font-size: 0.875rem; font-weight: 700; color: #1E3A5F; margin: 0 0 0.4rem; }
+    .map-info-window p  { font-size: 0.8rem; color: #4a5568; margin: 0 0 0.25rem; }
+    .map-info-window a  { font-size: 0.8rem; color: #2E86C1; font-weight: 600; text-decoration: none; }
+    .gm-style-iw-d { overflow: hidden !important; }
+    .gmap-placeholder {
+      height: 100%;
+      background: linear-gradient(135deg, #EBF5FB 0%, #D6EAF8 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      border: 1px solid #BFD9EC;
+    }
+    .gmap-placeholder__icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .gmap-placeholder__text { font-size: 0.9rem; color: #2C5F8A; font-weight: 500; text-align: center; }
+  </style>
+<% end %>
+
+<div class="rn-page">
+  <!-- Sidebar: Filters -->
+  <aside class="rn-sidebar">
+    <%= form_with url: research_auctions_path, method: :get, local: true, id: "auction-filter-form" do |f| %>
+      <div class="filter-sidebar">
+        <p class="filter-sidebar__title">Filters</p>
+
+        <div class="filter-group">
+          <label class="filter-label" for="filter-state">State</label>
+          <select class="filter-select" name="state" id="filter-state">
+            <option value="">All States</option>
+            <% @states.each do |s| %>
+              <option value="<%= s %>" <%= 'selected' if params[:state] == s %>><%= s %></option>
+            <% end %>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="filter-county">County</label>
+          <select class="filter-select" name="county" id="filter-county">
+            <option value="">All Counties</option>
+            <% @counties.each do |c| %>
+              <option value="<%= c %>" <%= 'selected' if params[:county] == c %>><%= c %></option>
+            <% end %>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="filter-status">Status</label>
+          <select class="filter-select" name="status" id="filter-status">
+            <option value="">All Statuses</option>
+            <option value="upcoming"  <%= 'selected' if params[:status] == 'upcoming' %>>Upcoming</option>
+            <option value="active"    <%= 'selected' if params[:status] == 'active' %>>Active</option>
+            <option value="completed" <%= 'selected' if params[:status] == 'completed' %>>Completed</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="filter-from">From Date</label>
+          <input class="filter-input" type="date" name="from_date" id="filter-from" value="<%= params[:from_date] %>">
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="filter-to">To Date</label>
+          <input class="filter-input" type="date" name="to_date" id="filter-to" value="<%= params[:to_date] %>">
+        </div>
+
+        <button type="submit" class="filter-btn-apply">Apply Filters</button>
+        <%= link_to "Clear", research_auctions_path, class: "filter-btn-clear" %>
+      </div>
+    <% end %>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="rn-content">
+    <!-- Page Header -->
+    <div class="rn-page-header">
+      <div>
+        <h1 class="rn-page-title">Tax Sale Auctions</h1>
+        <p class="rn-page-subtitle"><%= @auctions.count %> auctions found</p>
+      </div>
+      <div class="view-toggle" id="view-toggle" role="group" aria-label="Switch view">
+        <button class="view-toggle__btn active" id="btn-map" onclick="switchView('map')" type="button">
+          🗺 Map
+        </button>
+        <button class="view-toggle__btn" id="btn-list" onclick="switchView('list')" type="button">
+          ☰ List
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stat-row">
+      <div class="stat-card">
+        <p class="stat-card__label">Total Auctions</p>
+        <p class="stat-card__value"><%= @auctions.count %></p>
+        <p class="stat-card__sub">filtered</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-card__label">Upcoming</p>
+        <p class="stat-card__value"><%= @auctions.count { |a| a.upcoming? } %></p>
+        <p class="stat-card__sub">scheduled</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-card__label">Active</p>
+        <p class="stat-card__value"><%= @auctions.count { |a| a.active? } %></p>
+        <p class="stat-card__sub">in progress</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-card__label">Total Parcels</p>
+        <p class="stat-card__value"><%= @auctions.sum { |a| a.parcel_count || 0 } %></p>
+        <p class="stat-card__sub">across all auctions</p>
+      </div>
+    </div>
+
+    <!-- MAP VIEW -->
+    <div id="map-view">
+      <div class="map-container auction-map" id="gmap-container">
+        <div class="gmap-placeholder" id="gmap-placeholder">
+          <div class="gmap-placeholder__icon">🗺️</div>
+          <p class="gmap-placeholder__text">Loading map…</p>
+        </div>
+        <div id="gmap" style="width:100%; height:100%; display:none;"></div>
+      </div>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div id="list-view" style="display:none;">
+      <% if @auctions.any? %>
+        <div class="data-table-wrap">
+          <table class="data-table" id="auctions-table">
+            <thead>
+              <tr>
+                <th>Jurisdiction</th>
+                <th>Type</th>
+                <th>Sale Date</th>
+                <th>Parcels</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @auctions.each do |auction| %>
+                <tr id="row-<%= auction.id %>">
+                  <td>
+                    <div style="font-weight: 600; color: var(--color-primary)"><%= auction.county %></div>
+                    <div style="font-size: 0.8rem; color: var(--color-text-muted)"><%= auction.state %></div>
+                  </td>
+                  <td>Tax Deed</td>
+                  <td>
+                    <% if auction.sale_date %>
+                      <div style="font-weight: 500;"><%= auction.sale_date.strftime("%b %d, %Y") %></div>
+                    <% else %>
+                      <span style="color: var(--color-text-muted)">—</span>
+                    <% end %>
+                  </td>
+                  <td><strong><%= auction.parcel_count || 0 %></strong></td>
+                  <td>
+                    <% if auction.total_amount&.positive? %>
+                      $<%= number_with_delimiter(auction.total_amount.to_i) %>
+                    <% else %>
+                      <span style="color: var(--color-text-muted)">—</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <span class="badge badge-<%= auction.status %>">
+                      <%= auction.status_label %>
+                    </span>
+                  </td>
+                  <td>
+                    <% if auction.bidding_url.present? %>
+                      <%= link_to "Bid →", auction.bidding_url, target: "_blank", rel: "noopener", class: "btn-sm btn-sm-primary" %>
+                    <% end %>
+                    <%= link_to "View", research_auction_path(auction), class: "btn-sm btn-sm-outline" %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="empty-state">
+          <div class="empty-state__icon">🏛️</div>
+          <h2 class="empty-state__title">No auctions found</h2>
+          <p class="empty-state__desc">Try adjusting your filters or clearing them to see all available auctions.</p>
+          <%= link_to "Clear Filters", research_auctions_path, class: "btn-sm btn-sm-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Auction data for JS map -->
+<script>
+  var AUCTIONS_DATA = <%= raw @auctions.map { |a|
+    {
+      id:        a.id,
+      county:    a.county,
+      state:     a.state,
+      sale_date: a.sale_date&.strftime("%b %d, %Y"),
+      parcels:   a.parcel_count || 0,
+      status:    a.status,
+      amount:    a.total_amount&.to_f || 0,
+      lat:       a.latitude&.to_f,
+      lng:       a.longitude&.to_f,
+      bid_url:   a.bidding_url,
+      view_url:  research_auction_path(a)
+    }
+  }.to_json %>;
+</script>
+
+<script>
+  // ── VIEW TOGGLE
+  function switchView(view) {
+    document.getElementById('map-view').style.display  = view === 'map'  ? 'block' : 'none';
+    document.getElementById('list-view').style.display = view === 'list' ? 'block' : 'none';
+    document.getElementById('btn-map').classList.toggle('active',  view === 'map');
+    document.getElementById('btn-list').classList.toggle('active', view === 'list');
+    if (view === 'map' && window.gmapLoaded) initMap();
+  }
+
+  // ── GOOGLE MAPS
+  var gmapLoaded = false;
+  var gmapMarkers = [];
+
+  function initMap() {
+    if (gmapLoaded) return;
+    var mapEl = document.getElementById('gmap');
+    var placeholder = document.getElementById('gmap-placeholder');
+    mapEl.style.display = 'block';
+    placeholder.style.display = 'none';
+    gmapLoaded = true;
+
+    var map = new google.maps.Map(mapEl, {
+      zoom: 5,
+      center: { lat: 28.0, lng: -82.0 },
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+      styles: [
+        { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }
+      ]
+    });
+
+    var infoWindow = new google.maps.InfoWindow();
+    var bounds = new google.maps.LatLngBounds();
+    var hasValidPos = false;
+
+    AUCTIONS_DATA.forEach(function(a) {
+      if (!a.lat || !a.lng) return;
+      hasValidPos = true;
+      var pos = { lat: a.lat, lng: a.lng };
+      bounds.extend(pos);
+
+      var pinColor = a.status === 'active' ? '#28A745'
+                   : a.status === 'upcoming' ? '#1E3A5F'
+                   : '#6C757D';
+
+      var marker = new google.maps.Marker({
+        position: pos,
+        map: map,
+        title: a.county + ', ' + a.state,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: pinColor,
+          fillOpacity: 0.9,
+          strokeColor: '#fff',
+          strokeWeight: 2
+        }
+      });
+
+      var content = '<div class="map-info-window">'
+        + '<h4>' + (a.county || '—') + ', ' + (a.state || '—') + '</h4>'
+        + '<p>🗓 ' + (a.sale_date || 'TBD') + '</p>'
+        + '<p>🏠 ' + a.parcels + ' parcels</p>'
+        + (a.amount > 0 ? '<p>💰 $' + a.amount.toLocaleString() + '</p>' : '')
+        + (a.bid_url ? '<a href="' + a.bid_url + '" target="_blank" rel="noopener">Bid Online →</a>' : '')
+        + '</div>';
+
+      marker.addListener('click', function() {
+        infoWindow.setContent(content);
+        infoWindow.open(map, marker);
+      });
+      gmapMarkers.push(marker);
+    });
+
+    if (hasValidPos) {
+      map.fitBounds(bounds);
+      var listener = google.maps.event.addListener(map, 'bounds_changed', function() {
+        if (map.getZoom() > 10) map.setZoom(10);
+        google.maps.event.removeListener(listener);
+      });
+    }
+  }
+
+  // Load Google Maps
+  (function() {
+    var apiKey = '<%= ENV["GOOGLE_MAPS_API_KEY"] %>';
+    if (!apiKey || apiKey === '') {
+      document.getElementById('gmap-placeholder').querySelector('p').textContent =
+        'Google Maps API key not configured.';
+      return;
+    }
+    var script = document.createElement('script');
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&callback=initMap&loading=async';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  })();
+</script>
