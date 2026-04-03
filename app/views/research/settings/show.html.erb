@@ -1,0 +1,299 @@
+<% content_for :title, "Settings — Tax Sale Resources" %>
+
+<div class="rn-content" style="max-width: 860px;">
+  <div class="rn-page-header">
+    <div>
+      <h1 class="rn-page-title">Account Settings</h1>
+      <p class="rn-page-subtitle">Manage your profile, subscription, and billing</p>
+    </div>
+  </div>
+
+  <!-- Flash messages -->
+  <% if notice %>
+    <div class="flash flash-success" style="margin-bottom: 1rem;">✅ <%= notice %></div>
+  <% end %>
+  <% if alert %>
+    <div class="flash flash-danger" style="margin-bottom: 1rem;">⚠️ <%= alert %></div>
+  <% end %>
+
+  <!-- Tab nav -->
+  <div class="tab-nav" style="margin-bottom: 1.5rem;">
+    <%= link_to research_settings_path(tab: "profile"),
+        class: "tab-nav__btn #{'active' if @active_tab == 'profile'}" do %>
+      👤 Profile
+    <% end %>
+    <%= link_to research_settings_path(tab: "subscription"),
+        class: "tab-nav__btn #{'active' if @active_tab == 'subscription'}" do %>
+      💎 Subscription & Usage
+    <% end %>
+    <%= link_to research_settings_path(tab: "payment"),
+        class: "tab-nav__btn #{'active' if @active_tab == 'payment'}" do %>
+      💳 Payment
+    <% end %>
+  </div>
+
+  <!-- ══ TAB 1: Profile ════════════════════════════════════════ -->
+  <% if @active_tab == "profile" %>
+    <%= form_with url: profile_research_settings_path, method: :patch, local: true do |f| %>
+      <div class="settings-card">
+        <div class="settings-card__header">
+          <h2 class="settings-card__title">Personal Information</h2>
+        </div>
+        <div class="settings-card__body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="user_first_name">First Name *</label>
+              <%= f.text_field :first_name, value: @user.first_name,
+                  id: "user_first_name", class: "form-input",
+                  placeholder: "John", maxlength: 100, required: true %>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="user_last_name">Last Name *</label>
+              <%= f.text_field :last_name, value: @user.last_name,
+                  id: "user_last_name", class: "form-input",
+                  placeholder: "Doe", maxlength: 100, required: true %>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="user_email">Email *</label>
+              <%= f.email_field :email, value: @user.email,
+                  id: "user_email", class: "form-input",
+                  placeholder: "john@example.com", required: true %>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="user_phone">Phone (optional)</label>
+              <%= f.tel_field :phone, value: @user.phone,
+                  id: "user_phone", class: "form-input",
+                  placeholder: "+1 (555) 000-0000" %>
+            </div>
+          </div>
+        </div>
+        <div class="settings-card__footer">
+          <%= f.submit "Save Changes", class: "btn-sm btn-sm-primary", style: "font-size: 0.9375rem; padding: 0.6rem 1.75rem;" %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Change Password -->
+    <div class="settings-card" style="margin-top: 1.25rem;">
+      <div class="settings-card__header">
+        <h2 class="settings-card__title">Change Password</h2>
+      </div>
+      <div class="settings-card__body">
+        <p style="font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+          To change your password, click the button below. You'll receive an email with a reset link.
+        </p>
+        <%= link_to "Send Password Reset Email",
+            new_user_password_path,
+            class: "btn-sm btn-sm-outline" %>
+      </div>
+    </div>
+
+  <!-- ══ TAB 2: Subscription & Usage ═══════════════════════════ -->
+  <% elsif @active_tab == "subscription" %>
+    <% sub = @subscription %>
+
+    <!-- Current Plan -->
+    <div class="settings-card">
+      <div class="settings-card__header">
+        <h2 class="settings-card__title">Current Plan</h2>
+        <span class="badge badge-<%= sub&.status || 'inactive' %>">
+          <%= sub&.status&.capitalize || "Inactive" %>
+        </span>
+      </div>
+      <div class="settings-card__body">
+        <% if sub %>
+          <div class="plan-summary-grid">
+            <div class="plan-summary-item">
+              <span class="plan-summary-item__label">Plan</span>
+              <span class="plan-summary-item__value"><%= sub.plan_label %></span>
+            </div>
+            <div class="plan-summary-item">
+              <span class="plan-summary-item__label">Status</span>
+              <span class="plan-summary-item__value"><%= sub.status&.humanize %></span>
+            </div>
+            <div class="plan-summary-item">
+              <span class="plan-summary-item__label">Started</span>
+              <span class="plan-summary-item__value">
+                <%= sub.respond_to?(:current_period_start) && sub.current_period_start ?
+                    sub.current_period_start.strftime("%B %d, %Y") : "—" %>
+              </span>
+            </div>
+            <div class="plan-summary-item">
+              <span class="plan-summary-item__label">Next Billing</span>
+              <span class="plan-summary-item__value">
+                <%= sub.next_reset_date&.strftime("%B %d, %Y") || "—" %>
+              </span>
+            </div>
+            <div class="plan-summary-item">
+              <span class="plan-summary-item__label">Amount</span>
+              <span class="plan-summary-item__value">
+                $<%= number_with_precision(sub.annual_amount_dollars, precision: 2) %>/year
+              </span>
+            </div>
+          </div>
+        <% else %>
+          <p style="color: var(--color-text-muted); font-size: 0.875rem;">No active subscription found.</p>
+        <% end %>
+      </div>
+      <% if sub && sub.active_or_trial? %>
+        <div class="settings-card__footer" style="display: flex; gap: 0.75rem; align-items: center;">
+          <a href="#" class="btn-sm btn-sm-primary">↑ Upgrade Plan</a>
+          <% unless sub.status == "canceled" %>
+            <button class="btn-sm btn-sm-outline" style="color: var(--color-danger); border-color: var(--color-danger);"
+                onclick="document.getElementById('cancel-modal').classList.add('open')">
+              Cancel Subscription
+            </button>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Usage Meters -->
+    <% if sub %>
+      <div class="settings-card" style="margin-top: 1.25rem;">
+        <div class="settings-card__header">
+          <h2 class="settings-card__title">Usage — Current Billing Cycle</h2>
+          <span style="font-size: 0.8rem; color: var(--color-text-muted);">
+            Resets <%= sub.next_reset_date&.strftime("%b %d, %Y") || "—" %>
+          </span>
+        </div>
+        <div class="settings-card__body">
+          <%
+            meters = [
+              { label: "Property Reports",   type: :parcels, key: :parcels, reset: true  },
+              { label: "AVM & MLS Comps",    type: :avm,     key: :avm,     reset: true  },
+              { label: "Property Scope",     type: :scope,   key: :scope,   reset: true  }
+            ]
+          %>
+          <% meters.each do |m| %>
+            <%
+              used  = sub.send("used_#{m[:key]}")
+              limit = sub.send("limit_#{m[:key]}")
+              pct   = limit > 0 ? (used.to_f / limit * 100).round : 0
+              color = pct >= 90 ? 'var(--color-danger)' : pct >= 70 ? 'var(--color-warning)' : 'var(--color-success)'
+              label2 = pct >= 100 ? "Limit reached" : pct >= 90 ? "Almost at limit" : pct >= 70 ? "Running low" : ""
+            %>
+            <div class="usage-meter">
+              <div class="usage-meter__header">
+                <span class="usage-meter__label"><%= m[:label] %></span>
+                <span class="usage-meter__count" style="color: <%= color %>;">
+                  <%= used %> / <%= limit %>
+                  <% if label2.present? %> — <span style="font-size: 0.75rem;"><%= label2 %></span><% end %>
+                </span>
+              </div>
+              <div class="usage-meter__bar">
+                <div class="usage-meter__fill" style="width: <%= [pct, 100].min %>%; background: <%= color %>;"></div>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Title Search (lifetime bonus) -->
+          <% if sub.limit_title > 0 %>
+            <div class="usage-meter" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border);">
+              <div class="usage-meter__header">
+                <span class="usage-meter__label">Title Search <span style="font-size:0.75rem;color:var(--color-text-muted);">(lifetime bonus)</span></span>
+                <span class="usage-meter__count">
+                  <% if sub.respond_to?(:title_search_used) && sub.title_search_used %>
+                    <span style="color: var(--color-text-muted);">Used</span>
+                  <% else %>
+                    <span style="color: var(--color-success);">Available (1-time)</span>
+                  <% end %>
+                </span>
+              </div>
+            </div>
+          <% end %>
+
+          <% if sub.plan_name == "standard" %>
+            <p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--color-text-muted);">
+              ℹ️ Title Search is not included in the Standard plan.
+              <a href="#" style="color: var(--color-accent);">Upgrade to Pro or Premier</a> to access it.
+            </p>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+  <!-- ══ TAB 3: Payment ════════════════════════════════════════ -->
+  <% elsif @active_tab == "payment" %>
+    <div class="settings-card">
+      <div class="settings-card__header">
+        <h2 class="settings-card__title">Payment Method</h2>
+      </div>
+      <div class="settings-card__body">
+        <div class="card-display">
+          <div class="card-display__icon">💳</div>
+          <div class="card-display__info">
+            <div class="card-display__brand">Visa ending in ••••</div>
+            <div class="card-display__meta" style="color: var(--color-text-muted); font-size: 0.8rem;">
+              Payment method on file with Stripe
+            </div>
+          </div>
+          <button class="btn-sm btn-sm-outline" onclick="openUpdatePayment()">Update Card</button>
+        </div>
+        <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 1rem;">
+          🔒 Payments are securely processed by Stripe. We never store your card details.
+        </p>
+      </div>
+    </div>
+
+    <!-- Payment History -->
+    <div class="settings-card" style="margin-top: 1.25rem;">
+      <div class="settings-card__header">
+        <h2 class="settings-card__title">Payment History</h2>
+      </div>
+      <div class="settings-card__body">
+        <p style="font-size: 0.875rem; color: var(--color-text-muted);">
+          Detailed invoice history is available on your
+          <%= link_to "Stripe billing portal →", "#",
+              style: "color: var(--color-accent);",
+              onclick: "openBillingPortal(); return false;" %>.
+        </p>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<!-- Cancel Subscription Modal -->
+<div class="modal-backdrop" id="cancel-modal">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width: 480px;">
+    <div class="modal__header">
+      <h2 class="modal__title">Cancel Subscription?</h2>
+      <button class="modal__close"
+          onclick="document.getElementById('cancel-modal').classList.remove('open')"
+          aria-label="Close">&times;</button>
+    </div>
+    <div class="modal__body">
+      <div style="text-align: center; padding: 1rem 0.5rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+        <p style="font-size: 0.925rem; color: var(--color-text); line-height: 1.7; margin-bottom: 1.5rem;">
+          Are you sure you want to cancel your subscription?<br>
+          You'll retain access until <strong><%= @subscription&.next_reset_date&.strftime("%B %d, %Y") || "the end of your billing period" %></strong>.
+          Reports you've already purchased will remain available.
+        </p>
+        <%= form_with url: cancel_subscription_research_settings_path, method: :delete, local: true do |f| %>
+          <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+            <%= f.submit "Yes, Cancel Subscription",
+                class: "btn-sm",
+                style: "background: var(--color-danger); color: #fff; border-color: var(--color-danger); font-size: 0.875rem; padding: 0.6rem 1.25rem;" %>
+            <button type="button"
+                class="btn-sm btn-sm-outline"
+                onclick="document.getElementById('cancel-modal').classList.remove('open')">
+              Keep Subscription
+            </button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openUpdatePayment() {
+  alert('Payment update coming soon — Stripe Elements integration.');
+}
+function openBillingPortal() {
+  alert('Stripe billing portal link coming soon.');
+}
+</script>

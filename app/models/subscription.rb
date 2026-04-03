@@ -23,23 +23,37 @@ class Subscription < ApplicationRecord
   # ── Usage checks ───────────────────────────────────────────────
   def can_use?(type)
     return false unless active_or_trial?
-    send("used_#{type}") < send("limit_#{type}")
+    if type == :title
+      # Title Search is a one-time lifetime bonus
+      limit_title > 0 && !title_search_used?
+    else
+      send("used_#{type}") < send("limit_#{type}")
+    end
   end
 
   def usage_percent(type)
+    return (title_search_used? ? 100 : 0) if type == :title
     limit = send("limit_#{type}")
     return 0 if limit.zero?
     (send("used_#{type}").to_f / limit * 100).round
   end
 
-  # Returns :ok | :limit_reached
+  # Returns :ok; raises on failure
   def increment_usage!(type)
-    with_lock do
-      raise "Credit limit reached" unless can_use?(type)
-      increment!("used_#{type}")
+    if type == :title
+      with_lock do
+        raise "Title Search has already been used." if title_search_used?
+        update!(title_search_used: true)
+      end
+    else
+      with_lock do
+        raise "Credit limit reached" unless can_use?(type)
+        increment!("used_#{type}")
+      end
     end
     :ok
   end
+
 
   # ── Plans ──────────────────────────────────────────────────────
   def apply_plan_limits!

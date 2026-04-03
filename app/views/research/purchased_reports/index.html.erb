@@ -1,0 +1,314 @@
+<% content_for :title, "Reports — Tax Sale Resources" %>
+
+<div class="rn-content">
+  <div class="rn-page-header">
+    <div>
+      <h1 class="rn-page-title">Reports</h1>
+      <p class="rn-page-subtitle">Manage your purchased reports and research history</p>
+    </div>
+  </div>
+
+  <!-- Tab navigation -->
+  <div class="tab-nav" style="margin-bottom: 1.25rem;">
+    <%= link_to research_purchased_reports_path(tab: "reports"),
+        class: "tab-nav__btn #{'active' if @active_tab == 'reports'}",
+        id: "tab-reports" do %>
+      📋 Parcel Reports
+      <% if @reports.total_count > 0 %>
+        <span class="badge-count"><%= @reports.total_count %></span>
+      <% end %>
+    <% end %>
+    <%= link_to research_purchased_reports_path(tab: "prior_sales"),
+        class: "tab-nav__btn #{'active' if @active_tab == 'prior_sales'}",
+        id: "tab-prior" do %>
+      🏛 Prior Sale Results
+    <% end %>
+    <%= link_to research_purchased_reports_path(tab: "viewed"),
+        class: "tab-nav__btn #{'active' if @active_tab == 'viewed'}",
+        id: "tab-viewed" do %>
+      👁 Viewed Parcels
+      <% if @viewed_parcels.total_count > 0 %>
+        <span class="badge-count"><%= @viewed_parcels.total_count %></span>
+      <% end %>
+    <% end %>
+  </div>
+
+  <!-- ══ TAB 1: Parcel Reports ══════════════════════════════════ -->
+  <% if @active_tab == "reports" %>
+    <% if @reports.empty? %>
+      <div class="empty-state">
+        <div class="empty-state__icon">📋</div>
+        <h2 class="empty-state__title">No reports yet</h2>
+        <p class="empty-state__desc">
+          Order AVM, Property Scope, or Title Search reports from the
+          property detail view while browsing parcels.
+        </p>
+        <%= link_to "Browse Parcels →", research_parcels_path, class: "btn-sm btn-sm-primary" %>
+      </div>
+    <% else %>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Report Type</th>
+              <th>Requested</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @reports.each do |report| %>
+              <tr>
+                <td>
+                  <div style="font-weight: 600; color: var(--color-primary); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <%= report.parcel&.address || "—" %>
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">
+                    <%= [report.parcel&.county, report.parcel&.state].compact.join(", ") %>
+                  </div>
+                </td>
+                <td>
+                  <span class="report-type-badge report-type-<%= report.report_type %>">
+                    <%= report.type_label %>
+                  </span>
+                </td>
+                <td style="white-space: nowrap; font-size: 0.8rem;">
+                  <%= report.created_at.strftime("%b %d, %Y") %>
+                </td>
+                <td>
+                  <span class="badge badge-report-<%= report.status %>">
+                    <%= case report.status
+                        when "pending"   then "⏳ Processing…"
+                        when "ordered"   then "🔵 Processing…"
+                        when "generated" then "✅ Ready"
+                        when "failed"    then "❌ Failed"
+                        end %>
+                  </span>
+                </td>
+                <td>
+                  <% if report.generated? && report.respond_to?(:file_url) && report.file_url.present? %>
+                    <%= link_to "⬇ Download PDF", report.file_url, target: "_blank",
+                        class: "btn-sm btn-sm-success" %>
+                  <% elsif report.failed? %>
+                    <button class="btn-sm btn-sm-outline btn-retry"
+                        data-report-id="<%= report.id %>"
+                        data-parcel-id="<%= report.parcel_id %>"
+                        data-type="<%= report.report_type %>"
+                        onclick="retryReport(this)">
+                      🔄 Retry
+                    </button>
+                  <% else %>
+                    <span style="font-size: 0.8rem; color: var(--color-text-muted);">Processing…</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="pagination">
+          <span>Showing <%= @reports.offset_value + 1 %>–<%= [@reports.offset_value + @reports.length, @reports.total_count].min %> of <%= @reports.total_count %></span>
+          <div class="pagination__btns">
+            <% if @reports.current_page > 1 %>
+              <%= link_to "← Prev", research_purchased_reports_path(tab: "reports", page: @reports.current_page - 1), class: "pagination__btn" %>
+            <% else %>
+              <button class="pagination__btn" disabled>← Prev</button>
+            <% end %>
+            <span class="pagination__btn active"><%= @reports.current_page %></span>
+            <% if @reports.current_page < @reports.total_pages %>
+              <%= link_to "Next →", research_purchased_reports_path(tab: "reports", page: @reports.current_page + 1), class: "pagination__btn" %>
+            <% else %>
+              <button class="pagination__btn" disabled>Next →</button>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+  <!-- ══ TAB 2: Prior Sale Results ══════════════════════════════ -->
+  <% elsif @active_tab == "prior_sales" %>
+    <% if @prior_sales.empty? %>
+      <div class="empty-state">
+        <div class="empty-state__icon">🏛️</div>
+        <h2 class="empty-state__title">No prior sale results</h2>
+        <p class="empty-state__desc">
+          Properties you've researched from completed auctions will appear here,
+          allowing you to track sold vs. unsold outcomes.
+        </p>
+      </div>
+    <% else %>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Auction</th>
+              <th>Opening Bid</th>
+              <th>Sale Date</th>
+              <th>Researched</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @prior_sales.each do |vp| %>
+              <tr>
+                <td>
+                  <div style="font-weight: 600; color: var(--color-primary); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <%= vp.parcel&.address || "—" %>
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">
+                    APN: <%= vp.parcel&.parcel_id || "—" %>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-weight: 500;"><%= vp.parcel&.auction&.jurisdiction || "—" %></div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">
+                    Completed
+                  </div>
+                </td>
+                <td>
+                  <% if vp.parcel&.opening_bid %>
+                    $<%= number_with_delimiter(vp.parcel.opening_bid.to_i) %>
+                  <% else %>—<% end %>
+                </td>
+                <td style="font-size: 0.8rem; white-space: nowrap;">
+                  <%= vp.parcel&.auction&.sale_date&.strftime("%b %d, %Y") || "—" %>
+                </td>
+                <td style="font-size: 0.8rem; color: var(--color-text-muted); white-space: nowrap;">
+                  <%= vp.created_at.strftime("%b %d, %Y") %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span>Showing <%= @prior_sales.offset_value + 1 %>–<%= [@prior_sales.offset_value + @prior_sales.length, @prior_sales.total_count].min %> of <%= @prior_sales.total_count %></span>
+          <div class="pagination__btns">
+            <% if @prior_sales.current_page > 1 %>
+              <%= link_to "← Prev", research_purchased_reports_path(tab: "prior_sales", page: @prior_sales.current_page - 1), class: "pagination__btn" %>
+            <% else %>
+              <button class="pagination__btn" disabled>← Prev</button>
+            <% end %>
+            <span class="pagination__btn active"><%= @prior_sales.current_page %></span>
+            <% if @prior_sales.current_page < @prior_sales.total_pages %>
+              <%= link_to "Next →", research_purchased_reports_path(tab: "prior_sales", page: @prior_sales.current_page + 1), class: "pagination__btn" %>
+            <% else %>
+              <button class="pagination__btn" disabled>Next →</button>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+  <!-- ══ TAB 3: Viewed Parcels ══════════════════════════════════ -->
+  <% elsif @active_tab == "viewed" %>
+    <% if @viewed_parcels.empty? %>
+      <div class="empty-state">
+        <div class="empty-state__icon">👁</div>
+        <h2 class="empty-state__title">No viewed parcels yet</h2>
+        <p class="empty-state__desc">
+          Properties you open in the Parcels module will be tracked here.
+          Each view consumes one property report credit.
+        </p>
+        <%= link_to "Browse Parcels →", research_parcels_path, class: "btn-sm btn-sm-primary" %>
+      </div>
+    <% else %>
+      <div class="data-table-wrap">
+        <div style="padding: 0.65rem 1rem; background: #FEF3C7; border-bottom: 1px solid #FDE68A; font-size: 0.8rem; color: #92400E;">
+          ℹ️ You've used <strong><%= current_user.subscription&.used_parcels || 0 %></strong> of
+          <strong><%= current_user.subscription&.limit_parcels || 0 %></strong> property report credits this cycle.
+          Resets on <strong><%= current_user.subscription&.next_reset_date&.strftime("%B %d, %Y") || "—" %></strong>.
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Auction</th>
+              <th>Opening Bid</th>
+              <th>Viewed At</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @viewed_parcels.each do |vp| %>
+              <tr>
+                <td>
+                  <div style="font-weight: 600; color: var(--color-primary); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <%= vp.parcel&.address || "—" %>
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">
+                    <%= [vp.parcel&.county, vp.parcel&.state].compact.join(", ") %>
+                  </div>
+                </td>
+                <td>
+                  <div><%= vp.parcel&.auction&.jurisdiction || "—" %></div>
+                  <% if vp.parcel&.auction %>
+                    <span class="badge badge-<%= vp.parcel.auction.status %>"><%= vp.parcel.auction.status_label %></span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if vp.parcel&.opening_bid %>
+                    $<%= number_with_delimiter(vp.parcel.opening_bid.to_i) %>
+                  <% else %>—<% end %>
+                </td>
+                <td style="font-size: 0.8rem; white-space: nowrap; color: var(--color-text-muted);">
+                  <%= vp.created_at.strftime("%b %d, %Y %H:%M") %>
+                </td>
+                <td>
+                  <% if vp.parcel %>
+                    <%= link_to "View Again →", research_parcel_path(vp.parcel),
+                        class: "btn-sm btn-sm-outline",
+                        title: "Opens detail view (no additional credit charged)" %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span>Showing <%= @viewed_parcels.offset_value + 1 %>–<%= [@viewed_parcels.offset_value + @viewed_parcels.length, @viewed_parcels.total_count].min %> of <%= @viewed_parcels.total_count %></span>
+          <div class="pagination__btns">
+            <% if @viewed_parcels.current_page > 1 %>
+              <%= link_to "← Prev", research_purchased_reports_path(tab: "viewed", page: @viewed_parcels.current_page - 1), class: "pagination__btn" %>
+            <% else %>
+              <button class="pagination__btn" disabled>← Prev</button>
+            <% end %>
+            <span class="pagination__btn active"><%= @viewed_parcels.current_page %></span>
+            <% if @viewed_parcels.current_page < @viewed_parcels.total_pages %>
+              <%= link_to "Next →", research_purchased_reports_path(tab: "viewed", page: @viewed_parcels.current_page + 1), class: "pagination__btn" %>
+            <% else %>
+              <button class="pagination__btn" disabled>Next →</button>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<script>
+function retryReport(btn) {
+  var parcelId   = btn.dataset.parcelId;
+  var reportType = btn.dataset.type;
+  var csrfToken  = document.querySelector('meta[name="csrf-token"]')?.content;
+  btn.disabled   = true;
+  btn.textContent = '⏳ Retrying…';
+
+  fetch('<%= research_purchased_reports_path %>', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken, 'Accept': 'application/json' },
+    body: JSON.stringify({ parcel_id: parcelId, report_type: reportType })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) {
+      btn.disabled    = false;
+      btn.textContent = '🔄 Retry';
+      alert(d.error);
+    } else {
+      window.location.reload();
+    }
+  });
+}
+</script>
