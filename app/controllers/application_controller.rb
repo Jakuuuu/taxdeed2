@@ -11,7 +11,10 @@ class ApplicationController < ActionController::Base
   private
 
   def require_active_subscription!
-    unless current_user.subscription&.active_or_trial?
+    return if current_user.subscription&.active_or_trial?
+
+    # Evitar loop: solo redirigir si no estamos ya en subscription_required
+    unless request.path == subscription_required_path
       redirect_to subscription_required_path,
         alert: "Your subscription is inactive. Please renew to continue."
     end
@@ -19,6 +22,11 @@ class ApplicationController < ActionController::Base
 
   def require_credits!(type)
     subscription = current_user.subscription
+    unless subscription
+      redirect_to subscription_required_path, alert: "No active subscription found."
+      return
+    end
+
     subscription.with_lock do
       unless subscription.can_use?(type)
         flash[:alert] = "You have reached your #{type.to_s.humanize} limit for this billing period."

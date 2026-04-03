@@ -1,0 +1,81 @@
+<% content_for :title, "Subscription Required — Tax Sale Resources" %>
+
+<div style="
+  min-height: 100vh;
+  background: #0f2044;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+">
+  <div style="margin-bottom: 2rem; text-align: center;">
+    <h1 style="color: #fff; font-size: 1.75rem; font-weight: 800; margin: 0;">
+      Tax Sale <span style="color: #c9a84c;">Resources</span>
+    </h1>
+  </div>
+
+  <div style="
+    background: #fff;
+    border-radius: 16px;
+    padding: 2.5rem 3rem;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  ">
+    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔒</div>
+    <h2 style="color: #0f2044; font-size: 1.25rem; font-weight: 700; margin: 0 0 0.75rem;">
+      Subscription Required
+    </h2>
+    <p style="color: #718096; font-size: 0.9rem; margin: 0 0 2rem; line-height: 1.6;">
+      Your subscription is inactive or has been canceled.<br>
+      Please renew to regain access to the research platform.
+    </p>
+
+    <% if user_signed_in? %>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <%= link_to "Renew Subscription",
+            new_user_registration_path,
+            style: "
+              display: block;
+              padding: 12px 24px;
+              background: #c9a84c;
+              color: #fff;
+              border-radius: 8px;
+              text-decoration: none;
+              font-size: 0.875rem;
+              font-weight: 700;
+            " %>
+        <%= link_to "Sign Out",
+            destroy_user_session_path,
+            data: { turbo_method: :delete },
+            style: "
+              display: block;
+              padding: 10px 24px;
+              background: transparent;
+              color: #718096;
+              border-radius: 8px;
+              text-decoration: none;
+              font-size: 0.875rem;
+              font-weight: 500;
+              border: 1px solid #e2e8f0;
+            " %>
+      </div>
+    <% else %>
+      <%= link_to "Sign In",
+          new_user_session_path,
+          style: "
+            display: inline-block;
+            padding: 12px 32px;
+            background: #0f2044;
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+          " %>
+    <% end %>
+  </div>
+</div>

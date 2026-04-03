@@ -1,7 +1,18 @@
-﻿# config/sidekiq.yml
+# config/sidekiq.yml
 :concurrency: 5
 :queues:
   - critical
   - default
+  - data_sync
   - mailers
   - low
+
+# Sidekiq-cron: schedule automático
+:cron:
+  sync_sheet_job:
+    cron: "0 7 * * *"   # 3:00 AM ET = 7:00 AM UTC (producción)
+    class: SyncSheetJob
+    args:
+      - "<%= ENV['GOOGLE_SHEETS_SHEET_ID'] %>"
+    queue: data_sync
+    description: "Importar propiedades desde Google Sheets a PostgreSQL"
