@@ -1,0 +1,205 @@
+<% content_for :title, "#{@parcel.address} — Tax Sale Resources" %>
+
+<div class="rn-content">
+  <!-- Breadcrumb -->
+  <nav style="font-size: 0.8125rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
+    <% if @parcel.auction %>
+      <%= link_to "← Parcels", research_parcels_path(auction_id: @parcel.auction_id),
+          style: "color: var(--color-accent); font-weight: 500;" %>
+    <% else %>
+      <%= link_to "← Parcels", research_parcels_path,
+          style: "color: var(--color-accent); font-weight: 500;" %>
+    <% end %>
+    <span style="margin: 0 0.4rem;">/</span>
+    <%= @parcel.address || "Parcel #{@parcel.id}" %>
+  </nav>
+
+  <!-- Header -->
+  <div class="rn-page-header">
+    <div>
+      <h1 class="rn-page-title"><%= @parcel.address || "—" %></h1>
+      <p class="rn-page-subtitle">
+        <% if @parcel.parcel_id %>APN: <%= @parcel.parcel_id %> &nbsp;·&nbsp;<% end %>
+        <%= [@parcel.county, @parcel.state, @parcel.zip_code].compact.join(', ') %>
+      </p>
+    </div>
+    <% if @parcel.auction %>
+      <a href="<%= research_auction_path(@parcel.auction) %>" class="btn-sm btn-sm-outline">
+        View Auction →
+      </a>
+    <% end %>
+  </div>
+
+  <!-- ── Reports Section ────────────────────────────────────────── -->
+  <div class="data-table-wrap" style="margin-bottom: 1.25rem;">
+    <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border);">
+      <h2 style="font-size:0.875rem;font-weight:700;color:var(--color-primary);margin:0;">📋 Reports</h2>
+    </div>
+    <div style="padding: 1rem 1.25rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <%
+        report_defs = [
+          { type: "avm",            label: "Order AVM Report",     credit: :avm   },
+          { type: "property_scope", label: "Order Property Scope", credit: :scope },
+          { type: "title_search",   label: "Order Title Search",   credit: :title }
+        ]
+        report_defs.each do |rd|
+          existing = @reports.find { |r| r.report_type == rd[:type] }
+      %>
+        <% if existing&.generated? %>
+          <%= link_to "⬇ Download #{rd[:type] == 'avm' ? 'AVM' : rd[:type].humanize}",
+              existing.respond_to?(:file_url) ? (existing.file_url || '#') : '#',
+              target: '_blank', class: "btn-sm btn-sm-success" %>
+        <% elsif existing %>
+          <span class="btn-sm" style="background:#F1F3F4;color:#6C757D;cursor:default;">⏳ <%= rd[:type].humanize %> Ordered</span>
+        <% else %>
+          <button class="btn-sm btn-sm-outline" id="report-btn-<%= rd[:type] %>"
+              onclick="orderReportPage(<%= @parcel.id %>, '<%= rd[:type] %>', this)">
+            <%= rd[:label] %>
+          </button>
+        <% end %>
+      <% end %>
+    </div>
+    <div style="padding: 0 1.25rem 0.85rem; font-size: 0.75rem; color: var(--color-text-muted);">Credits are consumed when a report is ordered, not downloaded.</div>
+  </div>
+
+  <!-- ── Grid: Characteristics + Valuation ────────────────────── -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+
+    <!-- Characteristics -->
+    <div class="data-table-wrap">
+      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border);">
+        <h2 style="font-size:0.875rem;font-weight:700;color:var(--color-primary);margin:0;">🏠 Property Characteristics</h2>
+      </div>
+      <div style="padding: 1rem 1.25rem;">
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-item__label">Property Type</div><div class="detail-item__value"><%= @parcel.property_type || '—' %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Land Use</div><div class="detail-item__value"><%= @parcel.land_use || '—' %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Zoning</div><div class="detail-item__value"><%= @parcel.zoning || '—' %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Year Built</div><div class="detail-item__value"><%= @parcel.year_built || '—' %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Living Area</div><div class="detail-item__value"><%= @parcel.living_area_sqft ? "#{number_with_delimiter(@parcel.living_area_sqft)} sqft" : '—' %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Lot Size</div><div class="detail-item__value"><%= @parcel.lot_size_sqft ? "#{number_with_delimiter(@parcel.lot_size_sqft)} sqft" : '—' %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Bedrooms</div><div class="detail-item__value"><%= @parcel.bedrooms || '—' %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Bathrooms</div><div class="detail-item__value"><%= @parcel.bathrooms || '—' %></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Valuation -->
+    <div class="data-table-wrap">
+      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border);">
+        <h2 style="font-size:0.875rem;font-weight:700;color:var(--color-primary);margin:0;">💰 Property Valuation</h2>
+      </div>
+      <div style="padding: 1rem 1.25rem;">
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-item__label">Opening Bid</div><div class="detail-item__value" style="color:var(--color-primary);font-weight:800;"><% if @parcel.opening_bid %>$<%= number_with_delimiter(@parcel.opening_bid.to_i) %><% else %>—<% end %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Assessed Value</div><div class="detail-item__value"><% if @parcel.assessed_value %>$<%= number_with_delimiter(@parcel.assessed_value.to_i) %><% else %>—<% end %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Market Value</div><div class="detail-item__value"><% if @parcel.market_value %>$<%= number_with_delimiter(@parcel.market_value.to_i) %><% else %>—<% end %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Land Value</div><div class="detail-item__value"><% if @parcel.land_value %>$<%= number_with_delimiter(@parcel.land_value.to_i) %><% else %>—<% end %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Improvement Value</div><div class="detail-item__value"><% if @parcel.improvement_value %>$<%= number_with_delimiter(@parcel.improvement_value.to_i) %><% else %>—<% end %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Delinquent Amount</div><div class="detail-item__value" style="color:var(--color-danger);"><% if @parcel.delinquent_amount %>$<%= number_with_delimiter(@parcel.delinquent_amount.to_f.round(2)) %><% else %>—<% end %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Tax Year</div><div class="detail-item__value"><%= @parcel.tax_year || '—' %></div></div>
+          <div class="detail-item"><div class="detail-item__label">Sale Date</div><div class="detail-item__value"><%= @parcel.auction&.sale_date&.strftime("%b %d, %Y") || '—' %></div></div>
+        </div>
+
+        <!-- Investment calculator -->
+        <div style="margin-top:0.85rem;padding:0.85rem;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0;">
+          <p style="font-size:0.75rem;font-weight:700;color:#166534;margin-bottom:0.45rem;">📊 Investment Calculator</p>
+          <div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:0.85rem;color:#166534;">
+            <span>Max Bid 30%: <strong><% if @parcel.max_bid_30 %>$<%= number_with_delimiter(@parcel.max_bid_30.to_i) %><% else %>—<% end %></strong></span>
+            <span>Max Bid 35%: <strong><% if @parcel.max_bid_35 %>$<%= number_with_delimiter(@parcel.max_bid_35.to_i) %><% else %>—<% end %></strong></span>
+            <span>Bid +16%: <strong><% if @parcel.adjusted_value_16 %>$<%= number_with_delimiter(@parcel.adjusted_value_16.to_i) %><% else %>—<% end %></strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Liens ────────────────────────────────────────────────── -->
+  <div class="data-table-wrap" style="margin-bottom: 1.25rem;">
+    <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border);">
+      <h2 style="font-size:0.875rem;font-weight:700;color:var(--color-primary);margin:0;">📎 Mortgages & Liens</h2>
+    </div>
+    <% if @parcel.parcel_liens.any? %>
+      <div class="data-table-wrap" style="border:0;border-radius:0;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Lender</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Recorded</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @parcel.parcel_liens.each do |lien| %>
+              <tr>
+                <td><%= lien.lender || '—' %></td>
+                <td><%= lien.lien_type || '—' %></td>
+                <td><% if lien.amount %>$<%= number_with_delimiter(lien.amount.to_f.round(2)) %><% else %>—<% end %></td>
+                <td style="white-space:nowrap;font-size:0.8rem;"><%= lien.recorded_date&.strftime("%b %d, %Y") || '—' %></td>
+                <td>
+                  <span class="badge badge-<%= lien.status == 'active' ? 'active' : 'completed' %>">
+                    <%= lien.status&.capitalize || '—' %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p style="padding:1rem 1.25rem;color:var(--color-text-muted);font-size:0.875rem;">No recorded liens found for this parcel.</p>
+    <% end %>
+    <p style="padding:0 1.25rem 0.85rem;font-size:0.75rem;color:var(--color-text-muted);">ℹ️ In Tax Deed sales, liens are typically extinguished at auction. Shown for pre-sale title risk assessment only.</p>
+  </div>
+
+  <!-- ── Visual Tools ──────────────────────────────────────────── -->
+  <% if @parcel.has_coords? && @api_key.present? %>
+    <div class="data-table-wrap" style="margin-bottom: 1.25rem;">
+      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border);">
+        <h2 style="font-size:0.875rem;font-weight:700;color:var(--color-primary);margin:0;">🗺 Visual Tools</h2>
+      </div>
+      <div style="padding: 1rem 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div>
+          <p style="font-size:0.75rem;font-weight:700;color:var(--color-text-muted);margin-bottom:0.45rem;">Street View</p>
+          <iframe src="<%= @parcel.street_view_url(@api_key) %>"
+                  width="100%" height="240" frameborder="0"
+                  style="border-radius:8px;border:none;" allowfullscreen></iframe>
+        </div>
+        <div>
+          <p style="font-size:0.75rem;font-weight:700;color:var(--color-text-muted);margin-bottom:0.45rem;">Parcel Map</p>
+          <iframe src="https://www.google.com/maps/embed/v1/place?key=<%= @api_key %>&q=<%= @parcel.latitude %>,<%= @parcel.longitude %>&zoom=16"
+                  width="100%" height="240" frameborder="0"
+                  style="border-radius:8px;border:none;" allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<script>
+function orderReportPage(parcelId, reportType, btn) {
+  btn.disabled = true;
+  btn.textContent = '⏳ Ordering…';
+  var csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+  fetch('<%= research_purchased_reports_path %>', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken, 'Accept': 'application/json' },
+    body: JSON.stringify({ parcel_id: parcelId, report_type: reportType })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    if (d.error) {
+      btn.disabled = false;
+      btn.textContent = btn.dataset.label || 'Order';
+      alert(d.error);
+    } else {
+      btn.style.background = '#F1F3F4';
+      btn.style.color = '#6C757D';
+      btn.style.borderColor = '#E0E0E0';
+      btn.textContent = '⏳ Ordered';
+    }
+  });
+}
+</script>

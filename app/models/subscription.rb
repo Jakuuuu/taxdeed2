@@ -1,4 +1,4 @@
-﻿# frozen_string_literal: true
+# frozen_string_literal: true
 
 class Subscription < ApplicationRecord
   belongs_to :user
@@ -11,10 +11,16 @@ class Subscription < ApplicationRecord
 
   TRIAL_LIMITS = { parcels: 10, avm: 0, scope: 0, title: 0 }.freeze
 
+  # ── Status ─────────────────────────────────────────────────────
   def active_or_trial?
     status.in?(%w[trial active])
   end
 
+  def trial?   = status == "trial"
+  def active?  = status == "active"
+  def past_due? = status == "past_due"
+
+  # ── Usage checks ───────────────────────────────────────────────
   def can_use?(type)
     return false unless active_or_trial?
     send("used_#{type}") < send("limit_#{type}")
@@ -26,7 +32,16 @@ class Subscription < ApplicationRecord
     (send("used_#{type}").to_f / limit * 100).round
   end
 
-  # Aplicar limites del plan al crear/cambiar plan
+  # Returns :ok | :limit_reached
+  def increment_usage!(type)
+    with_lock do
+      raise "Credit limit reached" unless can_use?(type)
+      increment!("used_#{type}")
+    end
+    :ok
+  end
+
+  # ── Plans ──────────────────────────────────────────────────────
   def apply_plan_limits!
     limits = PLAN_LIMITS.fetch(plan_name, PLAN_LIMITS["standard"])
     update!(
@@ -36,5 +51,19 @@ class Subscription < ApplicationRecord
       limit_title:         limits[:title],
       annual_amount_cents: limits[:annual_cents]
     )
+  end
+
+  def plan_label
+    plan_name&.capitalize || "Standard"
+  end
+
+  # ── Billing helpers ────────────────────────────────────────────
+  def annual_amount_dollars
+    return 0 unless annual_amount_cents
+    annual_amount_cents / 100.0
+  end
+
+  def next_reset_date
+    current_period_end || (created_at + 1.year)
   end
 end

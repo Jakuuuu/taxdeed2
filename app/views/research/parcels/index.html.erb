@@ -1,69 +1,555 @@
-<% content_for :title, "Tax Sale Resources" %>
+<% content_for :title, "Property Search — Tax Sale Resources" %>
 
-<div style="
-  min-height: 100vh;
-  background: #0f2044;
-  font-family: 'Inter', sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-">
-  <!-- Logo -->
-  <div style="margin-bottom: 2.5rem; text-align: center;">
-    <h1 style="color: #fff; font-size: 1.75rem; font-weight: 800; margin: 0;">
-      Tax Sale <span style="color: #c9a84c;">Resources</span>
-    </h1>
-  </div>
-
-  <!-- Card -->
-  <div style="
+<% content_for :head do %>
+<style>
+  .parcels-topbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.25rem;
     background: #fff;
-    border-radius: 16px;
-    padding: 2.5rem 3rem;
-    max-width: 480px;
+    border-bottom: 1px solid var(--color-border, #DEE2E6);
+    flex-wrap: wrap;
+  }
+  .auction-selector-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1.5px solid var(--color-primary);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--color-primary);
+    font-family: var(--font);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .auction-selector-btn:hover { background: var(--color-accent-light, #EBF5FB); }
+  .auction-selector-btn.has-auction { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+  .inline-search { flex: 1; min-width: 200px; max-width: 380px; }
+  .inline-search input {
     width: 100%;
+    padding: 0.5rem 0.85rem;
+    border: 1.5px solid var(--color-border, #DEE2E6);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .inline-search input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(30,58,95,.08); }
+  .per-page-select {
+    padding: 0.45rem 0.65rem;
+    border: 1.5px solid var(--color-border, #DEE2E6);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-family: var(--font);
+    outline: none;
+    color: var(--color-text);
+    background: #fff;
+  }
+  .results-meta { margin-left: auto; font-size: 0.8rem; color: var(--color-text-muted, #6C757D); white-space: nowrap; }
+  .parcel-table-wrap { flex: 1; overflow: auto; }
+  .empty-auction-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
     text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  ">
-    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🏠</div>
-    <h2 style="color: #0f2044; font-size: 1.25rem; font-weight: 700; margin: 0 0 0.75rem;">
-      Account active
-    </h2>
-    <p style="color: #718096; font-size: 0.9rem; margin: 0 0 0.5rem; line-height: 1.6;">
-      Welcome, <strong><%= current_user.first_name %></strong>.
-      Your account is set up and your subscription is being configured.
-    </p>
-    <% if current_user.subscription %>
-      <p style="color: #718096; font-size: 0.85rem; margin: 0 0 2rem;">
-        Plan: <strong style="color: #0f2044;"><%= current_user.subscription.plan_name&.capitalize %></strong>
-        &nbsp;·&nbsp;
-        Status: <strong style="color: #276749;"><%= current_user.subscription.status&.capitalize %></strong>
-      </p>
-    <% else %>
-      <p style="color: #718096; font-size: 0.85rem; margin: 0 0 2rem;">
-        Setting up your subscription...
-      </p>
-    <% end %>
+    padding: 2rem;
+  }
+  .empty-auction-state__icon { font-size: 3.5rem; margin-bottom: 1.25rem; }
+  .empty-auction-state__title { font-size: 1.25rem; font-weight: 700; color: var(--color-primary); margin-bottom: 0.5rem; }
+  .empty-auction-state__desc { font-size: 0.9rem; color: var(--color-text-muted); max-width: 380px; line-height: 1.6; margin-bottom: 1.75rem; }
 
-    <div style="padding: 1rem; background: #f0f4f8; border-radius: 10px; margin-bottom: 2rem; font-size: 0.82rem; color: #4a5568; line-height: 1.5;">
-      🚧 The research platform is being prepared.<br>You'll be notified when it's ready.
+  /* Auction picker modal table */
+  .auction-picker-table td, .auction-picker-table th { padding: 0.7rem 1rem; }
+  .auction-picker-row { cursor: pointer; transition: background 0.1s; }
+  .auction-picker-row:hover td { background: var(--color-accent-light, #EBF5FB); }
+
+  /* Limit gate modal */
+  .limit-gate { text-align: center; padding: 2rem 1.5rem; }
+  .limit-gate__icon { font-size: 3rem; margin-bottom: 1rem; }
+  .limit-gate__title { font-size: 1.15rem; font-weight: 700; color: var(--color-primary); margin-bottom: 0.5rem; }
+  .limit-gate__desc { font-size: 0.9rem; color: var(--color-text-muted); line-height: 1.6; margin-bottom: 1.75rem; }
+  .limit-gate__actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+</style>
+<% end %>
+
+<div style="display: flex; flex-direction: column; height: calc(100vh - var(--rn-header-h)); overflow: hidden;">
+
+  <!-- Top Bar with filters and auction picker -->
+  <%= form_with url: research_parcels_path, method: :get, local: true, id: "parcel-filter-form" do |f| %>
+    <%= f.hidden_field :auction_id, value: params[:auction_id] %>
+
+    <div class="parcels-topbar">
+      <!-- Auction Picker Button -->
+      <button type="button"
+              class="auction-selector-btn <%= 'has-auction' if @auction %>"
+              onclick="openAuctionPicker()">
+        🏛
+        <% if @auction %>
+          <%= @auction.jurisdiction %>
+        <% else %>
+          Select Auction
+        <% end %>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+
+      <!-- Inline search -->
+      <% if @auction %>
+        <div class="inline-search">
+          <%= f.text_field :q, value: params[:q], placeholder: "Search address, parcel ID…", id: "parcel-search",
+              style: "width: 100%; padding: 0.5rem 0.85rem; border: 1.5px solid var(--color-border); border-radius: 8px; font-size: 0.875rem; font-family: var(--font); outline: none;" %>
+        </div>
+
+        <!-- Per page -->
+        <select class="per-page-select" name="per_page" onchange="this.form.submit()">
+          <% [25, 50, 100].each do |n| %>
+            <option value="<%= n %>" <%= 'selected' if @per_page.to_i == n %>><%= n %> per page</option>
+          <% end %>
+        </select>
+
+        <button type="submit" class="btn-sm btn-sm-primary">Search</button>
+      <% end %>
+
+      <!-- Results meta -->
+      <% if @auction && @parcels.respond_to?(:total_count) %>
+        <span class="results-meta"><%= @parcels.total_count %> parcels</span>
+      <% end %>
     </div>
+  <% end %>
 
-    <%= link_to destroy_user_session_path,
-        data: { turbo_method: :delete },
-        style: "
-          display: inline-block;
-          padding: 10px 24px;
-          background: #0f2044;
-          color: #fff;
-          border-radius: 8px;
-          text-decoration: none;
-          font-size: 0.875rem;
-          font-weight: 600;
-        " do %>
-      Sign out
+  <!-- Main content -->
+  <div class="parcel-table-wrap">
+    <% if @auction.nil? %>
+      <!-- Empty state: no auction selected -->
+      <div class="empty-auction-state">
+        <div class="empty-auction-state__icon">🏛️</div>
+        <h1 class="empty-auction-state__title">Select an Auction to Begin</h1>
+        <p class="empty-auction-state__desc">
+          Choose a Tax Deed auction from the list to browse its properties,
+          filter by criteria, and view detailed parcel information.
+        </p>
+        <button type="button" class="btn-sm btn-sm-primary" style="font-size: 0.9375rem; padding: 0.65rem 1.5rem;" onclick="openAuctionPicker()">
+          🏛 Select Auction
+        </button>
+      </div>
+    <% elsif @parcels.empty? %>
+      <div class="empty-state" style="padding: 4rem 2rem;">
+        <div class="empty-state__icon">🔍</div>
+        <h2 class="empty-state__title">No parcels match your search</h2>
+        <p class="empty-state__desc">Try adjusting your search terms or clearing the filters.</p>
+        <%= link_to "Clear Search", research_parcels_path(auction_id: @auction.id), class: "btn-sm btn-sm-outline" %>
+      </div>
+    <% else %>
+      <div class="data-table-wrap" style="border-radius: 0; border-left: 0; border-right: 0; border-top: 0;">
+        <table class="data-table" id="parcels-table">
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Parcel ID</th>
+              <th>County / State</th>
+              <th>Opening Bid</th>
+              <th>Assessed Value</th>
+              <th>Max Bid (30%)</th>
+              <th>Delinquent</th>
+              <th>Sale Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @parcels.each do |parcel| %>
+              <tr class="parcel-row"
+                  data-parcel-id="<%= parcel.id %>"
+                  data-action="click->parcel#openDetail"
+                  onclick="openParcelDetail(<%= parcel.id %>)"
+                  style="cursor: pointer;">
+                <td>
+                  <div style="font-weight: 600; color: var(--color-accent); cursor: pointer; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <%= parcel.address || '—' %>
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">
+                    <%= [parcel.city, parcel.zip_code].compact.join(' ') %>
+                  </div>
+                </td>
+                <td style="font-family: monospace; font-size: 0.8rem;"><%= parcel.parcel_id || '—' %></td>
+                <td>
+                  <div><%= parcel.county %></div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-muted);"><%= parcel.state %></div>
+                </td>
+                <td><strong><% if parcel.opening_bid %>$<%= number_with_delimiter(parcel.opening_bid.to_i) %><% else %>—<% end %></strong></td>
+                <td><% if parcel.assessed_value %>$<%= number_with_delimiter(parcel.assessed_value.to_i) %><% else %>—<% end %></td>
+                <td>
+                  <% if parcel.max_bid_30 %>
+                    <span style="color: var(--color-success); font-weight: 600;">$<%= number_with_delimiter(parcel.max_bid_30.to_i) %></span>
+                  <% else %>—<% end %>
+                </td>
+                <td>
+                  <% if parcel.delinquent_amount %>
+                    <span style="color: var(--color-danger);">$<%= number_with_delimiter(parcel.delinquent_amount.to_f.round(2)) %></span>
+                  <% else %>—<% end %>
+                </td>
+                <td style="white-space: nowrap; font-size: 0.8rem;">
+                  <%= parcel.auction&.sale_date&.strftime("%b %d, %Y") || '—' %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="pagination">
+          <span>
+            Showing <%= [@parcels.offset_value + 1, @parcels.total_count].min %>–<%= [@parcels.offset_value + @parcels.length, @parcels.total_count].min %>
+            of <%= @parcels.total_count %> parcels
+          </span>
+          <div class="pagination__btns">
+            <% if @parcels.current_page > 1 %>
+              <%= link_to "← Prev", research_parcels_path(request.query_parameters.merge(page: @parcels.current_page - 1)),
+                  class: "pagination__btn" %>
+            <% else %>
+              <button class="pagination__btn" disabled>← Prev</button>
+            <% end %>
+
+            <span class="pagination__btn active"><%= @parcels.current_page %></span>
+
+            <% if @parcels.current_page < @parcels.total_pages %>
+              <%= link_to "Next →", research_parcels_path(request.query_parameters.merge(page: @parcels.current_page + 1)),
+                  class: "pagination__btn" %>
+            <% else %>
+              <button class="pagination__btn" disabled>Next →</button>
+            <% end %>
+          </div>
+        </div>
+      </div>
     <% end %>
   </div>
 </div>
+
+<!-- ══ AUCTION PICKER MODAL ══════════════════════════════════════ -->
+<div class="modal-backdrop" id="auction-picker-modal" onclick="closeAuctionPicker(event)">
+  <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+    <div class="modal__header">
+      <div>
+        <h2 class="modal__title" id="picker-title">Select Auction</h2>
+        <p class="modal__subtitle">Tax Deed auctions — upcoming and active</p>
+      </div>
+      <button class="modal__close" onclick="closeAuctionPickerDirect()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal__body" style="padding: 0;">
+      <% if @auctions.any? %>
+        <div class="data-table-wrap" style="border: 0; border-radius: 0;">
+          <table class="data-table auction-picker-table">
+            <thead>
+              <tr>
+                <th>Jurisdiction</th>
+                <th>Sale Date</th>
+                <th>Parcels</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @auctions.each do |auction| %>
+                <tr class="auction-picker-row"
+                    onclick="selectAuction(<%= auction.id %>, '<%= j auction.jurisdiction %>')">
+                  <td>
+                    <div style="font-weight: 600; color: var(--color-primary);"><%= auction.county %></div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted);"><%= auction.state %></div>
+                  </td>
+                  <td style="white-space: nowrap;"><%= auction.sale_date&.strftime("%b %d, %Y") || '—' %></td>
+                  <td><strong><%= auction.parcel_count || 0 %></strong></td>
+                  <td>
+                    <% if auction.total_amount&.positive? %>
+                      $<%= number_with_delimiter(auction.total_amount.to_i) %>
+                    <% else %>—<% end %>
+                  </td>
+                  <td><span class="badge badge-<%= auction.status %>"><%= auction.status_label %></span></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="empty-state" style="padding: 3rem;">
+          <div class="empty-state__icon">🏛️</div>
+          <p class="empty-state__title">No auctions available</p>
+          <p class="empty-state__desc">Check back after the next data sync, which runs daily at 3 AM ET.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PARCEL DETAIL MODAL ═══════════════════════════════════════ -->
+<div class="modal-backdrop" id="parcel-detail-modal" onclick="closeParcelModal(event)">
+  <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="parcel-modal-title" style="max-width: 820px;">
+    <div class="modal__header">
+      <div>
+        <h2 class="modal__title" id="parcel-modal-title">Property Details</h2>
+        <p class="modal__subtitle" id="parcel-modal-subtitle"></p>
+      </div>
+      <button class="modal__close" onclick="closeParcelModalDirect()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal__body" id="parcel-modal-body">
+      <div style="text-align: center; padding: 3rem; color: var(--color-text-muted);">
+        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⏳</div>
+        Loading property details…
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PARCEL LIMIT GATE MODAL ═══════════════════════════════════ -->
+<div class="modal-backdrop" id="limit-gate-modal">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width: 460px;">
+    <div class="modal__header">
+      <h2 class="modal__title">Annual Parcel Limit Reached</h2>
+      <button class="modal__close" onclick="document.getElementById('limit-gate-modal').classList.remove('open')" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal__body">
+      <div class="limit-gate">
+        <div class="limit-gate__icon">🔒</div>
+        <h3 class="limit-gate__title">You've reached your property view limit</h3>
+        <p class="limit-gate__desc" id="limit-gate-desc">
+          You've used all your property report credits for this billing period.
+          Upgrade your plan to continue researching properties.
+        </p>
+        <div class="limit-gate__actions">
+          <a href="<%= research_settings_path %>" class="btn-sm btn-sm-primary" style="font-size: 0.9rem; padding: 0.6rem 1.5rem;">
+            Upgrade Plan
+          </a>
+          <button class="btn-sm btn-sm-outline" onclick="document.getElementById('limit-gate-modal').classList.remove('open')">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── CREDIT USAGE BANNER ──────────────────────────────────────
+  <% if current_user.subscription %>
+  (function() {
+    var used  = <%= current_user.subscription.used_parcels %>;
+    var limit = <%= current_user.subscription.limit_parcels %>;
+    var pct   = limit > 0 ? Math.round(used / limit * 100) : 0;
+    if (pct >= 70) {
+      var banner = document.createElement('div');
+      banner.style.cssText = 'background: ' + (pct >= 90 ? '#FEE2E2' : '#FEF3C7') + '; color: ' + (pct >= 90 ? '#991B1B' : '#92400E') + '; padding: 0.6rem 1.25rem; font-size: 0.8125rem; font-weight: 500; text-align: center; border-bottom: 1px solid ' + (pct >= 90 ? '#FECACA' : '#FDE68A') + ';';
+      banner.textContent = (pct >= 90 ? '🔴' : '🟡') + ' Property Reports: ' + used + ' / ' + limit + ' used (' + pct + '%)' + (pct >= 90 ? ' — Upgrade recommended.' : ' — Running low.');
+      document.querySelector('.rn-main').prepend(banner);
+    }
+  })();
+  <% end %>
+
+  // ── AUCTION PICKER ───────────────────────────────────────────
+  function openAuctionPicker() {
+    document.getElementById('auction-picker-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeAuctionPicker(e) {
+    if (e.target === document.getElementById('auction-picker-modal')) closeAuctionPickerDirect();
+  }
+  function closeAuctionPickerDirect() {
+    document.getElementById('auction-picker-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function selectAuction(id, label) {
+    document.getElementById('auction-picker-modal').classList.remove('open');
+    document.body.style.overflow = '';
+    window.location.href = '<%= research_parcels_path %>?auction_id=' + id;
+  }
+
+  // ── PARCEL DETAIL MODAL ──────────────────────────────────────
+  function openParcelDetail(parcelId) {
+    var modal = document.getElementById('parcel-detail-modal');
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    fetch('<%= research_parcels_path %>/' + parcelId + '.json', {
+      headers: { 'Accept': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content }
+    })
+    .then(function(r) {
+      if (r.status === 402) {
+        modal.classList.remove('open');
+        document.getElementById('limit-gate-modal').classList.add('open');
+        return null;
+      }
+      if (!r.ok) throw new Error('Network error');
+      return r.json();
+    })
+    .then(function(d) {
+      if (!d) return;
+      renderParcelModal(d);
+    })
+    .catch(function(e) {
+      document.getElementById('parcel-modal-body').innerHTML =
+        '<div style="text-align:center;padding:3rem;color:var(--color-danger);">⚠️ Failed to load property details. Please try again.</div>';
+    });
+  }
+
+  function closeParcelModal(e) {
+    if (e.target === document.getElementById('parcel-detail-modal')) closeParcelModalDirect();
+  }
+  function closeParcelModalDirect() {
+    document.getElementById('parcel-detail-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function fmt(n) { return n != null ? '$' + Math.round(n).toLocaleString() : '—'; }
+  function val(v) { return v != null && v !== '' ? v : '—'; }
+
+  function renderParcelModal(d) {
+    document.getElementById('parcel-modal-title').textContent = d.address || 'Property Details';
+    document.getElementById('parcel-modal-subtitle').textContent =
+      [d.parcel_id ? 'APN: ' + d.parcel_id : null, d.county, d.state, d.zip_code].filter(Boolean).join(' · ');
+
+    var googleMapsKey = '<%= ENV["GOOGLE_MAPS_API_KEY"] %>';
+    var streetViewHtml = d.latitude && d.longitude && googleMapsKey
+      ? '<iframe src="https://www.google.com/maps/embed/v1/streetview?key=' + googleMapsKey + '&location=' + d.latitude + ',' + d.longitude + '&fov=90" width="100%" height="220" frameborder="0" style="border-radius:8px;border:none;" allowfullscreen></iframe>'
+      : '';
+    var mapHtml = d.latitude && d.longitude && googleMapsKey
+      ? '<iframe src="https://www.google.com/maps/embed/v1/place?key=' + googleMapsKey + '&q=' + d.latitude + ',' + d.longitude + '&zoom=16" width="100%" height="200" frameborder="0" style="border-radius:8px;border:none;" allowfullscreen></iframe>'
+      : '';
+
+    // Reports section
+    var reportTypes = [
+      { key: 'avm',            label: 'Order AVM Report',     creditKey: 'avm' },
+      { key: 'property_scope', label: 'Order Property Scope', creditKey: 'scope' },
+      { key: 'title_search',   label: 'Order Title Search',   creditKey: 'title' }
+    ];
+    var reportsHtml = '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;">';
+    reportTypes.forEach(function(rt) {
+      var existing = d.reports ? d.reports.find(function(r){ return r.type === rt.key; }) : null;
+      if (existing && existing.status === 'generated') {
+        reportsHtml += '<a href="' + (existing.file_url || '#') + '" target="_blank" class="btn-sm btn-sm-success">⬇ Download ' + (rt.key === 'avm' ? 'AVM' : rt.key === 'property_scope' ? 'Scope' : 'Title') + '</a>';
+      } else if (existing) {
+        reportsHtml += '<span class="btn-sm" style="background:#F1F3F4;color:#6C757D;cursor:default;">⏳ ' + (rt.key === 'avm' ? 'AVM' : rt.key === 'property_scope' ? 'Scope' : 'Title') + ' Ordered</span>';
+      } else {
+        reportsHtml += '<button class="btn-sm btn-sm-outline" onclick="orderReport(' + d.id + ',\'' + rt.key + '\')">' + rt.label + '</button>';
+      }
+    });
+    reportsHtml += '</div>';
+
+    // Liens section
+    var liensHtml = '';
+    if (d.liens && d.liens.length > 0) {
+      liensHtml = '<table class="data-table" style="font-size:0.8rem;"><thead><tr><th>Lender</th><th>Type</th><th>Amount</th><th>Recorded</th><th>Status</th></tr></thead><tbody>';
+      d.liens.forEach(function(l) {
+        liensHtml += '<tr><td>' + val(l.lender) + '</td><td>' + val(l.lien_type) + '</td><td>' + fmt(l.amount) + '</td><td>' + val(l.recorded_date) + '</td><td>' + val(l.status) + '</td></tr>';
+      });
+      liensHtml += '</tbody></table>';
+    } else {
+      liensHtml = '<p style="color:var(--color-text-muted);font-size:0.875rem;">No recorded liens found.</p>';
+    }
+
+    document.getElementById('parcel-modal-body').innerHTML = `
+      <!-- 1. Reports -->
+      <div class="accordion is-open" id="acc-reports">
+        <button class="accordion__trigger" onclick="toggleAccordion('acc-reports')">
+          📋 Reports <span class="accordion__icon">▾</span>
+        </button>
+        <div class="accordion__body">
+          ${reportsHtml}
+          <p style="font-size:0.75rem;color:var(--color-text-muted);">Credits are consumed when a report is ordered, not downloaded.</p>
+        </div>
+      </div>
+
+      <!-- 2. Property Characteristics -->
+      <div class="accordion is-open" id="acc-chars">
+        <button class="accordion__trigger" onclick="toggleAccordion('acc-chars')">
+          🏠 Property Characteristics <span class="accordion__icon">▾</span>
+        </button>
+        <div class="accordion__body">
+          <div class="detail-grid">
+            <div class="detail-item"><div class="detail-item__label">Property Type</div><div class="detail-item__value">${val(d.property_type)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Land Use</div><div class="detail-item__value">${val(d.land_use)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Zoning</div><div class="detail-item__value">${val(d.zoning)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Year Built</div><div class="detail-item__value">${val(d.year_built)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Living Area</div><div class="detail-item__value">${d.living_area_sqft ? d.living_area_sqft.toLocaleString() + ' sqft' : '—'}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Lot Size</div><div class="detail-item__value">${d.lot_size_sqft ? d.lot_size_sqft.toLocaleString() + ' sqft' : '—'}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Bedrooms</div><div class="detail-item__value">${val(d.bedrooms)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Bathrooms</div><div class="detail-item__value">${val(d.bathrooms)}</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Valuation -->
+      <div class="accordion is-open" id="acc-val">
+        <button class="accordion__trigger" onclick="toggleAccordion('acc-val')">
+          💰 Property Valuation <span class="accordion__icon">▾</span>
+        </button>
+        <div class="accordion__body">
+          <div class="detail-grid">
+            <div class="detail-item"><div class="detail-item__label">Opening Bid</div><div class="detail-item__value" style="color:var(--color-primary);font-weight:700;">${fmt(d.opening_bid)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Assessed Value</div><div class="detail-item__value">${fmt(d.assessed_value)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Market Value</div><div class="detail-item__value">${fmt(d.market_value)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Land Value</div><div class="detail-item__value">${fmt(d.land_value)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Improvement Value</div><div class="detail-item__value">${fmt(d.improvement_value)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Delinquent Amount</div><div class="detail-item__value" style="color:var(--color-danger);">${d.delinquent_amount != null ? '$' + d.delinquent_amount.toFixed(2) : '—'}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Tax Year</div><div class="detail-item__value">${val(d.tax_year)}</div></div>
+            <div class="detail-item"><div class="detail-item__label">Sale Date</div><div class="detail-item__value">${val(d.sale_date)}</div></div>
+          </div>
+          <div style="margin-top:1rem;padding:0.85rem 1rem;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0;">
+            <p style="font-size:0.8rem;font-weight:600;color:#166534;margin-bottom:0.5rem;">📊 Investment Calculator</p>
+            <div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:0.85rem;color:#166534;">
+              <span>Max Bid 30%: <strong>${fmt(d.max_bid_30)}</strong></span>
+              <span>Max Bid 35%: <strong>${fmt(d.max_bid_35)}</strong></span>
+              <span>Bid +16%: <strong>${fmt(d.adjusted_value_16)}</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Liens -->
+      <div class="accordion" id="acc-liens">
+        <button class="accordion__trigger" onclick="toggleAccordion('acc-liens')">
+          📎 Mortgages & Liens <span class="accordion__icon">▾</span>
+        </button>
+        <div class="accordion__body">
+          <p style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:0.75rem;">ℹ️ In Tax Deed sales, liens are typically extinguished at auction. Shown for pre-sale title risk assessment only.</p>
+          ${liensHtml}
+        </div>
+      </div>
+
+      <!-- 5. Visual Tools -->
+      ${(streetViewHtml || mapHtml) ? `
+      <div class="accordion" id="acc-maps">
+        <button class="accordion__trigger" onclick="toggleAccordion('acc-maps')">
+          🗺 Visual Tools <span class="accordion__icon">▾</span>
+        </button>
+        <div class="accordion__body">
+          ${streetViewHtml ? '<p style="font-size:0.8rem;font-weight:600;color:var(--color-text-muted);margin-bottom:0.5rem;">Street View</p>' + streetViewHtml : ''}
+          ${mapHtml ? '<p style="font-size:0.8rem;font-weight:600;color:var(--color-text-muted);margin:0.75rem 0 0.5rem;">Parcel Map</p>' + mapHtml : ''}
+        </div>
+      </div>` : ''}
+    `;
+  }
+
+  function toggleAccordion(id) {
+    document.getElementById(id).classList.toggle('is-open');
+  }
+
+  function orderReport(parcelId, reportType) {
+    var csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    fetch('<%= research_purchased_reports_path %>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken, 'Accept': 'application/json' },
+      body: JSON.stringify({ parcel_id: parcelId, report_type: reportType })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) {
+        alert(d.error);
+      } else {
+        openParcelDetail(parcelId); // Refresh modal
+      }
+    });
+  }
+</script>

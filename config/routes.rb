@@ -17,7 +17,7 @@ Rails.application.routes.draw do
   namespace :research do
     resources :parcels,           only: [:index, :show]
     resources :auctions,          only: [:index, :show]
-    resources :purchased_reports, only: [:index]
+    resources :purchased_reports, only: [:index, :create]
     resource  :settings,          only: [:show] do
       patch  :profile
       delete :subscription, action: :cancel_subscription
