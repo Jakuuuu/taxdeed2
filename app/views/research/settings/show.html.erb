@@ -273,7 +273,7 @@
           You'll retain access until <strong><%= @subscription&.next_reset_date&.strftime("%B %d, %Y") || "the end of your billing period" %></strong>.
           Reports you've already purchased will remain available.
         </p>
-        <%= form_with url: cancel_subscription_research_settings_path, method: :delete, local: true do |f| %>
+        <%= form_with url: subscription_research_settings_path, method: :delete, local: true do |f| %>
           <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
             <%= f.submit "Yes, Cancel Subscription",
                 class: "btn-sm",
