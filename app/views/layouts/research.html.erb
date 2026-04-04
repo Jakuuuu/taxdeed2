@@ -54,9 +54,9 @@
           <div class="rn-dropdown">
             <a href="<%= research_settings_path %>" class="rn-dropdown__item">Settings</a>
             <div class="rn-dropdown__divider"></div>
-            <%= link_to "Sign out", destroy_user_session_path,
-                data: { turbo_method: :delete },
-                class: "rn-dropdown__item rn-dropdown__item--danger" %>
+            <%= form_with url: destroy_user_session_path, method: :delete, local: true, style: "display:inline;" do %>
+              <button type="submit" class="rn-dropdown__item rn-dropdown__item--danger" style="width:100%;text-align:left;background:none;border:none;padding:0.5rem 0.85rem;cursor:pointer;font:inherit;color:inherit;">Sign out</button>
+            <% end %>
           </div>
         </div>
       </div>

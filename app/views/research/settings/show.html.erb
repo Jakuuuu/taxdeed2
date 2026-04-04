@@ -63,9 +63,10 @@
             </div>
             <div class="form-group">
               <label class="form-label" for="user_phone">Phone (optional)</label>
-              <%= f.tel_field :phone, value: @user.phone,
+              <%= f.text_field :phone, value: @user.phone,
                   id: "user_phone", class: "form-input",
-                  placeholder: "+1 (555) 000-0000" %>
+                  placeholder: "+1 (555) 000-0000",
+                  type: "tel" %>
             </div>
           </div>
         </div>
