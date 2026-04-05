@@ -1,139 +1,227 @@
-<% content_for :title, "#{@auction.jurisdiction} Auction — Tax Sale Resources" %>
+<% content_for :title, "#{@auction.county}, #{@auction.state} — Tax Sale Resources" %>
 
-<div class="rn-content">
-  <!-- Breadcrumb -->
-  <nav style="font-size: 0.8125rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
-    <%= link_to "← Auctions", research_auctions_path, style: "color: var(--color-accent); font-weight: 500;" %>
-    <span style="margin: 0 0.4rem;">/</span>
-    <%= @auction.jurisdiction %>
-  </nav>
+<%# ──────────────────────────────────────────────────────────────────────
+    RAMA 1 — auctions#show (Estadístico puro)
+    ⛔ NO contiene links a Parcel#show ni tabla de parcelas.
+    Único CTA hacia parcelas: "View Parcels →" → /research/parcels?auction_id=:id
+    Ver: software/rules/16-navigation-and-module-boundaries.md
+    ────────────────────────────────────────────────────────────────────── %>
 
-  <!-- Header -->
-  <div class="rn-page-header">
-    <div>
-      <h1 class="rn-page-title"><%= @auction.county %>, <%= @auction.state %></h1>
-      <p class="rn-page-subtitle">
-        Tax Deed Auction &nbsp;·&nbsp;
-        <% if @auction.sale_date %>
-          <%= @auction.sale_date.strftime("%B %d, %Y") %>
-        <% else %>
-          Date TBD
+<% content_for :head do %>
+  <style>
+    /* ── Timeline ── */
+    .timeline {
+      display: flex; gap: 0; overflow-x: auto;
+      border: 1px solid var(--color-border, #DEE2E6);
+      border-radius: 10px; background: #fff;
+      margin-bottom: 1.5rem;
+    }
+    .timeline__step {
+      flex: 1; min-width: 130px; padding: 0.85rem 1rem;
+      border-right: 1px solid var(--color-border, #DEE2E6);
+      text-align: center; position: relative;
+    }
+    .timeline__step:last-child { border-right: none; }
+    .timeline__step.past    { opacity: 0.5; }
+    .timeline__step.current { background: rgba(30,58,95,.06); }
+    .timeline__label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--color-text-muted, #6C757D); margin-bottom: 0.25rem; }
+    .timeline__date  { font-size: 0.875rem; font-weight: 600; color: var(--color-primary); }
+    .timeline__side  { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.1rem; }
+    .timeline__dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--color-border); margin: 0 auto 0.5rem;
+    }
+    .timeline__step.current .timeline__dot  { background: var(--color-primary); box-shadow: 0 0 0 3px rgba(30,58,95,.2); }
+    .timeline__step.upcoming .timeline__dot { background: #C9A84C; }
+    .timeline__step.past    .timeline__dot  { background: var(--color-success); }
+
+    /* ── Info grid ── */
+    .auction-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+    }
+    .info-card {
+      background: #fff;
+      border: 1px solid var(--color-border, #DEE2E6);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+    }
+    .info-card__label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 0.3rem; }
+    .info-card__value { font-size: 1.35rem; font-weight: 800; color: var(--color-primary); }
+    .info-card__sub   { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.15rem; }
+
+    /* ── CTA block ── */
+    .cta-block {
+      background: linear-gradient(135deg, #1E3A5F 0%, #2E5F8A 100%);
+      border-radius: 12px;
+      padding: 1.75rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+    .cta-block__text { color: #fff; }
+    .cta-block__title { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .cta-block__sub   { font-size: 0.85rem; opacity: 0.8; }
+    .cta-block__actions { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+    .btn-cta-white {
+      background: #fff; color: var(--color-primary);
+      font-weight: 700; font-size: 0.9rem;
+      padding: 0.6rem 1.4rem;
+      border-radius: 8px; text-decoration: none;
+      transition: box-shadow 0.15s;
+    }
+    .btn-cta-white:hover { box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+    .btn-cta-outline {
+      background: transparent; color: #fff;
+      font-weight: 600; font-size: 0.875rem;
+      padding: 0.55rem 1.2rem;
+      border-radius: 8px; text-decoration: none;
+      border: 1.5px solid rgba(255,255,255,.6);
+      transition: border-color 0.15s;
+    }
+    .btn-cta-outline:hover { border-color: #fff; color: #fff; }
+  </style>
+<% end %>
+
+<div class="rn-page">
+  <%# Full-width show — Rama 1 no tiene sidebar de filtros %>
+  <div style="width: 100%;" class="rn-content">
+
+    <%# Breadcrumb %>
+    <nav style="font-size: 0.8125rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
+      <%= link_to "← All Auctions", research_auctions_path,
+          style: "color: var(--color-accent); font-weight: 500;" %>
+      <span style="margin: 0 0.4rem;">/</span>
+      <%= @auction.county %>, <%= @auction.state %>
+    </nav>
+
+    <%# Header %>
+    <div class="rn-page-header">
+      <div>
+        <h1 class="rn-page-title"><%= @auction.county %>, <%= @auction.state %></h1>
+        <p class="rn-page-subtitle">
+          Tax Deed Auction
+          &nbsp;·&nbsp;
+          <%= @auction.date_range_label %>
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+        <span class="badge badge-<%= @auction.status %>"><%= @auction.status_label %></span>
+        <span class="badge" style="background: #EBF5FB; color: #2C5F8A;">Tax Deed</span>
+        <% if @auction.bidding_url.present? %>
+          <%= link_to "Bid Online ↗", @auction.bidding_url,
+              target: "_blank", rel: "noopener",
+              class: "btn-sm btn-sm-success" %>
         <% end %>
-      </p>
+      </div>
     </div>
-    <div style="display: flex; gap: 0.6rem; align-items: center;">
-      <span class="badge badge-<%= @auction.status %>"><%= @auction.status_label %></span>
-      <% if @auction.bidding_url.present? %>
-        <%= link_to "Bid Online →", @auction.bidding_url, target: "_blank", rel: "noopener",
-            class: "btn-sm btn-sm-primary" %>
-      <% end %>
-    </div>
-  </div>
 
-  <!-- Summary stats -->
-  <div class="stat-row" style="margin-bottom: 1.5rem;">
-    <div class="stat-card">
-      <p class="stat-card__label">Parcels Listed</p>
-      <p class="stat-card__value"><%= @auction.parcel_count || @parcels.count %></p>
-    </div>
-    <div class="stat-card">
-      <p class="stat-card__label">Total Amount</p>
-      <p class="stat-card__value">
-        <% if @auction.total_amount&.positive? %>
-          $<%= number_with_delimiter(@auction.total_amount.to_i) %>
-        <% else %>
-          —
+    <%# ── Timeline ── %>
+    <% if @timeline_steps.any? %>
+      <div class="timeline">
+        <% today = Date.today %>
+        <% @timeline_steps.each do |step| %>
+          <%
+            step_class = if step[:date] < today
+              'past'
+            elsif step[:date] == today
+              'current'
+            else
+              'upcoming'
+            end
+          %>
+          <div class="timeline__step <%= step_class %>">
+            <div class="timeline__dot"></div>
+            <div class="timeline__label"><%= step[:label] %></div>
+            <div class="timeline__date"><%= step[:date].strftime("%b %d, %Y") %></div>
+            <% if step[:date] >= today %>
+              <div class="timeline__side">
+                In <%= (step[:date] - today).to_i %> day<%= (step[:date] - today).to_i == 1 ? '' : 's' %>
+              </div>
+            <% end %>
+          </div>
         <% end %>
-      </p>
-    </div>
-    <div class="stat-card">
-      <p class="stat-card__label">State</p>
-      <p class="stat-card__value"><%= @auction.state || '—' %></p>
-    </div>
-    <div class="stat-card">
-      <p class="stat-card__label">Auction Type</p>
-      <p class="stat-card__value">Tax Deed</p>
-    </div>
-  </div>
+      </div>
+    <% end %>
 
-  <!-- Parcels Table -->
-  <div class="rn-page-header" style="margin-bottom: 0.75rem;">
-    <h2 style="font-size: 1rem; font-weight: 700; color: var(--color-primary); margin: 0;">
-      Parcels (<%= @parcels.count %>)
-    </h2>
-    <%= link_to "View All in Search →", research_parcels_path(auction_id: @auction.id),
-        class: "btn-sm btn-sm-outline" %>
-  </div>
-
-  <% if @parcels.any? %>
-    <div class="data-table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Parcel ID</th>
-            <th>Address</th>
-            <th>Opening Bid</th>
-            <th>Assessed Value</th>
-            <th>Max Bid (30%)</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @parcels.first(50).each do |parcel| %>
-            <tr>
-              <td style="font-family: monospace; font-size: 0.8rem;"><%= parcel.parcel_id || '—' %></td>
-              <td style="max-width: 280px;">
-                <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  <%= parcel.address || '—' %>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--color-text-muted);">
-                  <%= [parcel.city, parcel.zip_code].compact.join(', ') %>
-                </div>
-              </td>
-              <td>
-                <% if parcel.opening_bid %>
-                  <strong>$<%= number_with_delimiter(parcel.opening_bid.to_i) %></strong>
-                <% else %>
-                  —
-                <% end %>
-              </td>
-              <td>
-                <% if parcel.assessed_value %>
-                  $<%= number_with_delimiter(parcel.assessed_value.to_i) %>
-                <% else %>
-                  —
-                <% end %>
-              </td>
-              <td>
-                <% if parcel.max_bid_30 %>
-                  <span style="color: var(--color-success); font-weight: 600;">
-                    $<%= number_with_delimiter(parcel.max_bid_30.to_i) %>
-                  </span>
-                <% else %>
-                  —
-                <% end %>
-              </td>
-              <td>
-                <%= link_to "Details →", research_parcel_path(parcel), class: "btn-sm btn-sm-outline" %>
-              </td>
-            </tr>
+    <%# ── Info Grid (stats sin queries a parcels) ── %>
+    <div class="auction-info-grid">
+      <div class="info-card">
+        <p class="info-card__label">Parcels Listed</p>
+        <p class="info-card__value"><%= number_with_delimiter(@auction.parcel_count || 0) %></p>
+        <p class="info-card__sub">properties in auction</p>
+      </div>
+      <div class="info-card">
+        <p class="info-card__label">Estimated Total</p>
+        <p class="info-card__value">
+          <% if @auction.total_amount&.positive? %>
+            $<%= number_with_delimiter(@auction.total_amount.to_i) %>
+          <% else %>
+            —
           <% end %>
-        </tbody>
-      </table>
+        </p>
+        <p class="info-card__sub">aggregate opening bids</p>
+      </div>
+      <div class="info-card">
+        <p class="info-card__label">Auction Type</p>
+        <p class="info-card__value" style="font-size: 1rem; padding-top: 0.25rem;">Tax Deed</p>
+        <p class="info-card__sub">county-run, title auction</p>
+      </div>
+      <div class="info-card">
+        <p class="info-card__label">Jurisdiction</p>
+        <p class="info-card__value" style="font-size: 1rem; padding-top: 0.25rem;"><%= @auction.county %></p>
+        <p class="info-card__sub"><%= @auction.state %></p>
+      </div>
+    </div>
 
-      <% if @parcels.count > 50 %>
-        <div class="pagination">
-          <span>Showing 50 of <%= @parcels.count %> parcels</span>
-          <%= link_to "View all in Search", research_parcels_path(auction_id: @auction.id),
-              class: "btn-sm btn-sm-primary" %>
-        </div>
-      <% end %>
+    <%# ── Notes / Alerts ── %>
+    <% if @auction.notes.present? %>
+      <div style="background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 8px;
+                  padding: 0.85rem 1rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: #92400E;">
+        <strong>📋 Auction Notes:</strong> <%= @auction.notes %>
+      </div>
+    <% end %>
+
+    <%# ── External Source ── %>
+    <% if @auction.source_url.present? %>
+      <div style="background: #EBF5FB; border: 1px solid #BFD9EC; border-radius: 8px;
+                  padding: 0.85rem 1rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: #2C5F8A;">
+        📎 <strong>Official Source:</strong>
+        <%= link_to @auction.source_url, @auction.source_url,
+            target: "_blank", rel: "noopener",
+            style: "color: var(--color-accent); word-break: break-all;" %>
+      </div>
+    <% end %>
+
+    <%# ── CTA Block — único punto de entrada a Rama 2 ── %>
+    <%#
+      ⛔ RESTRICCIÓN ARQUITECTURAL:
+      Este ÚNICO botón es el traspaso permitido Rama 1 → Rama 2.
+      Ver: software/rules/16-navigation-and-module-boundaries.md
+    %>
+    <div class="cta-block">
+      <div class="cta-block__text">
+        <div class="cta-block__title">Explore the <%= number_with_delimiter(@auction.parcel_count || 0) %> properties in this auction</div>
+        <div class="cta-block__sub">Use the full parcel search with GIS map, filters, property details and reports</div>
+      </div>
+      <div class="cta-block__actions">
+        <%= link_to "View Parcels →",
+            research_parcels_path(auction_id: @auction.id),
+            class: "btn-cta-white" %>
+        <% if @auction.bidding_url.present? %>
+          <%= link_to "Bid Online ↗", @auction.bidding_url,
+              target: "_blank", rel: "noopener",
+              class: "btn-cta-outline" %>
+        <% end %>
+      </div>
     </div>
-  <% else %>
-    <div class="empty-state">
-      <div class="empty-state__icon">📋</div>
-      <h2 class="empty-state__title">No parcels yet</h2>
-      <p class="empty-state__desc">This auction's parcel data will be available after the next sync from the data source.</p>
-    </div>
-  <% end %>
+
+  </div>
 </div>
