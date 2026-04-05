@@ -74,7 +74,7 @@
           <label class="filter-label" for="filter-county">County</label>
           <select class="filter-select" name="county" id="filter-county">
             <option value="">All Counties</option>
-            <% @counties.each do |c| %>
+            <% @all_counties.each do |c| %>
               <option value="<%= c %>" <%= 'selected' if params[:county] == c %>><%= c %></option>
             <% end %>
           </select>
@@ -128,22 +128,22 @@
     <div class="stat-row">
       <div class="stat-card">
         <p class="stat-card__label">Total Auctions</p>
-        <p class="stat-card__value"><%= @auctions.count %></p>
+        <p class="stat-card__value"><%= @count_total %></p>
         <p class="stat-card__sub">filtered</p>
       </div>
       <div class="stat-card">
         <p class="stat-card__label">Upcoming</p>
-        <p class="stat-card__value"><%= @auctions.count { |a| a.upcoming? } %></p>
+        <p class="stat-card__value"><%= @count_upcoming %></p>
         <p class="stat-card__sub">scheduled</p>
       </div>
       <div class="stat-card">
         <p class="stat-card__label">Active</p>
-        <p class="stat-card__value"><%= @auctions.count { |a| a.active? } %></p>
+        <p class="stat-card__value"><%= @count_active %></p>
         <p class="stat-card__sub">in progress</p>
       </div>
       <div class="stat-card">
         <p class="stat-card__label">Total Parcels</p>
-        <p class="stat-card__value"><%= @auctions.sum { |a| a.parcel_count || 0 } %></p>
+        <p class="stat-card__value"><%= @count_total_parcels %></p>
         <p class="stat-card__sub">across all auctions</p>
       </div>
     </div>
