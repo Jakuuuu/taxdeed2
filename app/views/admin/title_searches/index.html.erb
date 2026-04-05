@@ -1,0 +1,122 @@
+<% content_for :title, "Title Searches" %>
+
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Title Searches</h1>
+    <p class="admin-page-subtitle">Manage title search report requests from users</p>
+  </div>
+</div>
+
+<%# ── Stat Bar ───────────────────────────────────────────────────── %>
+<div class="admin-stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.25rem;">
+  <div class="admin-stat-card"><div class="admin-stat-card__label">All</div><div class="admin-stat-card__value"><%= @counts[:all] %></div></div>
+  <div class="admin-stat-card admin-stat-card--urgent"><div class="admin-stat-card__label">Pending</div><div class="admin-stat-card__value"><%= @counts[:ordered] %></div></div>
+  <div class="admin-stat-card admin-stat-card--success"><div class="admin-stat-card__label">Generated</div><div class="admin-stat-card__value"><%= @counts[:generated] %></div></div>
+  <div class="admin-stat-card"><div class="admin-stat-card__label">Failed</div><div class="admin-stat-card__value" style="color:#DC2626;"><%= @counts[:failed] %></div></div>
+</div>
+
+<%# ── Filter Tabs ────────────────────────────────────────────────── %>
+<div class="admin-card">
+  <div class="admin-card__header">
+    <div class="tab-nav" style="margin-bottom:0;border-bottom:none;">
+      <%= link_to admin_title_searches_path, class: "tab-nav__btn #{@status_filter.blank? ? 'active' : ''}" do %>
+        All <span class="badge-count"><%= @counts[:all] %></span>
+      <% end %>
+      <%= link_to admin_title_searches_path(status: 'ordered'), class: "tab-nav__btn #{@status_filter == 'ordered' ? 'active' : ''}" do %>
+        Pending <span class="badge-count" style="background:#DC2626;"><%= @counts[:ordered] %></span>
+      <% end %>
+      <%= link_to admin_title_searches_path(status: 'generated'), class: "tab-nav__btn #{@status_filter == 'generated' ? 'active' : ''}" do %>
+        Generated <span class="badge-count"><%= @counts[:generated] %></span>
+      <% end %>
+      <%= link_to admin_title_searches_path(status: 'failed'), class: "tab-nav__btn #{@status_filter == 'failed' ? 'active' : ''}" do %>
+        Failed <span class="badge-count"><%= @counts[:failed] %></span>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @reports.any? %>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Requested</th>
+          <th>User</th>
+          <th>Property Address</th>
+          <th>County / State</th>
+          <th>DataTrace Ref</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @reports.each do |report| %>
+          <tr>
+            <td style="white-space:nowrap;color:#6C757D;font-size:0.8rem;">
+              <%= report.created_at.strftime("%m/%d/%y") %><br>
+              <span style="font-size:0.72rem;"><%= report.created_at.strftime("%H:%M") %></span>
+            </td>
+            <td>
+              <div style="font-weight:600;color:#1E3A5F;"><%= report.user&.full_name %></div>
+              <div style="font-size:0.78rem;color:#6C757D;"><%= report.user&.email %></div>
+            </td>
+            <td>
+              <% if report.parcel %>
+                <div style="font-weight:500;font-size:0.875rem;"><%= report.parcel.address %></div>
+                <div style="font-size:0.75rem;color:#9CA3AF;">ID: <%= report.parcel.parcel_id %></div>
+              <% else %>
+                <span style="color:#9CA3AF;">—</span>
+              <% end %>
+            </td>
+            <td style="font-size:0.875rem;white-space:nowrap;">
+              <%= report.parcel&.county || "—" %><br>
+              <span style="color:#6C757D;font-size:0.78rem;"><%= report.parcel&.state %></span>
+            </td>
+            <td style="font-size:0.8rem;color:#6C757D;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              <%= report.datatrace_order_ref.presence || "—" %>
+            </td>
+            <td>
+              <span class="badge <%= "badge-#{report.status}" %>" style="padding:0.2rem 0.6rem;border-radius:20px;font-size:0.75rem;font-weight:600;">
+                <%= report.status.capitalize %>
+              </span>
+            </td>
+            <td>
+              <%= link_to "Process →", admin_title_search_path(report),
+                    class: "btn-sm #{report.status == 'ordered' ? 'btn-sm-primary' : 'btn-sm-outline'}" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <%# Pagination %>
+    <% if @reports.respond_to?(:current_page) && @reports.total_pages > 1 %>
+      <div class="admin-card__footer">
+        <span style="font-size:0.8rem;color:#6C757D;">
+          Showing <%= @reports.offset_value + 1 %>–<%= [@reports.offset_value + @reports.limit_value, @reports.total_count].min %>
+          of <%= @reports.total_count %>
+        </span>
+        <div style="display:flex;gap:0.4rem;">
+          <% if @reports.prev_page %>
+            <%= link_to "← Prev", admin_title_searches_path(page: @reports.prev_page, status: @status_filter), class: "btn-sm btn-sm-outline" %>
+          <% end %>
+          <% if @reports.next_page %>
+            <%= link_to "Next →", admin_title_searches_path(page: @reports.next_page, status: @status_filter), class: "btn-sm btn-sm-outline" %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+  <% else %>
+    <div class="empty-state">
+      <div class="empty-state__icon">📋</div>
+      <div class="empty-state__title">No title searches found</div>
+      <div class="empty-state__desc">
+        <% if @status_filter.present? %>
+          No reports with status "<%= @status_filter %>".
+          <%= link_to "View all →", admin_title_searches_path %>
+        <% else %>
+          No title search requests yet.
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title><%= content_for?(:title) ? yield(:title) : "Admin" %> — TSR Admin</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "admin" %>
+    <%= javascript_importmap_tags %>
+
+    <% if content_for?(:head) %>
+      <%= yield(:head) %>
+    <% end %>
+  </head>
+
+  <body class="admin-layout">
+
+    <%# ── Top Bar ──────────────────────────────────────────────────────────── %>
+    <header class="admin-topbar">
+      <div class="admin-topbar__brand">
+        <a href="<%= admin_root_path %>" class="admin-brand-logo">
+          TSR <span>Admin</span>
+        </a>
+      </div>
+
+      <div class="admin-topbar__center">
+        <span class="admin-topbar__label">Internal Operations Panel</span>
+      </div>
+
+      <div class="admin-topbar__right">
+        <a href="<%= research_parcels_path %>" class="admin-topbar__link" target="_blank">
+          ↗ View Platform
+        </a>
+        <div class="admin-user-chip">
+          <span class="admin-user-chip__avatar"><%= current_user&.first_name&.first&.upcase %></span>
+          <span class="admin-user-chip__name"><%= current_user&.full_name %></span>
+          <span class="admin-user-chip__role">Admin</span>
+        </div>
+        <%= form_with url: destroy_user_session_path, method: :delete, local: true, style: "display:inline;" do %>
+          <button type="submit" class="admin-topbar__signout">Sign out</button>
+        <% end %>
+      </div>
+    </header>
+
+    <div class="admin-shell">
+      <%# ── Sidebar ──────────────────────────────────────────────────────── %>
+      <aside class="admin-sidebar">
+        <nav class="admin-sidebar__nav">
+
+          <div class="admin-nav-section">
+            <span class="admin-nav-section__label">Overview</span>
+            <a href="<%= admin_root_path %>"
+               class="admin-nav__link <%= 'active' if controller_name == 'dashboard' %>">
+              <span class="admin-nav__icon">▦</span>
+              Dashboard
+            </a>
+          </div>
+
+          <div class="admin-nav-section">
+            <span class="admin-nav-section__label">Operations</span>
+            <a href="<%= admin_title_searches_path %>"
+               class="admin-nav__link <%= 'active' if controller_name == 'title_searches' %>">
+              <span class="admin-nav__icon">📋</span>
+              Title Searches
+              <% if @nav_pending_title_searches.to_i > 0 %>
+                <span class="admin-nav__badge"><%= @nav_pending_title_searches %></span>
+              <% end %>
+            </a>
+            <a href="<%= admin_auctions_path %>"
+               class="admin-nav__link <%= 'active' if controller_name == 'auctions' %>">
+              <span class="admin-nav__icon">🏛️</span>
+              Auctions
+            </a>
+            <a href="<%= admin_sync_path %>"
+               class="admin-nav__link <%= 'active' if controller_name == 'sync' %>">
+              <span class="admin-nav__icon">🔄</span>
+              Sync Dashboard
+            </a>
+          </div>
+
+          <div class="admin-nav-section">
+            <span class="admin-nav-section__label">Management</span>
+            <a href="<%= admin_users_path %>"
+               class="admin-nav__link <%= 'active' if controller_name == 'users' %>">
+              <span class="admin-nav__icon">👥</span>
+              Users
+            </a>
+            <a href="<%= admin_reports_path %>"
+               class="admin-nav__link <%= 'active' if controller_name == 'reports' %>">
+              <span class="admin-nav__icon">📊</span>
+              All Reports
+            </a>
+          </div>
+
+        </nav>
+
+        <div class="admin-sidebar__footer">
+          <div class="admin-sidebar__version">Tax Sale Resources</div>
+          <div class="admin-sidebar__env">Production</div>
+        </div>
+      </aside>
+
+      <%# ── Main Content ─────────────────────────────────────────────────── %>
+      <main class="admin-content">
+
+        <%# Flash messages %>
+        <% if notice.present? %>
+          <div class="admin-flash admin-flash--notice" role="alert">
+            <span>✅ <%= notice %></span>
+            <button class="admin-flash__close" onclick="this.parentElement.remove()">×</button>
+          </div>
+        <% end %>
+        <% if alert.present? %>
+          <div class="admin-flash admin-flash--alert" role="alert">
+            <span>⚠️ <%= alert %></span>
+            <button class="admin-flash__close" onclick="this.parentElement.remove()">×</button>
+          </div>
+        <% end %>
+
+        <%= yield %>
+      </main>
+    </div>
+
+    <script>
+      // Auto-dismiss flash after 5s
+      document.querySelectorAll('.admin-flash').forEach(function(el) {
+        setTimeout(function() { el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 300); }, 5000);
+      });
+    </script>
+  </body>
+</html>

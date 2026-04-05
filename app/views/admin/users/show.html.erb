@@ -1,0 +1,263 @@
+<% content_for :title, @user.full_name %>
+
+<div class="admin-breadcrumb">
+  <%= link_to "Users", admin_users_path %>
+  <span class="admin-breadcrumb__sep">›</span>
+  <span><%= @user.email %></span>
+</div>
+
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title"><%= @user.full_name %></h1>
+    <p class="admin-page-subtitle"><%= @user.email %> · Joined <%= @user.created_at.strftime("%B %d, %Y") %></p>
+  </div>
+  <div class="admin-page-actions">
+    <%= link_to "← Back", admin_users_path, class: "btn-sm btn-sm-outline" %>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 320px;gap:1.25rem;align-items:start;">
+
+  <%# Left — Subscription & Usage %>
+  <div>
+    <div class="admin-card" style="margin-bottom:1.25rem;">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">💳 Subscription</h2>
+        <% if @subscription %>
+          <span class="badge badge-<%= @subscription.status %>" style="padding:0.2rem 0.7rem;border-radius:20px;font-size:0.75rem;font-weight:700;">
+            <%= @subscription.status.capitalize %>
+          </span>
+        <% end %>
+      </div>
+      <div class="admin-card__body">
+        <% if @subscription %>
+          <div class="admin-detail-grid">
+            <div class="admin-detail-item">
+              <div class="admin-detail-item__label">Plan</div>
+              <div class="admin-detail-item__value" style="text-transform:capitalize;"><%= @subscription.plan_name %></div>
+            </div>
+            <div class="admin-detail-item">
+              <div class="admin-detail-item__label">Period Start</div>
+              <div class="admin-detail-item__value"><%= @subscription.current_period_start&.strftime("%m/%d/%Y") || "—" %></div>
+            </div>
+            <div class="admin-detail-item">
+              <div class="admin-detail-item__label">Period End</div>
+              <div class="admin-detail-item__value"><%= @subscription.current_period_end&.strftime("%m/%d/%Y") || "—" %></div>
+            </div>
+            <% if @subscription.canceled_at %>
+              <div class="admin-detail-item" style="border-left:3px solid #DC2626;">
+                <div class="admin-detail-item__label">Canceled At</div>
+                <div class="admin-detail-item__value" style="color:#DC2626;"><%= @subscription.canceled_at.strftime("%m/%d/%Y") %></div>
+              </div>
+            <% end %>
+          </div>
+
+          <%# Usage meters %>
+          <div style="margin-top:1.25rem;">
+            <div class="admin-form-section__title" style="margin-bottom:0.75rem;">Usage This Cycle</div>
+            <% [[:avm, "AVM Reports"], [:scope, "Property Scope Reports"]].each do |type, label| %>
+              <% used  = @subscription.send(:"used_#{type}") rescue 0 %>
+              <% limit = @subscription.send(:"limit_#{type}") rescue 0 %>
+              <% pct   = limit > 0 ? [((used.to_f / limit) * 100).round, 100].min : 0 %>
+              <div class="usage-meter">
+                <div class="usage-meter__header">
+                  <span class="usage-meter__label"><%= label %></span>
+                  <span class="usage-meter__count" style="color:<%= pct >= 90 ? '#DC2626' : '#1E3A5F' %>;">
+                    <%= used %> / <%= limit %>
+                  </span>
+                </div>
+                <div class="usage-meter__bar">
+                  <div class="usage-meter__fill" style="width:<%= pct %>%;background:<%= pct >= 90 ? '#DC2626' : pct >= 70 ? '#C9A84C' : 'var(--color-success)' %>;"></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p style="color:#6C757D;font-size:0.9rem;">No active subscription.</p>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Reports History %>
+    <div class="admin-card">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">📊 Recent Reports</h2>
+      </div>
+      <% if @reports.any? %>
+        <table class="admin-table">
+          <thead>
+            <tr><th>Date</th><th>Type</th><th>Property</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <% @reports.each do |report| %>
+              <tr>
+                <td style="font-size:0.78rem;color:#6C757D;white-space:nowrap;">
+                  <%= report.created_at.strftime("%m/%d/%y") %>
+                </td>
+                <td>
+                  <span class="report-type-badge report-type-<%= report.report_type %>" style="font-size:0.7rem;">
+                    <%= report.report_type.humanize %>
+                  </span>
+                </td>
+                <td style="font-size:0.875rem;"><%= report.parcel&.address || "—" %></td>
+                <td>
+                  <span class="badge badge-<%= report.status %>" style="padding:0.15rem 0.5rem;border-radius:20px;font-size:0.72rem;font-weight:600;">
+                    <%= report.status.capitalize %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <div class="empty-state" style="padding:2rem;">
+          <div class="empty-state__desc">No reports yet.</div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Right — Billing + Account actions %>
+  <div>
+
+    <%# ── Stripe Billing Card ─────────────────────────────────── %>
+    <div class="admin-card" style="margin-bottom:1.25rem;">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">💳 Stripe Billing</h2>
+        <% if @stripe_info&.dig(:mock) %>
+          <span style="font-size:0.7rem;font-weight:700;color:#6C757D;background:#F3F4F6;padding:0.15rem 0.5rem;border-radius:12px;letter-spacing:0.04em;">MOCK</span>
+        <% end %>
+      </div>
+      <div class="admin-card__body">
+        <% if @stripe_info %>
+
+          <%# Customer %>
+          <div class="admin-detail-item" style="margin-bottom:0.75rem;">
+            <div class="admin-detail-item__label">Customer ID</div>
+            <div class="admin-detail-item__value" style="display:flex;align-items:center;gap:0.5rem;">
+              <code style="font-size:0.78rem;color:#1E3A5F;background:#F0F4FF;padding:0.15rem 0.4rem;border-radius:4px;">
+                <%= @stripe_info[:customer_id] || "—" %>
+              </code>
+              <% if @stripe_info[:customer_url] %>
+                <a href="<%= @stripe_info[:customer_url] %>" target="_blank"
+                   style="font-size:0.75rem;color:#C9A84C;text-decoration:none;white-space:nowrap;"
+                   title="Open in Stripe Dashboard">↗ Stripe</a>
+              <% end %>
+            </div>
+          </div>
+
+          <%# Subscription %>
+          <div class="admin-detail-item" style="margin-bottom:0.75rem;">
+            <div class="admin-detail-item__label">Subscription ID</div>
+            <div class="admin-detail-item__value" style="display:flex;align-items:center;gap:0.5rem;">
+              <code style="font-size:0.78rem;color:#1E3A5F;background:#F0F4FF;padding:0.15rem 0.4rem;border-radius:4px;">
+                <%= @stripe_info[:subscription_id] || "—" %>
+              </code>
+              <% if @stripe_info[:subscription_url] %>
+                <a href="<%= @stripe_info[:subscription_url] %>" target="_blank"
+                   style="font-size:0.75rem;color:#C9A84C;text-decoration:none;white-space:nowrap;"
+                   title="Open in Stripe Dashboard">↗ Stripe</a>
+              <% end %>
+            </div>
+          </div>
+
+          <%# Latest Invoice (live only) %>
+          <% if @stripe_info[:latest_invoice] %>
+            <% inv = @stripe_info[:latest_invoice] %>
+            <div class="admin-detail-item" style="margin-bottom:0.75rem;">
+              <div class="admin-detail-item__label">Last Payment</div>
+              <div class="admin-detail-item__value" style="display:flex;align-items:center;gap:0.5rem;">
+                <span style="font-weight:700;color:#065F46;"><%= inv[:amount] %></span>
+                <span style="font-size:0.78rem;color:#6C757D;">· <%= inv[:date] %></span>
+                <% if inv[:invoice_url] %>
+                  <a href="<%= inv[:invoice_url] %>" target="_blank"
+                     style="font-size:0.75rem;color:#C9A84C;text-decoration:none;">Invoice ↗</a>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <%# Payment Method (live only) %>
+          <% if @stripe_info[:payment_method_last4] %>
+            <div class="admin-detail-item" style="margin-bottom:0;">
+              <div class="admin-detail-item__label">Card</div>
+              <div class="admin-detail-item__value" style="font-size:0.875rem;">
+                <%= @stripe_info[:payment_method_brand] %> ····<%= @stripe_info[:payment_method_last4] %>
+              </div>
+            </div>
+          <% end %>
+
+          <%# Error notice %>
+          <% if @stripe_info[:error] %>
+            <div style="margin-top:0.75rem;padding:0.6rem 0.75rem;background:#FEF2F2;border-radius:6px;border:1px solid #FECACA;font-size:0.78rem;color:#991B1B;">
+              ⚠️ Stripe API error: <%= @stripe_info[:error] %>
+            </div>
+          <% end %>
+
+          <%# Mock notice %>
+          <% if @stripe_info[:mock] %>
+            <div style="margin-top:0.75rem;padding:0.6rem 0.75rem;background:#FFFBEB;border-radius:6px;border:1px solid #FDE68A;font-size:0.78rem;color:#92400E;">
+              🧪 Mock mode — IDs are simulated. Links to Stripe unavailable until live billing is activated.
+            </div>
+          <% end %>
+
+        <% else %>
+          <p style="font-size:0.875rem;color:#9CA3AF;">No Stripe data — user has not completed checkout.</p>
+        <% end %>
+      </div>
+    </div>
+
+    <%# ── Account Actions ─────────────────────────────────────── %>
+    <div class="admin-card" style="margin-bottom:1.25rem;">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">⚙️ Account Actions</h2>
+      </div>
+      <div class="admin-card__body" style="display:flex;flex-direction:column;gap:0.75rem;">
+
+        <%# Reset Usage %>
+        <% if @subscription %>
+          <%= form_with url: reset_usage_admin_user_path(@user), method: :post, local: true do |f| %>
+            <button type="submit" class="btn-sm btn-sm-outline" style="width:100%;justify-content:center;"
+                    onclick="return confirm('Reset all usage credits for <%= @user.email %>? This cannot be undone.')">
+              🔄 Reset Usage Credits
+            </button>
+          <% end %>
+
+          <% unless @subscription.canceled? %>
+            <%= form_with url: cancel_subscription_admin_user_path(@user), method: :post, local: true do |f| %>
+              <button type="submit" class="btn-sm btn-sm-outline" style="width:100%;justify-content:center;color:#DC2626;border-color:#DC2626;"
+                      onclick="return confirm('Cancel subscription for <%= @user.email %>?\n\nThis will set cancel_at_period_end = true in Stripe.\nThe user keeps access until the end of their current billing period.')">
+                ✖ Cancel Subscription
+              </button>
+            <% end %>
+          <% end %>
+        <% else %>
+          <p style="font-size:0.8rem;color:#6C757D;text-align:center;">No subscription to manage.</p>
+        <% end %>
+
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">ℹ️ Account Info</h2>
+      </div>
+      <div class="admin-card__body">
+        <div class="admin-detail-item" style="margin-bottom:0.5rem;">
+          <div class="admin-detail-item__label">User ID</div>
+          <div class="admin-detail-item__value" style="font-size:0.8rem;font-family:monospace;"><%= @user.id %></div>
+        </div>
+        <div class="admin-detail-item" style="margin-bottom:0.5rem;">
+          <div class="admin-detail-item__label">Admin Access</div>
+          <div class="admin-detail-item__value"><%= @user.admin? ? "✅ Yes" : "❌ No" %></div>
+        </div>
+        <div class="admin-detail-item">
+          <div class="admin-detail-item__label">Last Sign In</div>
+          <div class="admin-detail-item__value" style="font-size:0.85rem;">
+            <%= @user.last_sign_in_at ? time_ago_in_words(@user.last_sign_in_at) + " ago" : "Never" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,264 @@
+<% content_for :title, "Title Search ##{@report.id}" %>
+
+<div class="admin-breadcrumb">
+  <%= link_to "Title Searches", admin_title_searches_path %>
+  <span class="admin-breadcrumb__sep">›</span>
+  <span>Request #<%= @report.id %></span>
+</div>
+
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">
+      Title Search Request
+      <span class="badge badge-<%= @report.status %>" style="font-size:0.8rem;padding:0.2rem 0.7rem;border-radius:20px;vertical-align:middle;margin-left:0.5rem;">
+        <%= @report.status.capitalize %>
+      </span>
+    </h1>
+    <p class="admin-page-subtitle">Requested <%= time_ago_in_words(@report.created_at) %> ago · ID: <%= @report.id %></p>
+  </div>
+  <div class="admin-page-actions">
+    <%= link_to "← Back to Queue", admin_title_searches_path(status: 'ordered'), class: "btn-sm btn-sm-outline" %>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 360px;gap:1.25rem;align-items:start;">
+
+  <%# ── Left Column ─────────────────────────────────────────────── %>
+  <div>
+
+    <%# Property Info %>
+    <div class="admin-card" style="margin-bottom:1.25rem;">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">🏠 Property Details</h2>
+      </div>
+      <div class="admin-card__body">
+        <div class="admin-detail-grid">
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Address</div>
+            <div class="admin-detail-item__value"><%= @report.parcel&.address || "—" %></div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Parcel ID</div>
+            <div class="admin-detail-item__value"><%= @report.parcel&.parcel_id || "—" %></div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">County</div>
+            <div class="admin-detail-item__value"><%= @report.parcel&.county || "—" %></div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">State</div>
+            <div class="admin-detail-item__value"><%= @report.parcel&.state || "—" %></div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Property Type</div>
+            <div class="admin-detail-item__value"><%= @report.parcel&.property_type || "—" %></div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Assessed Value</div>
+            <div class="admin-detail-item__value">
+              <% if @report.parcel&.assessed_value %>
+                $<%= number_with_delimiter(@report.parcel.assessed_value.to_i) %>
+              <% else %>—<% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Admin Notes & DataTrace Form %>
+    <%= form_with url: admin_title_search_path(@report), method: :patch, local: true do |f| %>
+      <div class="admin-card" style="margin-bottom:1.25rem;">
+        <div class="admin-card__header">
+          <h2 class="admin-card__title">📝 Internal Notes</h2>
+        </div>
+        <div class="admin-card__body">
+
+          <div class="admin-form-section">
+            <div class="admin-form-section__title">DataTrace Order Reference</div>
+            <%= text_field_tag "report[datatrace_order_ref]",
+                  @report.datatrace_order_ref,
+                  class: "admin-input",
+                  placeholder: "e.g. TSR_Current Owner_509 W Blount St" %>
+            <p style="font-size:0.78rem;color:#6C757D;margin-top:0.4rem;">
+              Format: TSR_[Search Type]_[Address]
+            </p>
+          </div>
+
+          <div class="admin-form-section">
+            <div class="admin-form-section__title">Admin Notes</div>
+            <%= text_area_tag "report[admin_notes]",
+                  @report.admin_notes,
+                  class: "admin-textarea",
+                  placeholder: "Internal notes, issues, follow-ups... (not visible to user)",
+                  rows: 5 %>
+          </div>
+
+        </div>
+        <div class="admin-card__footer">
+          <button type="submit" class="btn-sm btn-sm-outline">💾 Save Notes</button>
+        </div>
+      </div>
+    <% end %>
+
+    <%# Existing PDF (if generated) %>
+    <% if @report.pdf_file.attached? %>
+      <div class="admin-card" style="margin-bottom:1.25rem;">
+        <div class="admin-card__header">
+          <h2 class="admin-card__title">📄 Attached PDF</h2>
+        </div>
+        <div class="admin-card__body" style="display:flex;align-items:center;gap:1rem;">
+          <span style="font-size:2rem;">📄</span>
+          <div>
+            <div style="font-weight:600;color:#1E3A5F;"><%= @report.pdf_file.filename %></div>
+            <div style="font-size:0.8rem;color:#6C757D;"><%= number_to_human_size(@report.pdf_file.byte_size) %></div>
+          </div>
+          <%= link_to "Download", rails_blob_path(@report.pdf_file, disposition: "attachment"),
+                class: "btn-sm btn-sm-outline", style: "margin-left:auto;" %>
+        </div>
+      </div>
+    <% end %>
+
+  </div>
+
+  <%# ── Right Column ────────────────────────────────────────────── %>
+  <div>
+
+    <%# User Info %>
+    <div class="admin-card" style="margin-bottom:1.25rem;">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">👤 Requester</h2>
+      </div>
+      <div class="admin-card__body">
+        <div style="font-weight:700;font-size:1rem;color:#1E3A5F;margin-bottom:0.25rem;">
+          <%= @report.user&.full_name %>
+        </div>
+        <div style="font-size:0.875rem;color:#6C757D;margin-bottom:1rem;">
+          <%= @report.user&.email %>
+        </div>
+        <% if @report.user&.subscription %>
+          <div class="admin-detail-item" style="margin-bottom:0;">
+            <div class="admin-detail-item__label">Plan</div>
+            <div class="admin-detail-item__value"><%= @report.user.subscription.plan_name&.capitalize %></div>
+          </div>
+        <% end %>
+        <div style="margin-top:0.75rem;">
+          <%= link_to "View User →", admin_user_path(@report.user), class: "btn-sm btn-sm-outline" if @report.user %>
+        </div>
+      </div>
+    </div>
+
+    <%# Actions Card %>
+    <% if @report.ordered? %>
+      <div class="admin-card" style="border-top:3px solid #C9A84C;">
+        <div class="admin-card__header">
+          <h2 class="admin-card__title">⚡ Actions</h2>
+        </div>
+        <div class="admin-card__body">
+
+          <%# Mark Generated — Upload PDF %>
+          <%= form_with url: mark_generated_admin_title_search_path(@report),
+                method: :patch, multipart: true, local: true,
+                data: { confirm: nil } do |f| %>
+
+            <div style="margin-bottom:1rem;">
+              <label class="admin-label">Upload Title Search PDF</label>
+
+              <!-- Upload zone -->
+              <div class="admin-upload-zone" id="dropzone" onclick="document.getElementById('pdf_input').click()">
+                <div class="admin-upload-zone__icon">📎</div>
+                <div class="admin-upload-zone__title" id="upload-label">Click to select PDF</div>
+                <div class="admin-upload-zone__hint">or drag & drop · PDF only</div>
+              </div>
+              <input type="file" id="pdf_input" name="pdf_file" accept=".pdf"
+                     style="display:none;"
+                     onchange="document.getElementById('upload-label').textContent = this.files[0]?.name || 'Click to select PDF'">
+            </div>
+
+            <button type="submit" class="btn-sm btn-sm-success" style="width:100%;justify-content:center;"
+                    onclick="return confirm('Mark this report as Generated and notify the user?')">
+              ✅ Mark as Generated & Notify User
+            </button>
+          <% end %>
+
+          <div style="margin-top:0.75rem;border-top:1px solid #F0F2F4;padding-top:0.75rem;">
+
+            <%# Mark Failed %>
+            <%= form_with url: mark_failed_admin_title_search_path(@report),
+                  method: :patch, local: true do |f| %>
+              <button type="submit" class="btn-sm btn-sm-outline" style="width:100%;justify-content:center;color:#DC2626;border-color:#DC2626;"
+                      onclick="return confirm('Mark this report as Failed? The user will not be notified automatically.')">
+                ✖ Mark as Failed
+              </button>
+            <% end %>
+
+          </div>
+        </div>
+      </div>
+
+    <% elsif @report.generated? %>
+      <div class="admin-card" style="border-top:3px solid var(--color-success);">
+        <div class="admin-card__body" style="text-align:center;padding:1.5rem;">
+          <div style="font-size:2rem;margin-bottom:0.5rem;">✅</div>
+          <div style="font-weight:700;color:#065F46;">Report Delivered</div>
+          <div style="font-size:0.8rem;color:#6C757D;margin-top:0.25rem;">
+            Completed <%= time_ago_in_words(@report.updated_at) %> ago
+          </div>
+        </div>
+      </div>
+
+    <% elsif @report.failed? %>
+      <div class="admin-card" style="border-top:3px solid #DC2626;">
+        <div class="admin-card__body" style="text-align:center;padding:1.5rem;">
+          <div style="font-size:2rem;margin-bottom:0.5rem;">❌</div>
+          <div style="font-weight:700;color:#991B1B;">Report Failed</div>
+          <div style="font-size:0.8rem;color:#6C757D;margin-top:0.25rem;">
+            Marked failed <%= time_ago_in_words(@report.updated_at) %> ago
+          </div>
+          <div style="margin-top:1rem;">
+            <%= form_with url: mark_generated_admin_title_search_path(@report),
+                  method: :patch, multipart: true, local: true do |f| %>
+              <div style="margin-bottom:0.75rem;">
+                <input type="file" name="pdf_file" accept=".pdf"
+                       class="admin-input" style="padding:0.4rem;">
+              </div>
+              <button type="submit" class="btn-sm btn-sm-success" style="width:100%;justify-content:center;">
+                ↩ Retry — Upload PDF
+              </button>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+  </div>
+</div>
+
+<script>
+  // Drag & drop on upload zone
+  (function() {
+    var zone = document.getElementById('dropzone');
+    var input = document.getElementById('pdf_input');
+    if (!zone) return;
+
+    zone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      zone.classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', function() {
+      zone.classList.remove('dragover');
+    });
+    zone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      var file = e.dataTransfer.files[0];
+      if (file && file.type === 'application/pdf') {
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        document.getElementById('upload-label').textContent = file.name;
+      } else {
+        alert('Please drop a PDF file.');
+      }
+    });
+  })();
+</script>

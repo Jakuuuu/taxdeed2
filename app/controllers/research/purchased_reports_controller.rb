@@ -76,7 +76,10 @@ module Research
         end
       end
 
-      # TODO: ReportGenerationJob.perform_later(@report.id)
+      # Lanzar job sólo para tipos automáticos (no title_search)
+      unless report_type == "title_search"
+        ReportGenerationJob.perform_later(@report.id)
+      end
 
       render json: { report: report_json(@report) }, status: :created
     rescue => e
@@ -91,9 +94,10 @@ module Research
         report_type: report.report_type,
         type_label:  report.type_label,
         status:      report.status,
-        file_url:    report.respond_to?(:file_url) ? report.file_url : nil,
+        has_pdf:     report.pdf_file.attached?,
         created_at:  report.created_at.strftime("%Y-%m-%d")
       }
     end
   end
 end
+

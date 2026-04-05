@@ -1,0 +1,90 @@
+<% content_for :title, "Users" %>
+
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Users</h1>
+    <p class="admin-page-subtitle"><%= @total_users %> registered users · <%= @admin_count %> admin</p>
+  </div>
+</div>
+
+<div class="admin-card">
+  <% if @users.any? %>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Joined</th>
+          <th>Reports</th>
+          <th>Admin</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @users.each do |user| %>
+          <tr>
+            <td>
+              <div style="font-weight:600;color:#1E3A5F;"><%= user.full_name %></div>
+              <div style="font-size:0.78rem;color:#6C757D;"><%= user.email %></div>
+            </td>
+            <td>
+              <% if user.subscription %>
+                <span style="font-weight:600;font-size:0.875rem;color:#1E3A5F;text-transform:capitalize;">
+                  <%= user.subscription.plan_name %>
+                </span>
+              <% else %>
+                <span style="color:#9CA3AF;font-size:0.875rem;">—</span>
+              <% end %>
+            </td>
+            <td>
+              <% status = user.subscription&.status || "none" %>
+              <span class="badge badge-<%= status %>" style="padding:0.2rem 0.6rem;border-radius:20px;font-size:0.72rem;font-weight:600;">
+                <%= status.capitalize %>
+              </span>
+            </td>
+            <td style="font-size:0.8rem;color:#6C757D;white-space:nowrap;">
+              <%= user.created_at.strftime("%m/%d/%Y") %>
+            </td>
+            <td style="text-align:center;font-weight:600;color:#1E3A5F;">
+              <%= user.reports_count %>
+            </td>
+            <td style="text-align:center;">
+              <% if user.admin? %>
+                <span style="color:#C9A84C;font-size:0.9rem;">★</span>
+              <% else %>
+                <span style="color:#DEE2E6;">—</span>
+              <% end %>
+            </td>
+            <td>
+              <%= link_to "View →", admin_user_path(user), class: "btn-sm btn-sm-outline" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% if @users.respond_to?(:current_page) && @users.total_pages > 1 %>
+      <div class="admin-card__footer">
+        <span style="font-size:0.8rem;color:#6C757D;">
+          Showing <%= @users.offset_value + 1 %>–<%= [@users.offset_value + @users.limit_value, @users.total_count].min %>
+          of <%= @users.total_count %>
+        </span>
+        <div style="display:flex;gap:0.4rem;">
+          <% if @users.prev_page %>
+            <%= link_to "← Prev", admin_users_path(page: @users.prev_page), class: "btn-sm btn-sm-outline" %>
+          <% end %>
+          <% if @users.next_page %>
+            <%= link_to "Next →", admin_users_path(page: @users.next_page), class: "btn-sm btn-sm-outline" %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+  <% else %>
+    <div class="empty-state">
+      <div class="empty-state__icon">👥</div>
+      <div class="empty-state__title">No users yet</div>
+    </div>
+  <% end %>
+</div>

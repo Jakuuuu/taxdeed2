@@ -4,6 +4,7 @@
   - critical
   - default
   - data_sync
+  - reports
   - mailers
   - low
 

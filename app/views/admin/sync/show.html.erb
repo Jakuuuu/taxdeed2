@@ -1,0 +1,121 @@
+<% content_for :title, "Sync Dashboard" %>
+
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Sync Dashboard</h1>
+    <p class="admin-page-subtitle">Google Sheets → PostgreSQL synchronization status</p>
+  </div>
+  <div class="admin-page-actions">
+    <%= form_with url: run_now_admin_sync_path, method: :post, local: true do |f| %>
+      <button type="submit" class="btn-sm btn-sm-primary"
+              onclick="return confirm('Run a full sync now? This will import all rows from Google Sheets.')">
+        🔄 Run Sync Now
+      </button>
+    <% end %>
+  </div>
+</div>
+
+<%# ── Last Sync Status Card ─────────────────────────────────────── %>
+<% if @last_sync %>
+  <div class="admin-card" style="margin-bottom:1.25rem;border-top:3px solid <%= @last_sync.status == 'success' ? 'var(--color-success)' : @last_sync.status == 'failed' ? '#DC2626' : 'var(--color-accent)' %>;">
+    <div class="admin-card__header">
+      <h2 class="admin-card__title">Last Sync Result</h2>
+      <span class="badge badge-<%= @last_sync.status %>" style="padding:0.2rem 0.7rem;border-radius:20px;font-size:0.78rem;font-weight:700;">
+        <span class="sync-status-dot <%= @last_sync.status %>"></span>
+        <%= @last_sync.status.upcase %>
+      </span>
+    </div>
+    <div class="admin-card__body">
+      <div class="admin-stat-grid" style="grid-template-columns:repeat(5,1fr);">
+        <div class="admin-stat-card">
+          <div class="admin-stat-card__label">Started</div>
+          <div class="admin-stat-card__value" style="font-size:0.9rem;">
+            <%= @last_sync.started_at&.strftime("%m/%d %H:%M") || "—" %>
+          </div>
+          <div class="admin-stat-card__sub"><%= @last_sync.started_at ? time_ago_in_words(@last_sync.started_at) + " ago" : "" %></div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-card__label">Duration</div>
+          <div class="admin-stat-card__value" style="font-size:1rem;"><%= @last_sync.duration_display %></div>
+        </div>
+        <div class="admin-stat-card admin-stat-card--success">
+          <div class="admin-stat-card__label">Added</div>
+          <div class="admin-stat-card__value"><%= @last_sync.parcels_added || 0 %></div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-card__label">Updated</div>
+          <div class="admin-stat-card__value"><%= @last_sync.parcels_updated || 0 %></div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-card__label">Skipped</div>
+          <div class="admin-stat-card__value"><%= @last_sync.parcels_skipped || 0 %></div>
+        </div>
+      </div>
+
+      <% if @last_sync.error_message.present? %>
+        <div style="margin-top:1rem;padding:0.85rem 1rem;background:#FEE2E2;border-radius:8px;border:1px solid #FECACA;">
+          <div style="font-size:0.75rem;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Error</div>
+          <code style="font-size:0.8rem;color:#991B1B;word-break:break-all;"><%= @last_sync.error_message %></code>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% else %>
+  <div class="admin-card" style="margin-bottom:1.25rem;">
+    <div class="empty-state">
+      <div class="empty-state__icon">🔄</div>
+      <div class="empty-state__title">No syncs yet</div>
+      <div class="empty-state__desc">Run your first sync to import data from Google Sheets.</div>
+    </div>
+  </div>
+<% end %>
+
+<%# ── Sync History Table ─────────────────────────────────────────── %>
+<div class="admin-card">
+  <div class="admin-card__header">
+    <h2 class="admin-card__title">Sync History</h2>
+    <span style="font-size:0.8rem;color:#6C757D;">Last 20 syncs</span>
+  </div>
+
+  <% if @sync_history.any? %>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Started</th>
+          <th>Status</th>
+          <th>Duration</th>
+          <th>Added</th>
+          <th>Updated</th>
+          <th>Skipped</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @sync_history.each do |log| %>
+          <tr>
+            <td style="white-space:nowrap;font-size:0.8rem;">
+              <%= log.started_at&.strftime("%m/%d/%y %H:%M") || "—" %>
+            </td>
+            <td>
+              <span class="badge badge-<%= log.status %>" style="padding:0.15rem 0.55rem;border-radius:20px;font-size:0.72rem;font-weight:700;">
+                <span class="sync-status-dot <%= log.status %>"></span>
+                <%= log.status.upcase %>
+              </span>
+            </td>
+            <td style="font-size:0.875rem;"><%= log.duration_display %></td>
+            <td><%= log.parcels_added || "—" %></td>
+            <td><%= log.parcels_updated || "—" %></td>
+            <td><%= log.parcels_skipped || "—" %></td>
+            <td style="font-size:0.78rem;color:#DC2626;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              <%= log.error_message.presence || "—" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <div class="empty-state" style="padding:2rem;">
+      <div class="empty-state__desc">No sync history yet.</div>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,116 @@
+<% content_for :title, "All Reports" %>
+
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Reports Overview</h1>
+    <p class="admin-page-subtitle">All report requests across all users and types</p>
+  </div>
+  <div class="admin-page-actions">
+    <div class="admin-filters">
+      <%= form_with url: admin_reports_path, method: :get, local: true do |f| %>
+        <%= select_tag :type,
+              options_for_select([["All Types", ""], ["AVM", "avm"], ["Property Scope", "property_scope"], ["Title Search", "title_search"]], @type_filter),
+              class: "admin-filter-select", onchange: "this.form.submit()" %>
+        <%= select_tag :status,
+              options_for_select([["All Statuses", ""], ["Pending", "pending"], ["Ordered", "ordered"], ["Generated", "generated"], ["Failed", "failed"]], @status_filter),
+              class: "admin-filter-select", onchange: "this.form.submit()" %>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%# Stats %>
+<div class="admin-stat-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:1.25rem;">
+  <div class="admin-stat-card"><div class="admin-stat-card__label">Total</div><div class="admin-stat-card__value"><%= @counts[:total] %></div></div>
+  <div class="admin-stat-card"><div class="admin-stat-card__label">Pending</div><div class="admin-stat-card__value"><%= @counts[:pending] %></div></div>
+  <div class="admin-stat-card admin-stat-card--urgent"><div class="admin-stat-card__label">Ordered</div><div class="admin-stat-card__value"><%= @counts[:ordered] %></div></div>
+  <div class="admin-stat-card admin-stat-card--success"><div class="admin-stat-card__label">Generated</div><div class="admin-stat-card__value"><%= @counts[:generated] %></div></div>
+  <div class="admin-stat-card"><div class="admin-stat-card__label">Failed</div><div class="admin-stat-card__value" style="color:#DC2626;"><%= @counts[:failed] %></div></div>
+</div>
+
+<div class="admin-card">
+  <% if @reports.any? %>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>User</th>
+          <th>Type</th>
+          <th>Property</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @reports.each do |report| %>
+          <tr>
+            <td style="font-size:0.8rem;color:#6C757D;white-space:nowrap;">
+              <%= report.created_at.strftime("%m/%d/%y") %>
+            </td>
+            <td>
+              <div style="font-weight:600;font-size:0.875rem;"><%= report.user&.full_name %></div>
+              <div style="font-size:0.75rem;color:#6C757D;"><%= report.user&.email %></div>
+            </td>
+            <td>
+              <span class="report-type-badge report-type-<%= report.report_type %>" style="font-size:0.7rem;">
+                <%= report.report_type&.gsub("_", " ")&.titleize %>
+              </span>
+            </td>
+            <td style="font-size:0.875rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              <%= report.parcel&.address || "—" %>
+            </td>
+            <td>
+              <span class="badge badge-<%= report.status %>" style="padding:0.2rem 0.6rem;border-radius:20px;font-size:0.72rem;font-weight:600;">
+                <%= report.status.capitalize %>
+              </span>
+            </td>
+            <td style="white-space:nowrap;">
+              <% if report.title_search? %>
+                <%= link_to "Manage →", admin_title_search_path(report), class: "btn-sm btn-sm-outline" %>
+              <% else %>
+                <%= link_to "View", admin_report_path(report), class: "btn-sm btn-sm-outline" %>
+                <% if report.failed? %>
+                  <%= form_with url: retry_admin_report_path(report), method: :post, local: true, style: "display:inline;" do |f| %>
+                    <button type="submit" class="btn-sm btn-sm-success"
+                            onclick="return confirm('Retry report generation?')">↩ Retry</button>
+                  <% end %>
+                <% end %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% if @reports.respond_to?(:current_page) && @reports.total_pages > 1 %>
+      <div class="admin-card__footer">
+        <span style="font-size:0.8rem;color:#6C757D;">
+          Showing <%= @reports.offset_value + 1 %>–<%= [@reports.offset_value + @reports.limit_value, @reports.total_count].min %>
+          of <%= @reports.total_count %>
+        </span>
+        <div style="display:flex;gap:0.4rem;">
+          <% if @reports.prev_page %>
+            <%= link_to "← Prev", admin_reports_path(page: @reports.prev_page, type: @type_filter, status: @status_filter), class: "btn-sm btn-sm-outline" %>
+          <% end %>
+          <% if @reports.next_page %>
+            <%= link_to "Next →", admin_reports_path(page: @reports.next_page, type: @type_filter, status: @status_filter), class: "btn-sm btn-sm-outline" %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+  <% else %>
+    <div class="empty-state">
+      <div class="empty-state__icon">📊</div>
+      <div class="empty-state__title">No reports found</div>
+      <div class="empty-state__desc">
+        <% if @type_filter.present? || @status_filter.present? %>
+          Try different filters.
+          <%= link_to "Reset →", admin_reports_path %>
+        <% else %>
+          No reports have been submitted yet.
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

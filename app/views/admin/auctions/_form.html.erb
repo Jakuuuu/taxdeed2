@@ -1,0 +1,89 @@
+<% content_for :title, @auction.new_record? ? "New Auction" : "Edit: #{@auction.name}" %>
+
+<div class="admin-breadcrumb">
+  <%= link_to "Auctions", admin_auctions_path %>
+  <span class="admin-breadcrumb__sep">›</span>
+  <span><%= @auction.new_record? ? "New Auction" : "Edit" %></span>
+</div>
+
+<div class="admin-page-header">
+  <h1 class="admin-page-title"><%= @auction.new_record? ? "New Auction" : "Edit Auction" %></h1>
+</div>
+
+<div class="admin-card" style="max-width:760px;">
+  <div class="admin-card__header">
+    <h2 class="admin-card__title">Auction Details</h2>
+  </div>
+  <div class="admin-card__body">
+    <%= form_with model: [:admin, @auction], local: true do |f| %>
+
+      <% if @auction.errors.any? %>
+        <div class="admin-flash admin-flash--alert" style="margin-bottom:1rem;">
+          <span><%= @auction.errors.full_messages.to_sentence %></span>
+        </div>
+      <% end %>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div>
+          <label class="admin-label">Name *</label>
+          <%= f.text_field :name, class: "admin-input", placeholder: "e.g. Leon County Tax Deed Sale" %>
+        </div>
+        <div>
+          <label class="admin-label">Auction Type</label>
+          <%= f.select :auction_type,
+                options_for_select([["Tax Deed", "tax_deed"], ["Tax Lien", "tax_lien"]], @auction.auction_type),
+                {}, class: "admin-input" %>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div>
+          <label class="admin-label">County *</label>
+          <%= f.text_field :county, class: "admin-input", placeholder: "e.g. Leon" %>
+        </div>
+        <div>
+          <label class="admin-label">State *</label>
+          <%= f.text_field :state, class: "admin-input", placeholder: "e.g. FL" %>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div>
+          <label class="admin-label">Sale Date</label>
+          <%= f.date_field :sale_date, class: "admin-input" %>
+        </div>
+        <div>
+          <label class="admin-label">Registration Deadline</label>
+          <%= f.date_field :registration_deadline, class: "admin-input" %>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label class="admin-label">Status</label>
+        <%= f.select :status,
+              options_for_select([["Upcoming", "upcoming"], ["Active", "active"], ["Completed", "completed"]], @auction.status),
+              {}, class: "admin-input" %>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label class="admin-label">Official Website URL</label>
+        <%= f.url_field :website_url, class: "admin-input", placeholder: "https://..." %>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label class="admin-label">Description / Notes</label>
+        <%= f.text_area :description, class: "admin-textarea",
+              placeholder: "Additional notes about this auction..." %>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;">
+        <button type="submit" class="btn-sm btn-sm-primary">
+          <%= @auction.new_record? ? "Create Auction" : "Save Changes" %>
+        </button>
+        <%= link_to "Cancel", @auction.new_record? ? admin_auctions_path : admin_auction_path(@auction),
+              class: "btn-sm btn-sm-outline" %>
+      </div>
+
+    <% end %>
+  </div>
+</div>

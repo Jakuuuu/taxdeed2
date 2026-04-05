@@ -1,5 +1,8 @@
 <% content_for :title, "Reports — Tax Sale Resources" %>
 
+<%# ── Credit Summary Helper ──────────────────────────────────────────────── %>
+<% sub = current_user.subscription %>
+
 <div class="rn-content">
   <div class="rn-page-header">
     <div>
@@ -8,7 +11,40 @@
     </div>
   </div>
 
-  <!-- Tab navigation -->
+  <%# ── Credit Usage Summary ──────────────────────────────────────────────── %>
+  <% if sub %>
+    <div class="credit-summary-bar">
+      <div class="credit-item">
+        <span class="credit-label">AVM</span>
+        <div class="credit-track">
+          <div class="credit-fill credit-fill--avm"
+               style="width: <%= [sub.usage_percent(:avm), 100].min %>%;"></div>
+        </div>
+        <span class="credit-count"><%= sub.used_avm %>/<%= sub.limit_avm %></span>
+      </div>
+      <div class="credit-item">
+        <span class="credit-label">Scope</span>
+        <div class="credit-track">
+          <div class="credit-fill credit-fill--scope"
+               style="width: <%= [sub.usage_percent(:scope), 100].min %>%;"></div>
+        </div>
+        <span class="credit-count"><%= sub.used_scope %>/<%= sub.limit_scope %></span>
+      </div>
+      <div class="credit-item">
+        <span class="credit-label">Title</span>
+        <div class="credit-track">
+          <div class="credit-fill credit-fill--title"
+               style="width: <%= sub.title_search_used? ? 100 : 0 %>%;"></div>
+        </div>
+        <span class="credit-count"><%= sub.title_search_used? ? "Used" : "Available" %></span>
+      </div>
+      <div class="credit-reset">
+        Resets <%= sub.next_reset_date&.strftime("%b %d, %Y") || "—" %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# ── Tab navigation ──────────────────────────────────────────────────── %>
   <div class="tab-nav" style="margin-bottom: 1.25rem;">
     <%= link_to research_purchased_reports_path(tab: "reports"),
         class: "tab-nav__btn #{'active' if @active_tab == 'reports'}",
@@ -33,7 +69,7 @@
     <% end %>
   </div>
 
-  <!-- ══ TAB 1: Parcel Reports ══════════════════════════════════ -->
+  <%# ═══ TAB 1: Parcel Reports ═══════════════════════════════════════════ %>
   <% if @active_tab == "reports" %>
     <% if @reports.empty? %>
       <div class="empty-state">
@@ -46,7 +82,10 @@
         <%= link_to "Browse Parcels →", research_parcels_path, class: "btn-sm btn-sm-primary" %>
       </div>
     <% else %>
-      <div class="data-table-wrap">
+      <%# data-has-pending="true" enables auto-refresh if any report is processing %>
+      <% has_pending = @reports.any? { |r| r.pending? || r.ordered? } %>
+      <div class="data-table-wrap" id="reports-table-wrap"
+           data-has-pending="<%= has_pending %>">
         <table class="data-table">
           <thead>
             <tr>
@@ -59,7 +98,7 @@
           </thead>
           <tbody>
             <% @reports.each do |report| %>
-              <tr>
+              <tr data-report-id="<%= report.id %>" data-status="<%= report.status %>">
                 <td>
                   <div style="font-weight: 600; color: var(--color-primary); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     <%= report.parcel&.address || "—" %>
@@ -87,17 +126,22 @@
                   </span>
                 </td>
                 <td>
-                  <% if report.generated? && report.respond_to?(:file_url) && report.file_url.present? %>
-                    <%= link_to "⬇ Download PDF", report.file_url, target: "_blank",
-                        class: "btn-sm btn-sm-success" %>
-                  <% elsif report.failed? %>
+                  <% if report.generated? && report.pdf_file.attached? %>
+                    <%= link_to "⬇ Download PDF",
+                        download_report_path(report),
+                        class: "btn-sm btn-sm-success",
+                        data: { turbo: false } %>
+                  <% elsif report.generated? && report.report_type == "title_search" %>
+                    <%# Title Search may be uploaded by admin without pdf_file if they set generated manually %>
+                    <span style="font-size: 0.8rem; color: var(--color-text-muted);">Pending delivery</span>
+                  <% elsif report.failed? && report.report_type != "title_search" %>
                     <button class="btn-sm btn-sm-outline btn-retry"
                         data-report-id="<%= report.id %>"
-                        data-parcel-id="<%= report.parcel_id %>"
-                        data-type="<%= report.report_type %>"
                         onclick="retryReport(this)">
                       🔄 Retry
                     </button>
+                  <% elsif report.ordered? && report.report_type == "title_search" %>
+                    <span style="font-size: 0.8rem; color: var(--color-text-muted);">Team is working on it…</span>
                   <% else %>
                     <span style="font-size: 0.8rem; color: var(--color-text-muted);">Processing…</span>
                   <% end %>
@@ -107,7 +151,7 @@
           </tbody>
         </table>
 
-        <!-- Pagination -->
+        <%# Pagination %>
         <div class="pagination">
           <span>Showing <%= @reports.offset_value + 1 %>–<%= [@reports.offset_value + @reports.length, @reports.total_count].min %> of <%= @reports.total_count %></span>
           <div class="pagination__btns">
@@ -127,7 +171,7 @@
       </div>
     <% end %>
 
-  <!-- ══ TAB 2: Prior Sale Results ══════════════════════════════ -->
+  <%# ═══ TAB 2: Prior Sale Results ════════════════════════════════════════ %>
   <% elsif @active_tab == "prior_sales" %>
     <% if @prior_sales.empty? %>
       <div class="empty-state">
@@ -146,6 +190,8 @@
               <th>Property</th>
               <th>Auction</th>
               <th>Opening Bid</th>
+              <th>Winning Bid</th>
+              <th>Sold</th>
               <th>Sale Date</th>
               <th>Researched</th>
             </tr>
@@ -154,7 +200,7 @@
             <% @prior_sales.each do |vp| %>
               <tr>
                 <td>
-                  <div style="font-weight: 600; color: var(--color-primary); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  <div style="font-weight: 600; color: var(--color-primary); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     <%= vp.parcel&.address || "—" %>
                   </div>
                   <div style="font-size: 0.75rem; color: var(--color-text-muted);">
@@ -163,14 +209,29 @@
                 </td>
                 <td>
                   <div style="font-weight: 500;"><%= vp.parcel&.auction&.jurisdiction || "—" %></div>
-                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">
-                    Completed
-                  </div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">Completed</div>
                 </td>
                 <td>
                   <% if vp.parcel&.opening_bid %>
                     $<%= number_with_delimiter(vp.parcel.opening_bid.to_i) %>
                   <% else %>—<% end %>
+                </td>
+                <td>
+                  <% if vp.parcel&.winning_bid %>
+                    <strong>$<%= number_with_delimiter(vp.parcel.winning_bid.to_i) %></strong>
+                  <% else %>
+                    <span style="color: var(--color-text-muted);">—</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% status = vp.parcel&.auction_status&.to_s %>
+                  <% if status == "sold" %>
+                    <span class="badge badge-sold">✓ Sold</span>
+                  <% elsif status == "unsold" %>
+                    <span class="badge badge-unsold">✗ Unsold</span>
+                  <% else %>
+                    <span style="color: var(--color-text-muted);">—</span>
+                  <% end %>
                 </td>
                 <td style="font-size: 0.8rem; white-space: nowrap;">
                   <%= vp.parcel&.auction&.sale_date&.strftime("%b %d, %Y") || "—" %>
@@ -201,7 +262,7 @@
       </div>
     <% end %>
 
-  <!-- ══ TAB 3: Viewed Parcels ══════════════════════════════════ -->
+  <%# ═══ TAB 3: Viewed Parcels ═════════════════════════════════════════════ %>
   <% elsif @active_tab == "viewed" %>
     <% if @viewed_parcels.empty? %>
       <div class="empty-state">
@@ -216,9 +277,9 @@
     <% else %>
       <div class="data-table-wrap">
         <div style="padding: 0.65rem 1rem; background: #FEF3C7; border-bottom: 1px solid #FDE68A; font-size: 0.8rem; color: #92400E;">
-          ℹ️ You've used <strong><%= current_user.subscription&.used_parcels || 0 %></strong> of
-          <strong><%= current_user.subscription&.limit_parcels || 0 %></strong> property report credits this cycle.
-          Resets on <strong><%= current_user.subscription&.next_reset_date&.strftime("%B %d, %Y") || "—" %></strong>.
+          ℹ️ You've used <strong><%= sub&.used_parcels || 0 %></strong> of
+          <strong><%= sub&.limit_parcels || 0 %></strong> property report credits this cycle.
+          Resets on <strong><%= sub&.next_reset_date&.strftime("%B %d, %Y") || "—" %></strong>.
         </div>
         <table class="data-table">
           <thead>
@@ -287,28 +348,79 @@
   <% end %>
 </div>
 
+<%# ─── Error Modal (reemplaza alert() nativo) ────────────────────────────── %>
+<div id="error-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="error-modal-title">
+  <div class="modal-box modal-box--sm">
+    <div class="modal-box__header">
+      <h3 id="error-modal-title" style="color: #DC3545; margin: 0; font-size: 1rem;">⚠️ Error</h3>
+      <button class="modal-close" onclick="closeErrorModal()" aria-label="Close">×</button>
+    </div>
+    <div class="modal-box__body">
+      <p id="error-modal-msg" style="margin: 0; font-size: 0.9rem; color: var(--color-text);"></p>
+    </div>
+    <div class="modal-box__footer">
+      <button class="btn-sm btn-sm-outline" onclick="closeErrorModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
+// ── Error modal ────────────────────────────────────────────────────────────
+function showErrorModal(message) {
+  document.getElementById('error-modal-msg').textContent = message;
+  document.getElementById('error-modal').style.display = 'flex';
+}
+function closeErrorModal() {
+  document.getElementById('error-modal').style.display = 'none';
+}
+document.getElementById('error-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeErrorModal();
+});
+
+// ── Retry report ───────────────────────────────────────────────────────────
 function retryReport(btn) {
-  var parcelId   = btn.dataset.parcelId;
-  var reportType = btn.dataset.type;
-  var csrfToken  = document.querySelector('meta[name="csrf-token"]')?.content;
-  btn.disabled   = true;
+  var reportId  = btn.dataset.reportId;
+  var csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+  btn.disabled  = true;
   btn.textContent = '⏳ Retrying…';
 
-  fetch('<%= research_purchased_reports_path %>', {
+  fetch('/reports/' + reportId + '/retry_report', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken, 'Accept': 'application/json' },
-    body: JSON.stringify({ parcel_id: parcelId, report_type: reportType })
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+      'Accept': 'application/json'
+    }
   })
   .then(r => r.json())
   .then(d => {
     if (d.error) {
       btn.disabled    = false;
       btn.textContent = '🔄 Retry';
-      alert(d.error);
+      showErrorModal(d.error);
     } else {
       window.location.reload();
     }
+  })
+  .catch(() => {
+    btn.disabled    = false;
+    btn.textContent = '🔄 Retry';
+    showErrorModal('Connection error. Please try again.');
   });
 }
+
+// ── Auto-refresh si hay reportes en proceso ────────────────────────────────
+(function() {
+  var wrap = document.getElementById('reports-table-wrap');
+  if (!wrap) return;
+  if (wrap.dataset.hasPending !== 'true') return;
+
+  // Refrescar cada 10 segundos mientras haya reportes en proceso
+  var timer = setTimeout(function() {
+    window.location.reload();
+  }, 10000);
+
+  // Cancelar si el usuario navega fuera
+  window.addEventListener('pagehide', function() { clearTimeout(timer); });
+})();
 </script>

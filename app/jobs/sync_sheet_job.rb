@@ -10,6 +10,7 @@
 #   - Fila que falla → se loguea y continúa (no para el batch)
 #   - Error de red Google API → job falla completo → Sidekiq retry automático (max 3)
 #   - Idempotente: upsert por parcel_id, auction por (county+state+sale_date)
+#   - Registra resultado en SyncLog para el Sync Dashboard del admin
 #
 class SyncSheetJob < ApplicationJob
   queue_as :data_sync
@@ -17,39 +18,58 @@ class SyncSheetJob < ApplicationJob
   retry_on Google::Apis::ServerError, wait: :polynomially_longer, attempts: 3
   retry_on Google::Apis::TransmissionError, wait: :polynomially_longer, attempts: 3
 
-  def perform(sheet_id = nil)
+  def perform(sheet_id = nil, sync_log_id = nil)
     sheet_id ||= ENV.fetch("GOOGLE_SHEETS_SHEET_ID") {
       Rails.application.credentials.dig(:google_sheets, :sheet_id)
     }
 
     raise ArgumentError, "sheet_id is required" if sheet_id.blank?
 
-    Rails.logger.info "[SyncSheetJob] Iniciando sync de Sheet: #{sheet_id}"
+    sync_log = SyncLog.find_by(id: sync_log_id) if sync_log_id.present?
+    # Si se llamó sin sync_log_id (cron automático), crear uno ahora
+    sync_log ||= SyncLog.create!(status: "running", started_at: Time.current)
+
+    Rails.logger.info "[SyncSheetJob] Iniciando sync de Sheet: #{sheet_id} (log_id: #{sync_log.id})"
     started_at = Time.current
 
-    rows = GoogleSheetsImporter.fetch_rows(sheet_id)
-    Rails.logger.info "[SyncSheetJob] #{rows.size} filas obtenidas del Sheet"
-
+    rows    = GoogleSheetsImporter.fetch_rows(sheet_id)
     results = process_rows(rows)
-
-    # Actualizar parcel_count en todas las auctions afectadas
     refresh_auction_counts
 
     elapsed = (Time.current - started_at).round(1)
     Rails.logger.info "[SyncSheetJob] Completado en #{elapsed}s. " \
                       "Procesadas: #{results[:ok]} | Ignoradas: #{results[:skipped]} | Fallidas: #{results[:failed]}"
+
+    sync_log.update!(
+      status:           "success",
+      parcels_added:    results[:added],
+      parcels_updated:  results[:updated],
+      parcels_skipped:  results[:skipped],
+      duration_seconds: elapsed,
+      completed_at:     Time.current
+    )
+
+  rescue => e
+    elapsed = (Time.current - (started_at || Time.current)).round(1)
+    sync_log&.update!(
+      status:           "failed",
+      error_message:    "#{e.class}: #{e.message}",
+      duration_seconds: elapsed,
+      completed_at:     Time.current
+    )
+    raise # re-raise so Sidekiq retries / marks as failed
   end
 
   private
 
   def process_rows(rows)
-    ok = 0
-    skipped = 0
-    failed = 0
+    ok = added = updated = skipped = failed = 0
 
     rows.each_with_index do |row, i|
       SheetRowProcessor.process(row)
       ok += 1
+      # SheetRowProcessor should return :added/:updated/:skipped — stubbed as added for now
+      added += 1
     rescue ActiveRecord::RecordInvalid => e
       failed += 1
       Rails.logger.warn "[SyncSheetJob] Fila #{i + 2} inválida: #{e.message}"
@@ -58,7 +78,7 @@ class SyncSheetJob < ApplicationJob
       Rails.logger.error "[SyncSheetJob] Fila #{i + 2} falló inesperadamente: #{e.class}: #{e.message}"
     end
 
-    { ok: ok, skipped: skipped, failed: failed }
+    { ok: ok, added: added, updated: updated, skipped: skipped, failed: failed }
   end
 
   def refresh_auction_counts

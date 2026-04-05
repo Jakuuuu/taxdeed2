@@ -1202,7 +1202,6 @@ a:hover { color: var(--color-gold); }
 .card-display__info { flex: 1; }
 .card-display__brand { font-weight: 700; color: var(--color-primary); }
 
-/* ── BADGE catch-all for auction statuses ────────────────────── */
 .badge-upcoming  { background: #EBF5FB; color: #1A5276; }
 .badge-active    { background: #D1FAE5; color: #064E3B; }
 .badge-completed { background: #F3F4F6; color: #374151; }
@@ -1210,3 +1209,152 @@ a:hover { color: var(--color-gold); }
 .badge-inactive  { background: #F3F4F6; color: #6C757D; }
 .badge-past_due  { background: #FEF3C7; color: #92400E; }
 .badge-trial     { background: #EDE9FE; color: #5B21B6; }
+
+/* ═══════════════════════════════════════════════════════════════
+   REPORTS MODULE
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Report Status Badges ────────────────────────────────────── */
+.badge-report-pending   { background: #FEF3C7; color: #92400E; }
+.badge-report-ordered   { background: #DBEAFE; color: #1E40AF; }
+.badge-report-generated { background: #D1FAE5; color: #065F46; }
+.badge-report-failed    { background: #FEE2E2; color: #991B1B; }
+
+/* ── Report Type Badges ──────────────────────────────────────── */
+.report-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 10px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.report-type-avm            { background: #EBF5FB; color: #1A5276; }
+.report-type-property_scope { background: #EDE9FE; color: #5B21B6; }
+.report-type-title_search   { background: #FEF3C7; color: #92400E; }
+
+/* ── Prior Sale Badges ───────────────────────────────────────── */
+.badge-sold   { background: #D1FAE5; color: #065F46; }
+.badge-unsold { background: #FEE2E2; color: #991B1B; }
+
+/* ── Tab badge count ─────────────────────────────────────────── */
+.badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.35rem;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  margin-left: 0.3rem;
+}
+.tab-nav__btn.active .badge-count {
+  background: #fff;
+  color: var(--color-primary);
+}
+
+/* ── Credit Summary Bar ──────────────────────────────────────── */
+.credit-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #fff;
+  border: 1px solid var(--color-border, #DEE2E6);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.credit-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+.credit-label {
+  font-weight: 700;
+  color: var(--color-primary);
+  min-width: 38px;
+}
+.credit-track {
+  width: 80px;
+  height: 6px;
+  background: #E9ECEF;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.credit-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.credit-fill--avm   { background: #1A5276; }
+.credit-fill--scope { background: #5B21B6; }
+.credit-fill--title { background: #92400E; }
+.credit-count {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  min-width: 60px;
+}
+.credit-reset {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-left: auto;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .credit-reset { margin-left: 0; width: 100%; }
+}
+
+/* ── Error Modal (usado desde JS, reemplaza alert()) ─────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.15s ease;
+}
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.modal-box {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  width: 100%;
+  max-width: 480px;
+  animation: modalIn 0.18s ease;
+}
+.modal-box--sm { max-width: 380px; }
+.modal-box__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border, #DEE2E6);
+}
+.modal-box__body  { padding: 1rem 1.25rem; }
+.modal-box__footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--color-border, #DEE2E6);
+  display: flex;
+  justify-content: flex-end;
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+.modal-close:hover { color: var(--color-danger); }

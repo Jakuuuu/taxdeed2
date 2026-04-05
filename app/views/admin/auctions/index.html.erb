@@ -1,0 +1,112 @@
+<% content_for :title, "Auctions" %>
+
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Auctions</h1>
+    <p class="admin-page-subtitle">Tax deed and tax lien auction management</p>
+  </div>
+  <div class="admin-page-actions">
+    <div class="admin-filters">
+      <%= form_with url: admin_auctions_path, method: :get, local: true do |f| %>
+        <%= select_tag :status,
+              options_for_select([["All Statuses", ""], ["Upcoming", "upcoming"], ["Active", "active"], ["Completed", "completed"]], @status_filter),
+              class: "admin-filter-select", onchange: "this.form.submit()" %>
+        <%= select_tag :state,
+              options_for_select([["All States", ""]] + @states.map { |s| [s, s] }, @state_filter),
+              class: "admin-filter-select", onchange: "this.form.submit()" %>
+      <% end %>
+    </div>
+    <%= link_to "＋ New Auction", new_admin_auction_path, class: "btn-sm btn-sm-primary" %>
+  </div>
+</div>
+
+<%# Stats %>
+<div class="admin-stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.25rem;">
+  <div class="admin-stat-card"><div class="admin-stat-card__label">Total</div><div class="admin-stat-card__value"><%= @counts[:all] %></div></div>
+  <div class="admin-stat-card admin-stat-card--accent"><div class="admin-stat-card__label">Upcoming</div><div class="admin-stat-card__value"><%= @counts[:upcoming] %></div></div>
+  <div class="admin-stat-card admin-stat-card--success"><div class="admin-stat-card__label">Active</div><div class="admin-stat-card__value"><%= @counts[:active] %></div></div>
+  <div class="admin-stat-card"><div class="admin-stat-card__label">Completed</div><div class="admin-stat-card__value"><%= @counts[:completed] %></div></div>
+</div>
+
+<div class="admin-card">
+  <% if @auctions.any? %>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Auction Name</th>
+          <th>County / State</th>
+          <th>Sale Date</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Parcels</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @auctions.each do |auction| %>
+          <tr>
+            <td>
+              <div style="font-weight:600;color:#1E3A5F;"><%= auction.name %></div>
+              <% if auction.website_url.present? %>
+                <div style="font-size:0.75rem;">
+                  <a href="<%= auction.website_url %>" target="_blank" style="color:#C9A84C;">Official site ↗</a>
+                </div>
+              <% end %>
+            </td>
+            <td style="font-size:0.875rem;">
+              <%= auction.county %><br>
+              <span style="color:#6C757D;font-size:0.78rem;"><%= auction.state %></span>
+            </td>
+            <td style="white-space:nowrap;font-size:0.875rem;">
+              <%= auction.sale_date&.strftime("%m/%d/%Y") || "—" %>
+            </td>
+            <td>
+              <span style="font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">
+                <%= auction.auction_type&.humanize || "—" %>
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-<%= auction.status %>" style="padding:0.2rem 0.6rem;border-radius:20px;font-size:0.75rem;font-weight:600;">
+                <%= auction.status.capitalize %>
+              </span>
+            </td>
+            <td style="font-weight:600;color:#1E3A5F;text-align:center;">
+              <%= auction.parcel_count || auction.parcels.count %>
+            </td>
+            <td style="white-space:nowrap;">
+              <%= link_to "View", admin_auction_path(auction), class: "btn-sm btn-sm-outline" %>
+              <%= link_to "Edit", edit_admin_auction_path(auction), class: "btn-sm btn-sm-outline" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% if @auctions.respond_to?(:current_page) && @auctions.total_pages > 1 %>
+      <div class="admin-card__footer">
+        <span style="font-size:0.8rem;color:#6C757D;">
+          Showing <%= @auctions.offset_value + 1 %>–<%= [@auctions.offset_value + @auctions.limit_value, @auctions.total_count].min %>
+          of <%= @auctions.total_count %>
+        </span>
+        <div style="display:flex;gap:0.4rem;">
+          <% if @auctions.prev_page %>
+            <%= link_to "← Prev", admin_auctions_path(page: @auctions.prev_page, status: @status_filter, state: @state_filter), class: "btn-sm btn-sm-outline" %>
+          <% end %>
+          <% if @auctions.next_page %>
+            <%= link_to "Next →", admin_auctions_path(page: @auctions.next_page, status: @status_filter, state: @state_filter), class: "btn-sm btn-sm-outline" %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+  <% else %>
+    <div class="empty-state">
+      <div class="empty-state__icon">🏛️</div>
+      <div class="empty-state__title">No auctions found</div>
+      <div class="empty-state__desc">
+        Try a different filter, or
+        <%= link_to "create a new auction", new_admin_auction_path %>.
+      </div>
+    </div>
+  <% end %>
+</div>

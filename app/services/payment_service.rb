@@ -1,4 +1,4 @@
-﻿# frozen_string_literal: true
+# frozen_string_literal: true
 
 # PaymentService — Capa de abstraccion de pagos
 #
@@ -59,5 +59,20 @@ class PaymentService
       )
       { id: sub.id, status: sub.status }
     end
+  end
+
+  # Cancela una suscripción al final del período actual (cancel_at_period_end).
+  # - En MOCK_MODE: retorna true inmediatamente.
+  # - Si sub.stripe_subscription_id está en blanco: retorna nil.
+  # - En error Stripe: loggea y retorna false.
+  def self.cancel_subscription(sub)
+    return nil  if sub.stripe_subscription_id.blank?
+    return true if MOCK_MODE
+
+    Stripe::Subscription.update(sub.stripe_subscription_id, { cancel_at_period_end: true })
+    true
+  rescue Stripe::StripeError => e
+    Rails.logger.error("[PaymentService] Stripe cancel failed for sub #{sub.id}: #{e.message}")
+    false
   end
 end

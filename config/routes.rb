@@ -24,6 +24,51 @@ Rails.application.routes.draw do
     end
   end
 
+  # Reportes: descarga y reintento
+  resources :reports, only: [] do
+    member do
+      get  :download
+      post :retry_report
+    end
+  end
+
+  # ── Panel Admin (role admin: required) ─────────────────────────────────────
+  namespace :admin do
+    root to: "dashboard#index"
+
+    resources :title_searches, only: [:index, :show, :update] do
+      member do
+        patch :mark_generated
+        patch :mark_failed
+      end
+    end
+
+    resources :auctions do
+      member do
+        patch :change_status
+      end
+      resources :parcels, only: [:index]
+    end
+
+    resources :users, only: [:index, :show] do
+      member do
+        post :reset_usage
+        post :cancel_subscription
+      end
+    end
+
+    resources :reports, only: [:index, :show] do
+      member do
+        post  :retry
+        patch :mark_failed
+      end
+    end
+
+    resource :sync, only: [:show] do
+      post :run_now
+    end
+  end
+
   # Webhooks de Stripe (endpoint publico, verificado por firma)
   namespace :stripe do
     post "webhooks", to: "webhooks#create"

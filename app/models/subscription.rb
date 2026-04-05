@@ -16,9 +16,10 @@ class Subscription < ApplicationRecord
     status.in?(%w[trial active])
   end
 
-  def trial?   = status == "trial"
-  def active?  = status == "active"
+  def trial?    = status == "trial"
+  def active?   = status == "active"
   def past_due? = status == "past_due"
+  def canceled? = status == "canceled"
 
   # ── Usage checks ───────────────────────────────────────────────
   def can_use?(type)
@@ -54,6 +55,14 @@ class Subscription < ApplicationRecord
     :ok
   end
 
+  # Admin: reset all usage counters back to zero for the current cycle
+  def reset_usage!
+    update!(
+      used_avm:           0,
+      used_scope:         0,
+      title_search_used:  false
+    )
+  end
 
   # ── Plans ──────────────────────────────────────────────────────
   def apply_plan_limits!

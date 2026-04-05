@@ -10,7 +10,8 @@ class User < ApplicationRecord
   # No se persiste en users sino en subscriptions.
   attr_accessor :plan
 
-  has_one :subscription, dependent: :destroy
+  has_one  :subscription, dependent: :destroy
+  has_many :reports,      dependent: :destroy
 
   def full_name
     "#{first_name} #{last_name}".strip

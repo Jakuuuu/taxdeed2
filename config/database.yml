@@ -1,14 +1,13 @@
-﻿default: &default
+default: &default
   adapter: postgresql
   encoding: unicode
   pool: 5
 
 development:
-  <<: *default
+  adapter: postgresql
+  encoding: unicode
+  pool: 5
   database: tax_sale_resources_development
-  host: localhost
-  username: postgres
-  password: ""
 
 test:
   <<: *default

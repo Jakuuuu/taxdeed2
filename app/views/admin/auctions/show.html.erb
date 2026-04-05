@@ -1,0 +1,122 @@
+<% content_for :title, @auction.name %>
+
+<div class="admin-breadcrumb">
+  <%= link_to "Auctions", admin_auctions_path %>
+  <span class="admin-breadcrumb__sep">›</span>
+  <span><%= @auction.name %></span>
+</div>
+
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">
+      <%= @auction.name %>
+      <span class="badge badge-<%= @auction.status %>" style="font-size:0.8rem;padding:0.2rem 0.7rem;border-radius:20px;vertical-align:middle;margin-left:0.5rem;">
+        <%= @auction.status.capitalize %>
+      </span>
+    </h1>
+    <p class="admin-page-subtitle"><%= @auction.county %>, <%= @auction.state %></p>
+  </div>
+  <div class="admin-page-actions">
+    <%= link_to "Edit", edit_admin_auction_path(@auction), class: "btn-sm btn-sm-outline" %>
+
+    <%# Status change buttons %>
+    <% next_statuses = { "upcoming" => "active", "active" => "completed" } %>
+    <% next_status = next_statuses[@auction.status] %>
+    <% if next_status %>
+      <%= form_with url: change_status_admin_auction_path(@auction), method: :patch, local: true do |f| %>
+        <%= hidden_field_tag :new_status, next_status %>
+        <button type="submit" class="btn-sm btn-sm-primary"
+                onclick="return confirm('Change status to <%= next_status.capitalize %>?')">
+          → Mark as <%= next_status.capitalize %>
+        </button>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<div class="admin-detail-grid" style="margin-bottom:1.25rem;">
+  <div class="admin-detail-item">
+    <div class="admin-detail-item__label">Sale Date</div>
+    <div class="admin-detail-item__value"><%= @auction.sale_date&.strftime("%B %d, %Y") || "—" %></div>
+  </div>
+  <div class="admin-detail-item">
+    <div class="admin-detail-item__label">Registration Deadline</div>
+    <div class="admin-detail-item__value"><%= @auction.registration_deadline&.strftime("%B %d, %Y") || "—" %></div>
+  </div>
+  <div class="admin-detail-item">
+    <div class="admin-detail-item__label">Type</div>
+    <div class="admin-detail-item__value"><%= @auction.auction_type&.humanize || "—" %></div>
+  </div>
+  <div class="admin-detail-item">
+    <div class="admin-detail-item__label">Total Parcels</div>
+    <div class="admin-detail-item__value"><%= @auction.parcel_count || @auction.parcels.count %></div>
+  </div>
+  <% if @auction.website_url.present? %>
+    <div class="admin-detail-item">
+      <div class="admin-detail-item__label">Official Website</div>
+      <div class="admin-detail-item__value">
+        <a href="<%= @auction.website_url %>" target="_blank" style="color:#C9A84C;font-size:0.85rem;">
+          Visit ↗
+        </a>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<% if @auction.description.present? %>
+  <div class="admin-card" style="margin-bottom:1.25rem;">
+    <div class="admin-card__header"><h2 class="admin-card__title">Description</h2></div>
+    <div class="admin-card__body">
+      <p style="font-size:0.9rem;color:#4B5563;line-height:1.6;margin:0;"><%= @auction.description %></p>
+    </div>
+  </div>
+<% end %>
+
+<%# Parcels table %>
+<div class="admin-card">
+  <div class="admin-card__header">
+    <h2 class="admin-card__title">Associated Parcels (<%= @auction.parcel_count || @auction.parcels.count %>)</h2>
+  </div>
+  <% if @parcels.any? %>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Parcel ID</th>
+          <th>Address</th>
+          <th>Property Type</th>
+          <th>Assessed Value</th>
+          <th>Sq Ft</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @parcels.each do |parcel| %>
+          <tr>
+            <td style="font-family:monospace;font-size:0.8rem;color:#1E3A5F;"><%= parcel.parcel_id %></td>
+            <td style="font-weight:500;"><%= parcel.address %></td>
+            <td style="font-size:0.875rem;"><%= parcel.property_type || "—" %></td>
+            <td style="font-size:0.875rem;">
+              <% if parcel.assessed_value %>
+                $<%= number_with_delimiter(parcel.assessed_value.to_i) %>
+              <% else %>—<% end %>
+            </td>
+            <td style="font-size:0.875rem;"><%= parcel.building_sqft ? number_with_delimiter(parcel.building_sqft.to_i) : "—" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <% if @parcels.respond_to?(:current_page) && @parcels.total_pages > 1 %>
+      <div class="admin-card__footer">
+        <% if @parcels.prev_page %>
+          <%= link_to "← Prev", admin_auction_path(@auction, page: @parcels.prev_page), class: "btn-sm btn-sm-outline" %>
+        <% end %>
+        <% if @parcels.next_page %>
+          <%= link_to "Next →", admin_auction_path(@auction, page: @parcels.next_page), class: "btn-sm btn-sm-outline" %>
+        <% end %>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="empty-state" style="padding:2rem;">
+      <div class="empty-state__desc">No parcels associated with this auction yet.</div>
+    </div>
+  <% end %>
+</div>

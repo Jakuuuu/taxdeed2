@@ -3,7 +3,7 @@
 module Research
   class AuctionsController < BaseController
     before_action :require_active_subscription!
-    before_action :set_auction, only: [:show]
+    before_action :set_auction, only: [ :show ]
 
     # GET /research/auctions
     # GET /research/auctions.json

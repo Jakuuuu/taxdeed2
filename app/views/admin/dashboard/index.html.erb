@@ -1,0 +1,150 @@
+<% content_for :title, "Dashboard" %>
+
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Operations Dashboard</h1>
+    <p class="admin-page-subtitle">Overview of platform activity — <%= Date.today.strftime("%B %d, %Y") %></p>
+  </div>
+</div>
+
+<%# ── Stat Cards ────────────────────────────────────────────────── %>
+<div class="admin-stat-grid">
+
+  <div class="admin-stat-card admin-stat-card--urgent">
+    <div class="admin-stat-card__label">Pending Title Searches</div>
+    <div class="admin-stat-card__value"><%= @pending_title_searches %></div>
+    <div class="admin-stat-card__sub">
+      <% if @pending_title_searches > 0 %>
+        <a href="<%= admin_title_searches_path(status: 'ordered') %>" style="color:#DC2626;font-weight:700;">View queue →</a>
+      <% else %>
+        All caught up ✓
+      <% end %>
+    </div>
+  </div>
+
+  <div class="admin-stat-card admin-stat-card--success">
+    <div class="admin-stat-card__label">Generated This Month</div>
+    <div class="admin-stat-card__value"><%= @generated_this_month %></div>
+    <div class="admin-stat-card__sub">Title Search reports</div>
+  </div>
+
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">Active Auctions</div>
+    <div class="admin-stat-card__value"><%= @active_auctions %></div>
+    <div class="admin-stat-card__sub"><%= @upcoming_auctions %> upcoming</div>
+  </div>
+
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">Total Users</div>
+    <div class="admin-stat-card__value"><%= @total_users %></div>
+    <div class="admin-stat-card__sub"><%= @admin_count %> admin</div>
+  </div>
+
+  <div class="admin-stat-card admin-stat-card--accent">
+    <div class="admin-stat-card__label">Last Sync</div>
+    <% if @last_sync %>
+      <div class="admin-stat-card__value" style="font-size:1rem;">
+        <span class="sync-status-dot <%= @last_sync.status %>"></span>
+        <%= @last_sync.status.capitalize %>
+      </div>
+      <div class="admin-stat-card__sub"><%= time_ago_in_words(@last_sync.started_at) %> ago</div>
+    <% else %>
+      <div class="admin-stat-card__value" style="font-size:1.1rem;color:#6C757D;">Never</div>
+      <div class="admin-stat-card__sub"><a href="<%= admin_sync_path %>">Run sync →</a></div>
+    <% end %>
+  </div>
+
+</div>
+
+<%# ── Pending Title Searches Queue ─────────────────────────────── %>
+<div class="admin-card">
+  <div class="admin-card__header">
+    <h2 class="admin-card__title">📋 Pending Title Search Queue</h2>
+    <a href="<%= admin_title_searches_path(status: 'ordered') %>" class="btn-sm btn-sm-outline">
+      View All →
+    </a>
+  </div>
+
+  <% if @recent_pending.any? %>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Requested</th>
+          <th>User</th>
+          <th>Property</th>
+          <th>County</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @recent_pending.each do |report| %>
+          <tr>
+            <td style="white-space:nowrap;color:#6C757D;font-size:0.8rem;">
+              <%= report.created_at.strftime("%m/%d %H:%M") %>
+            </td>
+            <td>
+              <div style="font-weight:600;color:#1E3A5F;"><%= report.user&.full_name %></div>
+              <div style="font-size:0.78rem;color:#6C757D;"><%= report.user&.email %></div>
+            </td>
+            <td>
+              <% if report.parcel %>
+                <div style="font-weight:500;"><%= report.parcel.address %></div>
+                <div style="font-size:0.78rem;color:#6C757D;">ID: <%= report.parcel.parcel_id %></div>
+              <% else %>
+                <span style="color:#9CA3AF;">—</span>
+              <% end %>
+            </td>
+            <td><%= report.parcel&.county || "—" %></td>
+            <td>
+              <%= link_to "Process →", admin_title_search_path(report),
+                    class: "btn-sm btn-sm-primary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <div class="empty-state" style="padding:2rem;">
+      <div class="empty-state__icon">✅</div>
+      <div class="empty-state__title">Queue is empty</div>
+      <div class="empty-state__desc">All title search requests have been processed.</div>
+    </div>
+  <% end %>
+</div>
+
+<%# ── Quick Links ───────────────────────────────────────────────── %>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;">
+
+  <%= link_to admin_auctions_path, class: "admin-card", style: "text-decoration:none;display:block;" do %>
+    <div class="admin-card__body" style="padding:1.25rem;">
+      <div style="font-size:1.5rem;margin-bottom:0.5rem;">🏛️</div>
+      <div style="font-weight:700;color:#1E3A5F;margin-bottom:0.2rem;">Manage Auctions</div>
+      <div style="font-size:0.8rem;color:#6C757D;"><%= @active_auctions %> active · <%= @upcoming_auctions %> upcoming</div>
+    </div>
+  <% end %>
+
+  <%= link_to admin_sync_path, class: "admin-card", style: "text-decoration:none;display:block;" do %>
+    <div class="admin-card__body" style="padding:1.25rem;">
+      <div style="font-size:1.5rem;margin-bottom:0.5rem;">🔄</div>
+      <div style="font-weight:700;color:#1E3A5F;margin-bottom:0.2rem;">Sync Dashboard</div>
+      <div style="font-size:0.8rem;color:#6C757D;">Monitor & trigger data sync</div>
+    </div>
+  <% end %>
+
+  <%= link_to admin_users_path, class: "admin-card", style: "text-decoration:none;display:block;" do %>
+    <div class="admin-card__body" style="padding:1.25rem;">
+      <div style="font-size:1.5rem;margin-bottom:0.5rem;">👥</div>
+      <div style="font-weight:700;color:#1E3A5F;margin-bottom:0.2rem;">Manage Users</div>
+      <div style="font-size:0.8rem;color:#6C757D;"><%= @total_users %> registered users</div>
+    </div>
+  <% end %>
+
+  <%= link_to admin_reports_path, class: "admin-card", style: "text-decoration:none;display:block;" do %>
+    <div class="admin-card__body" style="padding:1.25rem;">
+      <div style="font-size:1.5rem;margin-bottom:0.5rem;">📊</div>
+      <div style="font-weight:700;color:#1E3A5F;margin-bottom:0.2rem;">All Reports</div>
+      <div style="font-size:0.8rem;color:#6C757D;">Global view of all report types</div>
+    </div>
+  <% end %>
+
+</div>
