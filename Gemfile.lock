@@ -105,6 +105,8 @@ GEM
       railties (>= 7.0)
       responders
       warden (~> 1.2.3)
+    digest-crc (0.7.0)
+      rake (>= 12.0.0, < 14.0.0)
     dotenv (3.2.0)
     dotenv-rails (3.2.0)
       dotenv (= 3.2.0)
@@ -137,11 +139,28 @@ GEM
       mini_mime (~> 1.1)
       representable (~> 3.0)
       retriable (~> 3.1)
+    google-apis-iamcredentials_v1 (0.26.0)
+      google-apis-core (>= 0.15.0, < 2.a)
     google-apis-sheets_v4 (0.47.0)
       google-apis-core (>= 0.15.0, < 2.a)
+    google-apis-storage_v1 (0.61.0)
+      google-apis-core (>= 0.15.0, < 2.a)
+    google-cloud-core (1.8.0)
+      google-cloud-env (>= 1.0, < 3.a)
+      google-cloud-errors (~> 1.0)
     google-cloud-env (2.3.1)
       base64 (~> 0.2)
       faraday (>= 1.0, < 3.a)
+    google-cloud-errors (1.6.0)
+    google-cloud-storage (1.59.0)
+      addressable (~> 2.8)
+      digest-crc (~> 0.4)
+      google-apis-core (>= 0.18, < 2)
+      google-apis-iamcredentials_v1 (~> 0.18)
+      google-apis-storage_v1 (>= 0.42)
+      google-cloud-core (~> 1.6)
+      googleauth (~> 1.9)
+      mini_mime (~> 1.0)
     google-logging-utils (0.2.0)
     googleauth (1.16.2)
       faraday (>= 1.0, < 3.a)
@@ -194,7 +213,6 @@ GEM
       net-pop
       net-smtp
     marcel (1.1.0)
-    matrix (0.4.3)
     mini_mime (1.1.5)
     minitest (5.27.0)
     msgpack (1.8.0)
@@ -405,11 +423,11 @@ DEPENDENCIES
   dotenv-rails
   foreman
   google-apis-sheets_v4
+  google-cloud-storage (~> 1.48)
   googleauth
   importmap-rails
   jbuilder
   kaminari
-  matrix (~> 0.4.3)
   pg (~> 1.1)
   prawn
   prawn-table

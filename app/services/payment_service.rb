@@ -62,17 +62,23 @@ class PaymentService
   end
 
   # Cancela una suscripción al final del período actual (cancel_at_period_end).
-  # - En MOCK_MODE: retorna true inmediatamente.
-  # - Si sub.stripe_subscription_id está en blanco: retorna nil.
-  # - En error Stripe: loggea y retorna false.
+  # Retorna: { success: true } o { success: false, error: "mensaje" }
+  #
+  # En MOCK_MODE: simula cancel exitoso.
+  # Si stripe_subscription_id está en blanco: error inmediato.
   def self.cancel_subscription(sub)
-    return nil  if sub.stripe_subscription_id.blank?
-    return true if MOCK_MODE
+    if sub.stripe_subscription_id.blank?
+      return { success: false, error: "No Stripe subscription ID found." }
+    end
+
+    if MOCK_MODE
+      return { success: true }
+    end
 
     Stripe::Subscription.update(sub.stripe_subscription_id, { cancel_at_period_end: true })
-    true
+    { success: true }
   rescue Stripe::StripeError => e
     Rails.logger.error("[PaymentService] Stripe cancel failed for sub #{sub.id}: #{e.message}")
-    false
+    { success: false, error: e.message }
   end
 end

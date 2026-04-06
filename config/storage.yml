@@ -6,29 +6,33 @@ local:
   service: Disk
   root: <%= Rails.root.join("storage") %>
 
-# Use bin/rails credentials:edit to set the AWS secrets (as aws:access_key_id|secret_access_key)
+# ── Google Cloud Storage (PRODUCCIÓN) ────────────────────────────────────────
+# Usar para almacenar PDFs de reportes (AVM, Property Scope, Title Search).
+# Render usa contenedores efímeros: el disco local se borra en cada deploy.
+#
+# Setup en Render Dashboard:
+#   GCS_BUCKET      = tax-sale-reports-production
+#   GCS_PROJECT_ID  = tu-proyecto-gcp
+#   GOOGLE_APPLICATION_CREDENTIALS = /etc/secrets/gcs-credentials.json
+#     (montar el JSON del service account como Secret File en Render)
+#
+# Permisos requeridos en el Service Account:
+#   - storage.objects.create
+#   - storage.objects.get
+#   - storage.objects.delete
+#
+google:
+  service: GCS
+  credentials: <%= ENV.fetch("GOOGLE_APPLICATION_CREDENTIALS", nil) %>
+  project: <%= ENV.fetch("GCS_PROJECT_ID", "your-gcp-project") %>
+  bucket: <%= ENV.fetch("GCS_BUCKET", "tax-sale-reports-production") %>
+
+# ── Amazon S3 (alternativa a GCS) ────────────────────────────────────────────
+# Descomentar si se prefiere S3. Requiere gem "aws-sdk-s3" en Gemfile.
 # amazon:
 #   service: S3
-#   access_key_id: <%= Rails.application.credentials.dig(:aws, :access_key_id) %>
-#   secret_access_key: <%= Rails.application.credentials.dig(:aws, :secret_access_key) %>
+#   access_key_id:     <%= ENV["AWS_ACCESS_KEY_ID"] %>
+#   secret_access_key: <%= ENV["AWS_SECRET_ACCESS_KEY"] %>
 #   region: us-east-1
-#   bucket: your_own_bucket-<%= Rails.env %>
+#   bucket: tax-sale-reports-<%= Rails.env %>
 
-# Remember not to checkin your GCS keyfile to a repository
-# google:
-#   service: GCS
-#   project: your_project
-#   credentials: <%= Rails.root.join("path/to/gcs.keyfile") %>
-#   bucket: your_own_bucket-<%= Rails.env %>
-
-# Use bin/rails credentials:edit to set the Azure Storage secret (as azure_storage:storage_access_key)
-# microsoft:
-#   service: AzureStorage
-#   storage_account_name: your_account_name
-#   storage_access_key: <%= Rails.application.credentials.dig(:azure_storage, :storage_access_key) %>
-#   container: your_container_name-<%= Rails.env %>
-
-# mirror:
-#   service: Mirror
-#   primary: local
-#   mirrors: [ amazon, google, microsoft ]

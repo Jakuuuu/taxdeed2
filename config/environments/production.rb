@@ -37,7 +37,10 @@ Rails.application.configure do
   # config.action_dispatch.x_sendfile_header = "X-Accel-Redirect" # for NGINX
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :local
+  # ── Active Storage ── GCS para persistir PDFs de reportes entre redeploys ──
+  # Render usa contenedores efímeros: :local perdería todos los archivos.
+  # Requiere: GCS_BUCKET, GCS_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS en Render.
+  config.active_storage.service = :google
 
   # Mount Action Cable outside main process or domain.
   # config.action_cable.mount_path = nil

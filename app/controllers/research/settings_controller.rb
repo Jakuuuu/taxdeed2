@@ -28,19 +28,14 @@ module Research
         return
       end
 
-      begin
-        # Instead of immediate cancel, we set it to cancel at the end of the billing period
-        # so the user retains access for the time they already paid for.
-        Stripe::Subscription.update(
-          subscription.stripe_subscription_id,
-          { cancel_at_period_end: true }
-        )
-        
+      result = PaymentService.cancel_subscription(subscription)
+
+      if result[:success]
         redirect_to research_settings_path(tab: "subscription"),
           notice: "Your subscription will be canceled at the end of your current billing period. You will retain access until then."
-      rescue Stripe::StripeError => e
+      else
         redirect_to research_settings_path(tab: "subscription"),
-          alert: "Could not cancel subscription: #{e.message}"
+          alert: "Could not cancel subscription: #{result[:error]}"
       end
     end
 

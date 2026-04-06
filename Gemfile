@@ -26,6 +26,10 @@ gem "sidekiq-cron"
 gem "google-apis-sheets_v4"
 gem "googleauth"
 
+# ── Google Cloud Storage (Active Storage en producción — PDFs de reportes) ───
+# Requiere: GCS_BUCKET, GCS_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS en Render.
+gem "google-cloud-storage", "~> 1.48", require: false
+
 # ── Pagination ────────────────────────────────────────────────────────────────
 gem "kaminari"
 
@@ -44,5 +48,3 @@ group :development do
   gem "web-console"
   gem "foreman", require: false
 end
-
-gem "matrix", "~> 0.4.3"

@@ -1,25 +1,67 @@
 # Be sure to restart your server when you modify this file.
-
-# Define an application-wide content security policy.
-# See the Securing Rails Applications Guide for more information:
-# https://guides.rubyonrails.org/security.html#content-security-policy-header
-
-# Rails.application.configure do
-#   config.content_security_policy do |policy|
-#     policy.default_src :self, :https
-#     policy.font_src    :self, :https, :data
-#     policy.img_src     :self, :https, :data
-#     policy.object_src  :none
-#     policy.script_src  :self, :https
-#     policy.style_src   :self, :https
-#     # Specify URI for violation reports
-#     # policy.report_uri "/csp-violation-report-endpoint"
-#   end
 #
-#   # Generate session nonces for permitted importmap, inline scripts, and inline styles.
-#   config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
-#   config.content_security_policy_nonce_directives = %w(script-src style-src)
+# Content Security Policy (CSP) — Tax Sale Resources
+# Allowlist estricto para los dominios de terceros que realmente usamos.
 #
-#   # Report violations without enforcing the policy.
-#   # config.content_security_policy_report_only = true
-# end
+# MODO ACTUAL: report_only = true → solo reporta violaciones, no bloquea.
+# Para activar el modo enforce: cambiar a report_only = false
+# Una vez verificado que no hay violaciones en los logs de Render.
+
+Rails.application.configure do
+  config.content_security_policy do |policy|
+    # Fuentes por defecto: solo el propio origen
+    policy.default_src :self
+
+    # Scripts: propio dominio + Google Maps JS + Stripe.js
+    # 'unsafe-inline' NO necesario gracias a nonces
+    policy.script_src  :self,
+                       "https://maps.googleapis.com",
+                       "https://maps.gstatic.com",
+                       "https://js.stripe.com"
+
+    # Estilos: propio dominio + Google Fonts
+    policy.style_src   :self,
+                       "https://fonts.googleapis.com"
+
+    # Fuentes: propio dominio + Google Fonts CDN
+    policy.font_src    :self,
+                       "https://fonts.gstatic.com",
+                       :data
+
+    # Imágenes: propio dominio + Google Maps tiles + data URIs + GCS (para PDFs/thumbnails)
+    policy.img_src     :self,
+                       "https://maps.googleapis.com",
+                       "https://maps.gstatic.com",
+                       "https://streetviewpixels-pa.googleapis.com",
+                       "https://storage.googleapis.com",
+                       :data,
+                       :blob
+
+    # Frames: Google Maps embed + Stripe Checkout iframes
+    policy.frame_src   "https://www.google.com",
+                       "https://js.stripe.com",
+                       "https://hooks.stripe.com"
+
+    # Conexiones AJAX / fetch / WebSocket: propio dominio + Google APIs + Stripe
+    policy.connect_src :self,
+                       "https://maps.googleapis.com",
+                       "https://api.stripe.com"
+
+    # Objetos/plugins: ninguno (sin Flash, sin PDFs embebidos)
+    policy.object_src  :none
+
+    # Evitar clickjacking (frame-ancestors vacío = nadie puede embeberte)
+    policy.frame_ancestors :none
+
+    # No permitir upgrade implícito a mixed content
+    policy.base_uri    :self
+  end
+
+  # Nonces para <script> y <style> inline compatibles con Turbo/Importmap
+  config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
+  config.content_security_policy_nonce_directives = %w[script-src style-src]
+
+  # MODO REPORT-ONLY: reporta sin bloquear. Cambiar a false para enforce.
+  # Monitorear violaciones en: Render logs o agregar report_uri a un endpoint.
+  config.content_security_policy_report_only = true
+end

@@ -2,13 +2,33 @@
 
 class ApplicationController < ActionController::Base
   before_action :authenticate_user!
+  before_action :set_rls_user_context
 
-  # Redirige usuarios autenticados al dashboard, no al root (evita loop con login page)
+  # Redirige usuarios autenticados al dashboard, no al root
   def after_sign_in_path_for(resource)
     research_parcels_path
   end
 
   private
+
+  # ── Row Level Security context ────────────────────────────────────────────
+  # Establece el user_id de la sesión actual como variable de configuración de
+  # PostgreSQL. La migración 20260406154000 crea políticas que leen este valor
+  # para filtrar filas automáticamente en el motor de BD.
+  #
+  # '0' = sentinel para admin/Sidekiq (bypasa el filtro — ver migración).
+  # El SET es LOCAL: se limita a la transacción actual, sin riesgo de leak
+  # entre requests en un pool de conexiones.
+  def set_rls_user_context
+    return unless current_user
+
+    ActiveRecord::Base.connection.execute(
+      "SELECT set_config('app_user.id', #{current_user.id}, true)"
+    )
+  rescue ActiveRecord::StatementInvalid
+    # Si RLS aún no está migrado (dev fresh), no romper la app
+    nil
+  end
 
   def require_active_subscription!
     return if current_user.subscription&.active_or_trial?
@@ -20,23 +40,6 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  def require_credits!(type)
-    subscription = current_user.subscription
-    unless subscription
-      redirect_to subscription_required_path, alert: "No active subscription found."
-      return
-    end
-
-    subscription.with_lock do
-      unless subscription.can_use?(type)
-        flash[:alert] = "You have reached your #{type.to_s.humanize} limit for this billing period."
-        redirect_to research_parcels_path and return
-      end
-      subscription.increment!("used_#{type}")
-    end
-  end
-
-  def require_admin!
-    redirect_to research_parcels_path, alert: "Unauthorized." unless current_user&.admin?
-  end
+  # NOTE: require_admin! vive en Admin::BaseController (no duplicar aquí).
+  # require_credits! removido — se llama directamente en PurchasedReportsController.
 end
