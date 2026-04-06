@@ -6,6 +6,10 @@ class Parcel < ApplicationRecord
   has_many :reports, dependent: :destroy
   has_many :viewed_parcels, dependent: :destroy
 
+  # ── Mini CRM (Rama 2 escribe, Rama 3 solo lee) ────────────────────
+  has_many :parcel_user_tags,  dependent: :destroy
+  has_many :parcel_user_notes, dependent: :destroy
+
   # ── Scopes ──────────────────────────────────────────────────────
   scope :for_auction, ->(id) { where(auction_id: id) }
   scope :search_text, ->(q)  {

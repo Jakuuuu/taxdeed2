@@ -28,6 +28,11 @@ class Auction < ApplicationRecord
     [county, state].compact.join(", ")
   end
 
+  # Usado en el picker modal de parcelas
+  def parcel_count
+    read_attribute(:parcel_count) || parcels.count
+  end
+
   def status_label
     status&.capitalize || "Unknown"
   end

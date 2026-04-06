@@ -15,7 +15,16 @@ Rails.application.routes.draw do
 
   # Investigacion privada (requiere subscripcion activa)
   namespace :research do
-    resources :parcels,           only: [:index, :show]
+    resources :parcels, only: [:index, :show] do
+      member do
+        # Mini CRM — Rama 2 escribe exclusivamente
+        post :tag               # POST /research/parcels/:id/tag
+        post :notes             # POST /research/parcels/:id/notes
+      end
+      collection do
+        get :map_data           # GET /research/parcels/map_data.json
+      end
+    end
     resources :auctions,          only: [:index, :show]
     resources :purchased_reports, only: [:index, :create]
     resource  :settings,          only: [:show] do
