@@ -34,9 +34,20 @@ class GoogleSheetsImporter
     creds_hash = Rails.application.credentials.google_service_account
     raise "Missing google_service_account credentials" if creds_hash.blank?
 
-    # Fix para YAML strings que traen escaped newlines literales (\\n)
-    if creds_hash[:private_key].is_a?(String)
-      creds_hash[:private_key] = creds_hash[:private_key].gsub("\\n", "\n")
+    # Reconstrucción a prueba de fallos de la RSA Private Key (evita 'Neither PUB key nor PRIV key')
+    if creds_hash[:private_key].present?
+      raw_key = creds_hash[:private_key].to_s
+      # 1. Extraer solo el contenido base64 ignorando basura, saltos de línea y cabeceras
+      base64_only = raw_key.gsub(/-----BEGIN PRIVATE KEY-----/, '')
+                           .gsub(/-----END PRIVATE KEY-----/, '')
+                           .gsub(/\\n|\\r/, '') # Eliminar saltos literales representados como texto
+                           .gsub(/\s+/, '')     # Eliminar saltos reales y espacios
+      
+      # 2. Partir en trozos de 64 caracteres (estándar PEM)
+      pem_lines = base64_only.scan(/.{1,64}/)
+      
+      # 3. Reconstruir con los saltos de línea perfectos
+      creds_hash[:private_key] = ["-----BEGIN PRIVATE KEY-----", *pem_lines, "-----END PRIVATE KEY-----\n"].join("\n")
     end
 
     json_key = creds_hash.transform_keys(&:to_s).to_json
