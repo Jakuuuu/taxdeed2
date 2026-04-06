@@ -18,7 +18,7 @@ services:
       - key: GOOGLE_SHEETS_SHEET_ID
         sync: false
       - key: GOOGLE_MAPS_API_KEY
-        sync: false
+        value: AIzaSyBpP3B3FTvqXYMoPs0vMdQfQPK8HUHn4OU
       - key: RAILS_SERVE_STATIC_FILES
         value: "true"
       - key: RAILS_LOG_TO_STDOUT
