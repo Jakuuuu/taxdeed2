@@ -37,6 +37,8 @@ gem "kaminari"
 gem "prawn"
 gem "prawn-table"
 
+gem "matrix"
+
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
   gem "brakeman", require: false
@@ -48,3 +50,5 @@ group :development do
   gem "web-console"
   gem "foreman", require: false
 end
+
+gem "matrix", "~> 0.4.3"
