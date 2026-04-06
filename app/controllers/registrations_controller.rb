@@ -1,7 +1,8 @@
-﻿# frozen_string_literal: true
+# frozen_string_literal: true
 
 class RegistrationsController < Devise::RegistrationsController
-  skip_before_action :authenticate_user!, only: [:new, :create]
+  skip_before_action :authenticate_user!,    only: [:new, :create]
+  skip_before_action :set_rls_user_context,  only: [:new, :create]
 
   def new
     @plan = params[:plan] || "standard"
@@ -14,6 +15,15 @@ class RegistrationsController < Devise::RegistrationsController
 
     ActiveRecord::Base.transaction do
       resource.save!
+
+      # ── Establecer contexto RLS dentro de la transacción ─────────────────
+      # Durante el registro el usuario aún no tiene sesión activa. Usamos
+      # set_config con is_local=FALSE para que el valor persista más allá de
+      # la transacción actual (necesario bajo FORCE ROW LEVEL SECURITY en Render).
+      # Se limpia / resetea SIEMPRE al finalizar el bloque de registro.
+      ActiveRecord::Base.connection.execute(
+        "SELECT set_config('app_user.id', '#{resource.id}', false)"
+      )
 
       # 1. Crear Customer (mock o real segun PaymentService::MOCK_MODE)
       customer_id = PaymentService.create_customer(resource)
@@ -41,13 +51,25 @@ class RegistrationsController < Devise::RegistrationsController
       )
     end
 
+    # Limpiar el contexto RLS de la sesión (usamos session-level set_config)
+    # El próximo request lo re-establecerá via ApplicationController#set_rls_user_context
+    ActiveRecord::Base.connection.execute(
+      "SELECT set_config('app_user.id', '0', false)"
+    ) rescue nil
+
     sign_in(resource_name, resource)
     redirect_to research_parcels_path,
       notice: "Welcome to Tax Sale Resources! Your 7-day trial is active."
 
   rescue ActiveRecord::RecordInvalid => e
-    flash[:alert] = e.record.errors.full_messages.join(", ")
+    clean_up_resource(resource)
+    flash.now[:alert] = e.record.errors.full_messages.join(", ")
     render :new, status: :unprocessable_entity
+  rescue StandardError => e
+    Rails.logger.error("[RegistrationsController#create] #{e.class}: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+    clean_up_resource(resource)
+    flash.now[:alert] = "An unexpected error occurred. Please try again."
+    render :new, status: :internal_server_error
   end
 
   private
@@ -56,5 +78,13 @@ class RegistrationsController < Devise::RegistrationsController
     params.require(:user).permit(
       :first_name, :last_name, :email, :password, :password_confirmation, :plan
     )
+  end
+
+  # Destroy the partially-created user record on transaction failure
+  # to avoid ghost accounts with no subscription in the database.
+  def clean_up_resource(resource)
+    resource.destroy if resource&.persisted?
+  rescue StandardError
+    # Best-effort cleanup — don't raise twice
   end
 end

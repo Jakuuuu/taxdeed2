@@ -23,7 +23,7 @@ class ApplicationController < ActionController::Base
     return unless current_user
 
     ActiveRecord::Base.connection.execute(
-      "SELECT set_config('app_user.id', #{current_user.id}, true)"
+      "SELECT set_config('app_user.id', '#{current_user.id}', true)"
     )
   rescue ActiveRecord::StatementInvalid
     # Si RLS aún no está migrado (dev fresh), no romper la app

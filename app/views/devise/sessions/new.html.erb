@@ -1,4 +1,4 @@
-﻿<%# app/views/devise/sessions/new.html.erb %>
+<%# app/views/devise/sessions/new.html.erb %>
 <% content_for :title, "Sign In — Tax Sale Resources" %>
 
 <div class="auth-page">
@@ -32,6 +32,9 @@
             <%= f.check_box :remember_me, style:"width:15px; height:15px; accent-color: var(--color-navy);" %>
             Remember me
           </label>
+          <%# NOTE: :recoverable disabled — re-enable when mailer is configured (Phase 2) %>
+          <%# <%= link_to "Forgot password?", new_user_password_path, style: "font-size:.8125rem; color: var(--color-navy);" %> %>
+          <span style="font-size:.8125rem; color: var(--color-muted);">Forgot password? Contact support.</span>
         </div>
 
         <%= f.submit "Sign in", class: "btn btn--primary", id: "sign-in-btn" %>
