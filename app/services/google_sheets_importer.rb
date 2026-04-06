@@ -34,6 +34,11 @@ class GoogleSheetsImporter
     creds_hash = Rails.application.credentials.google_service_account
     raise "Missing google_service_account credentials" if creds_hash.blank?
 
+    # Fix para YAML strings que traen escaped newlines literales (\\n)
+    if creds_hash[:private_key].is_a?(String)
+      creds_hash[:private_key] = creds_hash[:private_key].gsub("\\n", "\n")
+    end
+
     json_key = creds_hash.transform_keys(&:to_s).to_json
 
     Google::Auth::ServiceAccountCredentials.make_creds(
