@@ -1,3 +1,10 @@
+/* Fuente base — NO CAMBIAR */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Fuente financiera — SOLO para Money Typography */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
+/* Fuente técnica — SOLO para stats numéricos en Rama 2 */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
 /* =============================================================
    Tax Sale Resources — Design System
    Color palette: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA
@@ -390,7 +397,44 @@ a:hover { color: var(--color-gold); }
   --color-warning:       #FFC107;
   --color-danger:        #DC3545;
   --color-info:          #17A2B8;
+
+  /* CTA Monetario (Regla Naranja) */
+  --color-cta:            #E67E22;
+  --color-cta-hover:      #F39C12;
+  --color-cta-dark:       #D35400;
+  --color-cta-shadow:     rgba(211, 84, 0, 0.3);
+
+  /* Zonas de la Ficha de Propiedad */
+  --color-zone-crm:       #F5F3F0;  /* Col 1: gris cálido */
+  --color-zone-data:      #FFFFFF;  /* Col 2: blanco puro */
+  --color-zone-visual:    transparent; /* Col 3: sin fondo */
+
+  /* CRM Tag States */
+  --color-tag-target:     #2E86C1;
+  --color-tag-diligence:  #E67E22;
+  --color-tag-ready:      #27AE60;
+  --color-tag-dismissed:  #6C757D;
+  --color-tag-won:        #1E8449;
+  --color-tag-lost:       #922B21;
+
+  /* Pines del Mapa diferenciados */
+  --color-pin-default:    #1E3A5F;
+  --color-pin-crm-saved:  #F1C40F;
+  --color-pin-report-bought: #27AE60;
+
+  /* Overlay / Glassmorphism selectivo */
+  --overlay-blur:         blur(12px) saturate(0.6);
+  --overlay-bg:           rgba(0, 0, 0, 0.2);
+
+  /* Transiciones estándar */
+  --transition-fast:      150ms ease;
+  --transition-normal:    300ms ease-in-out;
+  --transition-drawer:    400ms cubic-bezier(0.16, 1, 0.3, 1);
+
   --rn-header-h:         60px;
+  
+  --font-money:   'DM Serif Display', serif;
+  --font-numeric: 'JetBrains Mono', monospace;
 }
 
 /* ── LAYOUT ──────────────────────────────────────────────────── */
@@ -1358,3 +1402,217 @@ a:hover { color: var(--color-gold); }
   line-height: 1;
 }
 .modal-close:hover { color: var(--color-danger); }
+
+/* =============================================================
+   MASTER DESIGN PLAN UI CLASSES
+   ============================================================= */
+
+/* ── PROPERTY DETAIL OVERLAY (Slide-over Drawer) ───────────── */
+.property-detail-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 95vw;
+  height: 100vh;
+  z-index: 1000;
+  background: var(--color-surface);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.15);
+  transform: translateX(100%);
+  transition: transform var(--transition-drawer);
+}
+
+.property-detail-overlay.is-open {
+  transform: translateX(0);
+}
+
+.map-backdrop-blur {
+  display: none;
+  position: fixed;
+  inset: 0;
+  backdrop-filter: var(--overlay-blur);
+  background: var(--overlay-bg);
+  z-index: 999;
+  cursor: pointer;
+}
+
+.map-backdrop-blur.is-open {
+  display: block;
+}
+
+/* ── GRID ASIMETRICO "COCKPIT" ─────────────────────────────── */
+.property-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 20%) minmax(400px, 45%) minmax(300px, 35%);
+  height: 100%;
+  gap: 0;
+}
+
+/* ── MONEY TYPOGRAPHY ──────────────────────────────────────── */
+.money-value {
+  font-family: var(--font-money);
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+.property-opening-bid .money-value { font-size: 2.25rem; }
+.property-assessed-value .money-value { font-size: 1.5rem; }
+
+/* ── DATA PREMIUM LOCKED (BLUR PAYWALL) ────────────────────── */
+.data-premium-locked {
+  position: relative;
+  user-select: none;
+}
+.data-premium-locked .data-value {
+  filter: blur(6px);
+  pointer-events: none;
+}
+.data-premium-locked .unlock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+}
+.data-premium-locked .unlock-overlay::after {
+  content: '🔒 Unlock with Report';
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* ── FILTER MATCH COUNT ────────────────────────────────────── */
+.filter-match-count {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-numeric);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-accent);
+  transition: color 200ms;
+}
+.filter-match-count--updated { animation: count-pulse 400ms ease; }
+@keyframes count-pulse {
+  0%   { color: var(--color-accent); transform: scale(1); }
+  50%  { color: var(--color-warning); transform: scale(1.1); }
+  100% { color: var(--color-accent); transform: scale(1); }
+}
+
+/* ── CTA DE REPORTE (REGLA NARANJA) ────────────────────────── */
+.btn-order-report {
+  background: linear-gradient(135deg, var(--color-cta), var(--color-cta-dark));
+  color: #FFFFFF;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 8px;
+  width: 100%;
+  cursor: pointer;
+  box-shadow: 0 4px 14px var(--color-cta-shadow);
+  transition: all 200ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-order-report:hover {
+  background: linear-gradient(135deg, var(--color-cta-hover), var(--color-cta));
+  box-shadow: 0 6px 20px rgba(211, 84, 0, 0.4);
+  transform: translateY(-1px);
+}
+.btn-order-report--ordered {
+  background: transparent;
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
+  box-shadow: none;
+}
+.btn-order-report--generated {
+  background: var(--color-success);
+  box-shadow: 0 4px 14px rgba(40, 167, 69, 0.3);
+}
+
+/* ── MINI CRM CHIPS ────────────────────────────────────────── */
+.crm-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-family: var(--font);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  border: 1.5px solid transparent;
+}
+.crm-tag-chip--inactive {
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+.crm-tag-chip--target {
+  background: rgba(46, 134, 193, 0.15);
+  color: var(--color-tag-target);
+  border-color: var(--color-tag-target);
+  opacity: 1;
+}
+.crm-tag-chip--due-diligence {
+  background: rgba(243, 156, 18, 0.15);
+  color: var(--color-tag-diligence);
+  border-color: var(--color-tag-diligence);
+  opacity: 1;
+}
+.crm-tag-chip--ready-to-bid {
+  background: rgba(39, 174, 96, 0.15);
+  color: var(--color-tag-ready);
+  border-color: var(--color-tag-ready);
+  opacity: 1;
+}
+.crm-tag-chip--dismissed {
+  background: rgba(108, 117, 125, 0.15);
+  color: var(--color-tag-dismissed);
+  border-color: var(--color-tag-dismissed);
+  opacity: 1;
+}
+.crm-tag-chip--won {
+  background: rgba(30, 132, 73, 0.15);
+  color: var(--color-tag-won);
+  border-color: var(--color-tag-won);
+  opacity: 1;
+}
+.crm-tag-chip--lost {
+  background: rgba(146, 43, 33, 0.15);
+  color: var(--color-tag-lost);
+  border-color: var(--color-tag-lost);
+  opacity: 1;
+}
+
+/* ── ANIMACIONES MAP PINS Y CRM ────────────────────────────── */
+.map-pin--selected { animation: pin-anchor-pulse 600ms ease-out; }
+@keyframes pin-anchor-pulse {
+  0%   { transform: scale(1);   filter: brightness(1); }
+  40%  { transform: scale(1.6); filter: brightness(1.5); }
+  100% { transform: scale(1.2); filter: brightness(1.2); }
+}
+
+.map-pin--refocus { animation: pin-refocus 400ms ease-out; }
+@keyframes pin-refocus {
+  0%   { transform: scale(1.4); filter: brightness(1.6); }
+  100% { transform: scale(1);   filter: brightness(1); }
+}
+
+.save-to-crm-icon { cursor: pointer; transition: transform 150ms ease; }
+.save-to-crm-icon:hover { transform: scale(1.15); }
+.save-to-crm-icon--flying { animation: fly-to-crm 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+@keyframes fly-to-crm {
+  0%   { opacity: 1; transform: scale(1) translate(0, 0); }
+  60%  { opacity: 0.8; transform: scale(0.5) translate(-60px, -40px); }
+  100% { opacity: 0; transform: scale(0.3) translate(-120px, -80px); }
+}

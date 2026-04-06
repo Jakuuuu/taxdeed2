@@ -162,6 +162,12 @@
 
 <div class="parcels-shell">
 
+  <!-- ── BLUR BACKDROP & DRAWER CONTAINER ── -->
+  <div id="map-backdrop" class="map-backdrop-blur" onclick="closeParcelDrawer()"></div>
+  <div id="property-detail-overlay" class="property-detail-overlay">
+    <div id="property-detail-content" style="height:100%;overflow-y:auto;background:var(--color-bg);"></div>
+  </div>
+
   <!-- ── TOP BAR ─────────────────────────────────────────────── -->
   <%= form_with url: research_parcels_path, method: :get, local: true, id: "parcel-filter-form" do |f| %>
     <%= f.hidden_field :auction_id, value: params[:auction_id] %>
@@ -297,7 +303,7 @@
               <tbody>
                 <% @parcels.each do |parcel| %>
                   <tr style="cursor:pointer;"
-                      onclick="window.location='<%= research_parcel_path(parcel) %>'">
+                      onclick="openParcelDrawer('<%= research_parcel_path(parcel) %>')">
                     <td>
                       <div style="font-weight:600;color:var(--color-accent);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                         <%= parcel.address || '—' %>
@@ -380,36 +386,45 @@
       <button class="modal__close" onclick="closeAuctionPickerDirect()" aria-label="Close">&times;</button>
     </div>
 
-    <!-- Búsqueda rápida -->
-    <div class="picker-search">
-      <input type="text" id="picker-search-input" placeholder="Filter by state or county…" oninput="filterPickerRows(this.value)" autocomplete="off">
-    </div>
-
-    <div class="modal__body" style="padding:0;max-height:60vh;overflow-y:auto;">
+    <div class="modal__body" style="padding:0;height:60vh;">
       <% if @auctions_by_state.any? %>
-        <% @auctions_by_state.each do |state, auctions| %>
-          <div class="picker-state-group" data-state="<%= state %>">
-            <div class="picker-state-header" onclick="toggleStateGroup(this)">
-              <span>🏴 <%= state %></span>
-              <div style="display:flex;align-items:center;gap:.5rem;">
-                <span class="picker-state-badge"><%= auctions.size %></span>
-                <span style="font-size:.75rem;color:var(--color-text-muted);">▾</span>
-              </div>
-            </div>
-            <div class="picker-state-rows">
-              <% auctions.each do |auction| %>
-                <div class="picker-auction-row"
-                     data-auction-name="<%= auction.county.downcase %>"
-                     onclick="selectAuction(<%= auction.id %>)">
-                  <span class="picker-auction-row__name"><%= auction.county %></span>
-                  <span class="picker-auction-row__date"><%= auction.sale_date&.strftime("%b %d, %Y") || '—' %></span>
-                  <span class="picker-auction-row__count"><%= auction.parcel_count || 0 %> parcels</span>
-                  <span class="badge badge-<%= auction.status %>"><%= auction.status&.capitalize %></span>
+        <div class="auction-picker-grid">
+          <div class="master-col">
+            <% @auctions_by_state.each_with_index do |(state, auctions), index| %>
+              <div class="master-col-item <%= 'active' if index == 0 %>" onclick="showStateAuctions(event, '<%= state.parameterize %>')">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span>🏴 <%= state %></span>
+                  <span class="picker-state-badge"><%= auctions.size %></span>
                 </div>
-              <% end %>
-            </div>
+              </div>
+            <% end %>
           </div>
-        <% end %>
+          <div class="detail-col" style="padding:1rem;">
+            <!-- Búsqueda rápida -->
+            <div class="picker-search" style="border-bottom:none; padding:0 0 1rem 0;">
+              <input type="text" id="picker-search-input" placeholder="Filter by county in selected state…" oninput="filterPickerRows(this.value)" autocomplete="off">
+            </div>
+            <% @auctions_by_state.each_with_index do |(state, auctions), index| %>
+              <div class="picker-state-details" id="state-auctions-<%= state.parameterize %>" style="display: <%= index == 0 ? 'block' : 'none' %>;">
+                <h3 style="font-size:1rem;font-weight:700;color:var(--color-primary);padding-bottom:1rem;border-bottom:1px solid var(--color-border);margin-bottom:1rem;">
+                  Tax Deed Auctions in <%= state %>
+                </h3>
+                <div class="picker-state-rows open">
+                  <% auctions.each do |auction| %>
+                    <div class="picker-auction-row"
+                         data-auction-name="<%= auction.county.downcase %>"
+                         onclick="selectAuction(<%= auction.id %>)">
+                      <span class="picker-auction-row__name"><%= auction.county %></span>
+                      <span class="picker-auction-row__date"><%= auction.sale_date&.strftime("%b %d, %Y") || '—' %></span>
+                      <span class="picker-auction-row__count"><%= auction.parcel_count || 0 %> parcels</span>
+                      <span class="badge badge-<%= auction.status %>"><%= auction.status&.capitalize %></span>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
       <% else %>
         <div class="empty-state" style="padding:3rem;">
           <div class="empty-state__icon">🏛️</div>
@@ -521,7 +536,7 @@ window.gMapsReady = function() {
         '<div style="font-weight:700;color:#1E3A5F;font-size:.9rem;margin-bottom:.3rem;">' + (p.address || '—') + '</div>' +
         '<div style="font-size:.78rem;color:#6C757D;margin-bottom:.45rem;">' + [p.county, p.state].filter(Boolean).join(', ') + '</div>' +
         (p.opening_bid ? '<div style="font-size:.85rem;font-weight:700;color:#0F5132;">Opening Bid: $' + Math.round(p.opening_bid).toLocaleString() + '</div>' : '') +
-        '<a href="/research/parcels/' + p.id + '" style="display:inline-block;margin-top:.5rem;font-size:.78rem;font-weight:600;color:#1E3A5F;text-decoration:none;">View Details →</a>' +
+        '<a href="javascript:void(0)" onclick="openParcelDrawer(\'/research/parcels/' + p.id + '\')" style="display:inline-block;margin-top:.5rem;font-size:.78rem;font-weight:600;color:#1E3A5F;text-decoration:none;">View Details →</a>' +
         '</div>';
 
       var infoWindow = new google.maps.InfoWindow({ content: infoContent });
@@ -537,13 +552,51 @@ window.gMapsReady = function() {
   });
 };
 
+// ── PARCEL DRAWER (Overlay) ──────────────────────────────────
+function openParcelDrawer(url) {
+  var overlay = document.getElementById('property-detail-overlay');
+  var backdrop = document.getElementById('map-backdrop');
+  var content = document.getElementById('property-detail-content');
+  
+  backdrop.classList.add('is-open');
+  overlay.classList.add('is-open');
+  
+  // Set internally URL
+  window.history.pushState({ path: url }, '', url);
+  
+  content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--color-text-muted);"><div class="map-spinner"></div></div>';
+  
+  fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(r => r.text())
+    .then(html => {
+      content.innerHTML = html;
+    })
+    .catch(err => {
+      content.innerHTML = '<div style="padding:2rem;color:var(--color-danger);text-align:center;">Failed to load property details. <br><button onclick="closeParcelDrawer()" class="btn-sm btn-sm-outline" style="margin-top:1rem;">Close</button></div>';
+    });
+}
+
+function closeParcelDrawer() {
+  var overlay = document.getElementById('property-detail-overlay');
+  var backdrop = document.getElementById('map-backdrop');
+  if (overlay) overlay.classList.remove('is-open');
+  if (backdrop) backdrop.classList.remove('is-open');
+  
+  var currentUrl = new URL(window.location);
+  currentUrl.pathname = '<%= research_parcels_path %>';
+  window.history.pushState({}, '', currentUrl.href);
+}
+
+window.addEventListener('popstate', function(e) {
+  if (window.location.pathname === '<%= research_parcels_path %>') {
+    closeParcelDrawer();
+  }
+});
+
 // ── AUCTION PICKER ────────────────────────────────────────────
 function openAuctionPicker() {
   document.getElementById('auction-picker-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
-  // Abrir el primer grupo por defecto si hay pocos
-  var groups = document.querySelectorAll('.picker-state-rows');
-  if (groups.length <= 3) groups.forEach(function(g) { g.classList.add('open'); });
 }
 function closeAuctionPickerBackdrop(e) {
   if (e.target === document.getElementById('auction-picker-modal')) closeAuctionPickerDirect();
@@ -552,28 +605,33 @@ function closeAuctionPickerDirect() {
   document.getElementById('auction-picker-modal').classList.remove('open');
   document.body.style.overflow = '';
 }
-function toggleStateGroup(header) {
-  var rows = header.nextElementSibling;
-  rows.classList.toggle('open');
-}
 function selectAuction(id) {
   closeAuctionPickerDirect();
   window.location.href = '<%= research_parcels_path %>?auction_id=' + id;
 }
+function showStateAuctions(event, stateId) {
+  document.querySelectorAll('.master-col-item').forEach(function(el) { el.classList.remove('active'); });
+  event.currentTarget.classList.add('active');
+
+  document.querySelectorAll('.picker-state-details').forEach(function(el) { el.style.display = 'none'; });
+  document.getElementById('state-auctions-' + stateId).style.display = 'block';
+
+  var searchInput = document.getElementById('picker-search-input');
+  if (searchInput.value) {
+    searchInput.value = '';
+    filterPickerRows('');
+  }
+}
 function filterPickerRows(query) {
   var q = query.toLowerCase().trim();
-  document.querySelectorAll('.picker-state-group').forEach(function(group) {
-    var stateMatch = group.dataset.state.toLowerCase().includes(q);
-    var rows = group.querySelectorAll('.picker-auction-row');
-    var anyMatch = false;
+  var activeDetails = document.querySelector('.picker-state-details[style*="display: block"]');
+  if (activeDetails) {
+    var rows = activeDetails.querySelectorAll('.picker-auction-row');
     rows.forEach(function(row) {
-      var match = stateMatch || row.dataset.auctionName.includes(q);
+      var match = row.dataset.auctionName.includes(q);
       row.style.display = match ? '' : 'none';
-      if (match) anyMatch = true;
     });
-    group.style.display = (stateMatch || anyMatch) ? '' : 'none';
-    if (q && anyMatch) group.querySelector('.picker-state-rows').classList.add('open');
-  });
+  }
 }
 
 // ── CREDIT USAGE BANNER ──────────────────────────────────────

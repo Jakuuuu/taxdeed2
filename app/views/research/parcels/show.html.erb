@@ -124,25 +124,32 @@
 </style>
 <% end %>
 
-<div class="ficha-layout">
+<div class="property-detail-grid" style="height:100vh;">
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- COLUMNA IZQUIERDA — Mini CRM                               -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <aside class="ficha-col-crm">
-    <% if @parcel.auction %>
-      <%= link_to research_parcels_path(auction_id: @parcel.auction_id), class: "ficha-back" do %>
-        ← Back to Parcels
-      <% end %>
-    <% else %>
-      <%= link_to research_parcels_path, class: "ficha-back" do %>
-        ← Back
+  <aside class="ficha-col-crm" style="background: var(--color-zone-crm);">
+    <% unless request.xhr? %>
+      <% if @parcel.auction %>
+        <%= link_to research_parcels_path(auction_id: @parcel.auction_id), class: "ficha-back" do %>
+          ← Back to Parcels
+        <% end %>
+      <% else %>
+        <%= link_to research_parcels_path, class: "ficha-back" do %>
+          ← Back
+        <% end %>
       <% end %>
     <% end %>
 
-    <div class="ficha-col-crm__header">
-      <p class="ficha-col-crm__title">Mini CRM</p>
-      <p class="ficha-col-crm__addr"><%= @parcel.address || "—" %></p>
+    <div class="ficha-col-crm__header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <p class="ficha-col-crm__title">Mini CRM</p>
+        <p class="ficha-col-crm__addr"><%= @parcel.address || "—" %></p>
+      </div>
+      <% if request.xhr? %>
+        <button class="modal-close" onclick="closeParcelDrawer()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--color-text-muted);">&times;</button>
+      <% end %>
     </div>
 
     <div class="ficha-col-crm__body">
@@ -200,7 +207,8 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- COLUMNA CENTRAL — Datos Técnicos + Solicitud de Reportes  -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <main class="ficha-col-main">
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <main class="ficha-col-main" style="background: var(--color-zone-data);">
     <!-- Header de la propiedad -->
     <h1 style="font-size:1.25rem;font-weight:800;color:var(--color-primary);margin-bottom:0.2rem;">
       <%= @parcel.address || "Parcel #{@parcel.id}" %>
@@ -238,10 +246,10 @@
             <% elsif existing %>
               <span class="btn-report-ordered">⏳ <%= rd[:short] %> Ordered</span>
             <% else %>
-              <button class="btn-report-order"
+              <button class="btn-order-report"
                       id="report-btn-<%= rd[:type] %>"
                       onclick="orderReport(<%= @parcel.id %>, '<%= rd[:type] %>', this)">
-                <%= rd[:label] %>
+                💳 <%= rd[:label] %>
               </button>
             <% end %>
           <% end %>
@@ -288,21 +296,26 @@
         </div>
         <div style="padding:.75rem 1rem;">
           <div class="detail-grid">
-            <div class="detail-item"><div class="detail-item__label">Opening Bid</div><div class="detail-item__value" style="color:var(--color-primary);font-weight:800;"><% if @parcel.opening_bid %>$<%= number_with_delimiter(@parcel.opening_bid.to_i) %><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Assessed Value</div><div class="detail-item__value"><% if @parcel.assessed_value %>$<%= number_with_delimiter(@parcel.assessed_value.to_i) %><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Market Value</div><div class="detail-item__value"><% if @parcel.market_value %>$<%= number_with_delimiter(@parcel.market_value.to_i) %><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Land Value</div><div class="detail-item__value"><% if @parcel.land_value %>$<%= number_with_delimiter(@parcel.land_value.to_i) %><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Improvement Value</div><div class="detail-item__value"><% if @parcel.improvement_value %>$<%= number_with_delimiter(@parcel.improvement_value.to_i) %><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Delinquent Amount</div><div class="detail-item__value" style="color:var(--color-danger);"><% if @parcel.delinquent_amount %>$<%= number_with_delimiter(@parcel.delinquent_amount.to_f.round(2)) %><% else %>—<% end %></div></div>
+            <div class="detail-item"><div class="detail-item__label">Opening Bid</div><div class="detail-item__value" style="color:var(--color-primary);font-weight:800;"><% if @parcel.opening_bid %><span class="money-value">$<%= number_with_delimiter(@parcel.opening_bid.to_i) %></span><% else %>—<% end %></div></div>
+            <div class="detail-item"><div class="detail-item__label">Assessed Value</div><div class="detail-item__value"><% if @parcel.assessed_value %><span class="money-value">$<%= number_with_delimiter(@parcel.assessed_value.to_i) %></span><% else %>—<% end %></div></div>
+            <div class="detail-item"><div class="detail-item__label">Market Value</div><div class="detail-item__value"><% if @parcel.market_value %><span class="money-value" style="font-size:1.25rem;">$<%= number_with_delimiter(@parcel.market_value.to_i) %></span><% else %>—<% end %></div></div>
+            <div class="detail-item"><div class="detail-item__label">Land Value</div><div class="detail-item__value"><% if @parcel.land_value %><span class="money-value">$<%= number_with_delimiter(@parcel.land_value.to_i) %></span><% else %>—<% end %></div></div>
+            <div class="detail-item"><div class="detail-item__label">Improvement Value</div><div class="detail-item__value"><% if @parcel.improvement_value %><span class="money-value">$<%= number_with_delimiter(@parcel.improvement_value.to_i) %></span><% else %>—<% end %></div></div>
+            <div class="detail-item"><div class="detail-item__label">Delinquent Amount</div><div class="detail-item__value" style="color:var(--color-danger);"><% if @parcel.delinquent_amount %><span class="money-value">$<%= number_with_delimiter(@parcel.delinquent_amount.to_f.round(2)) %></span><% else %>—<% end %></div></div>
             <div class="detail-item"><div class="detail-item__label">Tax Year</div><div class="detail-item__value"><%= @parcel.tax_year || '—' %></div></div>
           </div>
-          <div class="invest-box">
-            <p class="invest-box__title">📊 Investment Calculator</p>
-            <div class="invest-box__row">
+          <div class="invest-box data-premium-locked" style="position:relative;">
+            <p class="invest-box__title">📊 Investment Calculator (Premium)</p>
+            <div class="invest-box__row data-value">
               <span>Max Bid 30%: <strong><% if @parcel.max_bid_30 %>$<%= number_with_delimiter(@parcel.max_bid_30.to_i) %><% else %>—<% end %></strong></span>
               <span>Max Bid 35%: <strong><% if @parcel.max_bid_35 %>$<%= number_with_delimiter(@parcel.max_bid_35.to_i) %><% else %>—<% end %></strong></span>
               <span>Bid +16%: <strong><% if @parcel.adjusted_value_16 %>$<%= number_with_delimiter(@parcel.adjusted_value_16.to_i) %><% else %>—<% end %></strong></span>
             </div>
+            <% unless @reports.find { |r| r.report_type == 'avm' } %>
+            <div class="unlock-overlay" onclick="document.getElementById('report-btn-avm').click()">
+              <span>🔒 Order AVM Report to Unlock Calculator</span>
+            </div>
+            <% end %>
           </div>
         </div>
       </div>
@@ -311,29 +324,38 @@
     <!-- ── Liens ── -->
     <div class="data-table-wrap" style="margin-bottom:1.25rem;">
       <div style="padding:.75rem 1rem;border-bottom:1px solid var(--color-border);">
-        <h2 style="font-size:.8125rem;font-weight:700;color:var(--color-primary);margin:0;">📎 Mortgages & Liens</h2>
+        <h2 style="font-size:.8125rem;font-weight:700;color:var(--color-primary);margin:0;">📎 Mortgages & Liens (Premium)</h2>
       </div>
-      <% if @parcel.parcel_liens.any? %>
-        <table class="data-table">
-          <thead>
-            <tr><th>Lender</th><th>Type</th><th>Amount</th><th>Recorded</th><th>Status</th></tr>
-          </thead>
-          <tbody>
-            <% @parcel.parcel_liens.each do |lien| %>
-              <tr>
-                <td><%= lien.lender || '—' %></td>
-                <td><%= lien.lien_type || '—' %></td>
-                <td><% if lien.amount %>$<%= number_with_delimiter(lien.amount.to_f.round(2)) %><% else %>—<% end %></td>
-                <td style="white-space:nowrap;font-size:.8rem;"><%= lien.recorded_date&.strftime("%b %d, %Y") || '—' %></td>
-                <td><span class="badge badge-<%= lien.status == 'active' ? 'active' : 'completed' %>"><%= lien.status&.capitalize || '—' %></span></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      <% else %>
-        <p style="padding:.85rem 1.1rem;color:var(--color-text-muted);font-size:.875rem;">No recorded liens found for this parcel.</p>
-      <% end %>
-      <p style="padding:0 1.1rem .75rem;font-size:.7rem;color:var(--color-text-muted);">ℹ️ In Tax Deed sales, most liens are extinguished at auction. Shown for pre-sale title risk assessment only.</p>
+      <div class="data-premium-locked" style="position:relative; padding:0;">
+        <div class="data-value">
+          <% if @parcel.parcel_liens.any? %>
+            <table class="data-table">
+              <thead>
+                <tr><th>Lender</th><th>Type</th><th>Amount</th><th>Recorded</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <% @parcel.parcel_liens.each do |lien| %>
+                  <tr>
+                    <td><%= lien.lender || '—' %></td>
+                    <td><%= lien.lien_type || '—' %></td>
+                    <td><% if lien.amount %><span class="money-value">$<%= number_with_delimiter(lien.amount.to_f.round(2)) %></span><% else %>—<% end %></td>
+                    <td style="white-space:nowrap;font-size:.8rem;"><%= lien.recorded_date&.strftime("%b %d, %Y") || '—' %></td>
+                    <td><span class="badge badge-<%= lien.status == 'active' ? 'active' : 'completed' %>"><%= lien.status&.capitalize || '—' %></span></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% else %>
+            <p style="padding:.85rem 1.1rem;color:var(--color-text-muted);font-size:.875rem;">No recorded liens found for this parcel.</p>
+          <% end %>
+          <p style="padding:0 1.1rem .75rem;margin-top:.75rem;font-size:.7rem;color:var(--color-text-muted);">ℹ️ In Tax Deed sales, most liens are extinguished at auction. Shown for pre-sale title risk assessment only.</p>
+        </div>
+        <% unless @reports.find { |r| r.report_type == 'title_search' } %>
+          <div class="unlock-overlay" onclick="document.getElementById('report-btn-title_search').click()">
+            <span>🔒 Order Title Search to Unlock</span>
+          </div>
+        <% end %>
+      </div>
     </div>
 
     <!-- ── Utilidades (Electric, Water, Sewer, FEMA) ── -->
@@ -358,7 +380,8 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- COLUMNA DERECHA — Visualización Geográfica                 -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <aside class="ficha-col-geo">
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <aside class="ficha-col-geo" style="background: var(--color-zone-visual);">
     <% if @parcel.has_coords? && @api_key.present? %>
       <div class="ficha-col-geo__section">
         <p class="ficha-col-geo__label">Street View</p>

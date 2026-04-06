@@ -45,6 +45,7 @@ module Research
       @crm_tag  = ParcelUserTag.find_by(user: current_user, parcel: @parcel)
       @crm_notes = ParcelUserNote.for_user_parcel(current_user, @parcel)
       @api_key  = ENV["GOOGLE_MAPS_API_KEY"]
+      render layout: false if request.xhr?
     end
 
     # GET /research/parcels/map_data.json
