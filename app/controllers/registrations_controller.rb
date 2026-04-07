@@ -59,7 +59,7 @@ class RegistrationsController < Devise::RegistrationsController
 
     sign_in(resource_name, resource)
     redirect_to research_parcels_path,
-      notice: "Welcome to Tax Sale Resources! Your 7-day trial is active."
+      notice: "Welcome to TaxDeed Lion! Your 7-day trial is active."
 
   rescue ActiveRecord::RecordInvalid => e
     clean_up_resource(resource)

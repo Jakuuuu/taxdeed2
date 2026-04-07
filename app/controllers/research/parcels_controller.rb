@@ -38,45 +38,65 @@ module Research
       end
 
       @has_context = @auction.present? || @selected_state.present?
+
+      # Persist last parcels context for "← Back" button in the Ficha
+      session[:last_parcels_path] = request.url if @has_context
     end
 
     # GET /research/parcels/:id
-    # Ficha de Propiedad — siempre render como drawer (XHR) o página completa
+    # Single Advanced Property Card — single column vertical view with Blur Paywall
     def show
-      @parcel = Parcel.find(params[:id])
+      @parcel  = Parcel.find(params[:id])
       @auction = @parcel.auction
 
-      # ── Mini CRM (transversal) ────────────────────────────
-      @user_tag  = current_user.user_tags.find_by(parcel: @parcel)
-      @user_note = current_user.user_notes.find_by(parcel: @parcel)
+      # ── Blur Paywall: check if user has already unlocked this parcel ──
+      @unlocked = ViewedParcel.exists?(user_id: current_user.id, parcel_id: @parcel.id)
+
+      # ── Mini CRM (transversal — always visible regardless of paywall) ─
+      @current_tag = current_user.parcel_user_tags.find_by(parcel_id: @parcel.id)
+      @notes       = current_user.parcel_user_notes
+                                 .where(parcel_id: @parcel.id)
+                                 .order(created_at: :desc)
 
       render layout: false if request.xhr?
     end
 
-    # POST /research/parcels/:id/request_report
-    def request_report
+    # POST /research/parcels/:id/unlock
+    # Consumes 1 parcel credit and creates a ViewedParcel unlock record.
+    # Basic property data (header) is always free. Advanced data requires unlock.
+    def unlock
       @parcel = Parcel.find(params[:id])
       sub     = current_user.subscription
 
-      if sub.nil? || sub.used_parcels >= sub.limit_parcels
-        redirect_to research_parcel_path(@parcel), alert: "Report limit reached. Upgrade your plan."
-        return
+      # Already unlocked — return success without consuming another credit
+      if ViewedParcel.exists?(user_id: current_user.id, parcel_id: @parcel.id)
+        render json: { unlocked: true, message: "Already unlocked" } and return
       end
 
-      existing = current_user.report_requests.find_by(parcel: @parcel, status: %w[pending processing])
-      if existing
-        redirect_to research_parcel_path(@parcel), notice: "A report for this parcel is already being processed."
-        return
+      # Check subscription
+      unless sub&.active?
+        render json: { unlocked: false, error: "Active subscription required to unlock properties." },
+               status: :payment_required and return
       end
 
-      report = current_user.report_requests.create!(
-        parcel: @parcel,
-        status: "pending",
-        requested_at: Time.current
-      )
-      sub.increment!(:used_parcels)
+      # Check credit availability
+      unless sub.can_use?(:parcels)
+        render json: { unlocked: false, error: "No credits remaining. Please upgrade your plan." },
+               status: :payment_required and return
+      end
 
-      redirect_to research_parcel_path(@parcel), notice: "Report ##{report.id} requested successfully."
+      # Consume credit + create unlock record atomically
+      ActiveRecord::Base.transaction do
+        sub.increment_usage!(:parcels)
+        ViewedParcel.create!(user_id: current_user.id, parcel_id: @parcel.id)
+      end
+
+      render json: { unlocked: true }
+
+    rescue => e
+      Rails.logger.error "[Parcels#unlock] #{e.class}: #{e.message}"
+      render json: { unlocked: false, error: "An error occurred. Please try again." },
+             status: :unprocessable_entity
     end
 
     # GET /research/parcels/map_data.json
@@ -124,11 +144,11 @@ module Research
     private
 
     def apply_parcel_filters(scope)
-      scope = scope.search_text(params[:q])       if params[:q].present?
-      scope = scope.by_county(params[:county])     if params[:county].present?
+      scope = scope.search_text(params[:q])        if params[:q].present?
+      scope = scope.by_county(params[:county])      if params[:county].present?
       scope = scope.by_state(params[:filter_state]) if params[:filter_state].present?
-      scope = scope.min_bid(params[:min_bid])      if params[:min_bid].present?
-      scope = scope.max_bid(params[:max_bid])      if params[:max_bid].present?
+      scope = scope.min_bid(params[:min_bid])       if params[:min_bid].present?
+      scope = scope.max_bid(params[:max_bid])       if params[:max_bid].present?
       scope = scope.where(property_type: params[:property_type]) if params[:property_type].present?
       scope
     end

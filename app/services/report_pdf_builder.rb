@@ -48,7 +48,7 @@ class ReportPdfBuilder
     pdf.fill_rectangle [0, pdf.cursor], pdf.bounds.width, 60
     pdf.fill_color "FFFFFF"
     pdf.bounding_box([10, pdf.cursor - 10], width: pdf.bounds.width - 20, height: 50) do
-      pdf.text "TAX SALE RESOURCES", size: 18, style: :bold, valign: :center
+      pdf.text "TAXDEED LION", size: 18, style: :bold, valign: :center
       pdf.move_down 4
       label = @report_type == "avm" ? "AVM Report — Automated Valuation Model" : "Property Scope Report"
       pdf.text label, size: 10, color: "D0E8F8"
@@ -228,7 +228,7 @@ class ReportPdfBuilder
   # ── FOOTER ─────────────────────────────────────────────────────────────────
 
   def render_footer(pdf)
-    pdf.number_pages "Page <page> of <total> — Tax Sale Resources | cloud.taxsaleresources.com",
+    pdf.number_pages "Page <page> of <total> — TaxDeed Lion | cloud.taxsaleresources.com",
                      at: [0, 0],
                      align: :center,
                      size: 8,

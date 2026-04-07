@@ -1,571 +1,919 @@
-<% content_for :title, "#{@parcel.address} — Tax Sale Resources" %>
+<% content_for :title, "#{@parcel.address} — TaxDeed Lion" %>
 
 <% content_for :head do %>
 <%# Leaflet.js CDN for Regrid parcel boundary map %>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
-  /* ── Layout 3 columnas ── */
-  .ficha-layout {
-    display: grid;
-    grid-template-columns: 260px 1fr 300px;
-    gap: 0;
-    height: calc(100vh - var(--rn-header-h));
-    overflow: hidden;
+  /* ─── CSS Variables (local scope) ──────────────────────────────── */
+  :root {
+    --ficha-bg:           #0F1117;
+    --ficha-surface:      #1A1F2E;
+    --ficha-surface-2:    #222940;
+    --ficha-border:       rgba(255,255,255,0.08);
+    --ficha-text:         #E8EAF0;
+    --ficha-text-muted:   #8B93A8;
+    --ficha-text-subtle:  #4A5568;
+    --ficha-cta:          #E67E22;
+    --ficha-cta-glow:     rgba(230,126,34,0.35);
+    --ficha-success:      #27AE60;
+    --ficha-radius-md:    12px;
+    --ficha-radius-lg:    20px;
+    --ficha-trans-fast:   150ms ease;
+    --ficha-trans-normal: 300ms ease-in-out;
   }
 
-  /* Col izquierda: Mini CRM */
-  .ficha-col-crm {
-    background: #F8F9FA;
-    border-right: 1px solid var(--color-border);
-    overflow-y: auto;
-    padding: 0;
+  /* ─── Page Layout ────────────────────────────────────────────── */
+  .ficha-page {
+    background: var(--ficha-bg);
+    min-height: 100vh;
+    padding: 0 0 80px;
+  }
+  .ficha-container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 28px 20px;
     display: flex;
     flex-direction: column;
+    gap: 16px;
   }
-  .ficha-col-crm__header {
-    padding: 1rem 1.1rem 0.75rem;
-    border-bottom: 1px solid var(--color-border);
-    background: #fff;
-    position: sticky; top: 0; z-index: 1;
-  }
-  .ficha-col-crm__title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); margin: 0 0 0.15rem; }
-  .ficha-col-crm__addr  { font-size: 0.8rem; font-weight: 600; color: var(--color-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ficha-col-crm__body  { padding: 1rem 1.1rem; flex: 1; }
 
-  /* Tags */
-  .crm-tags { display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 1.25rem; }
-  .crm-tag-btn {
-    display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    border: 1.5px solid var(--color-border);
-    background: #fff;
-    font-size: 0.8125rem; font-family: var(--font); font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    width: 100%; text-align: left;
-  }
-  .crm-tag-btn:hover { transform: translateX(2px); }
-  .crm-tag-btn.active { border-color: transparent; color: #fff; }
-  .crm-tag-btn .crm-tag-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-
-  /* Separador */
-  .crm-divider { border: none; border-top: 1px solid var(--color-border); margin: 1rem 0; }
-
-  /* Notas */
-  .crm-notes-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
-  .crm-note-item { background: #fff; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.65rem 0.75rem; }
-  .crm-note-item__body { font-size: 0.8125rem; color: var(--color-text); line-height: 1.5; }
-  .crm-note-item__time { font-size: 0.7rem; color: var(--color-text-muted); margin-top: 0.3rem; }
-  .crm-note-form textarea {
-    width: 100%; box-sizing: border-box;
-    border: 1.5px solid var(--color-border);
-    border-radius: 8px;
-    padding: 0.6rem 0.75rem;
-    font-size: 0.8125rem; font-family: var(--font);
-    resize: vertical; min-height: 80px;
-    outline: none; transition: border-color 0.15s;
-  }
-  .crm-note-form textarea:focus { border-color: var(--color-primary); }
-  .crm-note-form button {
-    margin-top: 0.5rem; width: 100%;
-    padding: 0.5rem; border-radius: 8px;
-    background: var(--color-primary); color: #fff;
-    border: none; font-size: 0.8125rem; font-family: var(--font); font-weight: 600;
-    cursor: pointer; transition: opacity 0.15s;
-  }
-  .crm-note-form button:hover { opacity: 0.9; }
-
-  /* Back link */
+  /* ─── Back Button ─────────────────────────────────────────── */
   .ficha-back {
-    display: inline-flex; align-items: center; gap: 0.35rem;
-    font-size: 0.75rem; color: var(--color-text-muted);
-    padding: 0.65rem 1.1rem;
-    border-bottom: 1px solid var(--color-border);
-    cursor: pointer; text-decoration: none;
-    transition: color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 50px;
+    border: 1px solid var(--ficha-border);
+    background: transparent;
+    color: var(--ficha-text-muted);
+    font-size: 13px;
+    text-decoration: none;
+    transition: all var(--ficha-trans-fast);
+    align-self: flex-start;
   }
-  .ficha-back:hover { color: var(--color-primary); }
+  .ficha-back:hover { border-color: rgba(255,255,255,0.2); color: var(--ficha-text); }
 
-  /* Col central: datos técnicos */
-  .ficha-col-main {
-    overflow-y: auto;
-    padding: 1.5rem 1.75rem;
-    background: #fff;
+  /* ─── Section Card ────────────────────────────────────────── */
+  .ficha-card {
+    background: var(--ficha-surface);
+    border: 1px solid var(--ficha-border);
+    border-radius: var(--ficha-radius-lg);
+    overflow: hidden;
+  }
+  .ficha-card__hdr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--ficha-border);
+    background: var(--ficha-surface-2);
+  }
+  .ficha-card__hdr-icon { font-size: 15px; opacity: 0.8; }
+  .ficha-card__hdr-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ficha-text-muted);
+    margin: 0;
+  }
+  .ficha-card__body { padding: 20px; }
+
+  /* ─── Property Header ─────────────────────────────────────── */
+  .ficha-header-card {
+    background: linear-gradient(135deg, #1C2235 0%, #1A1F2E 100%);
+    border: 1px solid var(--ficha-border);
+    border-radius: var(--ficha-radius-lg);
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ficha-header-card::before {
+    content: '';
+    position: absolute; top: -40px; right: -40px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(230,126,34,0.06), transparent 70%);
+    pointer-events: none;
+  }
+  .ficha-apn-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--ficha-border);
+    border-radius: 50px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ficha-text-muted);
+    margin-bottom: 14px;
+  }
+  .ficha-apn-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ficha-success);
+    animation: ficha-pulse 2s infinite;
+  }
+  @keyframes ficha-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .ficha-address { font-size: 22px; font-weight: 700; color: var(--ficha-text); margin-bottom: 6px; line-height: 1.3; }
+  .ficha-location { font-size: 14px; color: var(--ficha-text-muted); margin-bottom: 24px; }
+  .ficha-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .ficha-meta-item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--ficha-border);
+    border-radius: var(--ficha-radius-md);
+    padding: 11px 13px;
+  }
+  .ficha-meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ficha-text-subtle); margin-bottom: 4px; }
+  .ficha-meta-value { font-size: 13px; font-weight: 500; color: var(--ficha-text); }
+  .ficha-bid { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .ficha-bid-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ficha-text-subtle); }
+  .ficha-bid-amount { font-family: 'DM Serif Display', serif; font-size: 42px; color: var(--ficha-text); line-height: 1; }
+
+  /* ─── Mini CRM ────────────────────────────────────────────── */
+  .crm-tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .crm-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 50px; border: 1px solid;
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    transition: all var(--ficha-trans-fast);
+    opacity: 0.45;
+    background: transparent;
+    font-family: inherit;
+  }
+  .crm-chip.active { opacity: 1; }
+  .crm-chip.crm-chip--target    { border-color: #2E86C1; color: #2E86C1; }
+  .crm-chip.crm-chip--target.active    { background: rgba(46,134,193,0.12); }
+  .crm-chip.crm-chip--diligence { border-color: var(--ficha-cta); color: var(--ficha-cta); }
+  .crm-chip.crm-chip--diligence.active { background: rgba(230,126,34,0.12); }
+  .crm-chip.crm-chip--ready     { border-color: #27AE60; color: #27AE60; }
+  .crm-chip.crm-chip--ready.active     { background: rgba(39,174,96,0.12); }
+  .crm-chip.crm-chip--dismissed { border-color: #6C757D; color: #6C757D; }
+  .crm-chip.crm-chip--dismissed.active { background: rgba(108,117,125,0.12); }
+
+  .crm-notes-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .crm-note-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--ficha-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .crm-note-item__body { font-size: 13px; color: var(--ficha-text); line-height: 1.5; }
+  .crm-note-item__time { font-size: 11px; color: var(--ficha-text-subtle); margin-top: 4px; }
+
+  .crm-textarea {
+    width: 100%; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--ficha-border); border-radius: 10px;
+    padding: 11px 14px; color: var(--ficha-text); font-family: inherit;
+    font-size: 13px; resize: vertical; min-height: 76px; outline: none;
+    transition: border-color var(--ficha-trans-fast);
+  }
+  .crm-textarea:focus { border-color: rgba(255,255,255,0.2); }
+  .crm-textarea::placeholder { color: var(--ficha-text-subtle); }
+  .crm-save-btn {
+    margin-top: 8px; padding: 7px 18px; border-radius: 50px;
+    border: 1px solid var(--ficha-border); background: rgba(255,255,255,0.06);
+    color: var(--ficha-text-muted); font-family: inherit; font-size: 12px;
+    cursor: pointer; transition: all var(--ficha-trans-fast);
+  }
+  .crm-save-btn:hover { background: rgba(255,255,255,0.1); color: var(--ficha-text); }
+
+  /* ─── Paywall CTA ─────────────────────────────────────────── */
+  .ficha-paywall-cta {
+    background: linear-gradient(135deg, rgba(230,126,34,0.08), rgba(211,84,0,0.04));
+    border: 1px solid rgba(230,126,34,0.3);
+    border-radius: var(--ficha-radius-lg);
+    padding: 26px;
+    display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  }
+  .ficha-paywall-cta.ficha-hidden { display: none; }
+  .paywall-info__title { font-size: 15px; font-weight: 600; color: var(--ficha-text); margin-bottom: 6px; }
+  .paywall-info__desc  { font-size: 13px; color: var(--ficha-text-muted); line-height: 1.5; }
+  .paywall-info__items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .paywall-item-badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px;
+    border-radius: 50px; background: rgba(230,126,34,0.08);
+    border: 1px solid rgba(230,126,34,0.15);
+    font-size: 11px; color: #E67E22;
+  }
+  .ficha-unlock-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+  .ficha-unlock-btn {
+    padding: 14px 28px; border-radius: 50px; border: none;
+    background: linear-gradient(135deg, #E67E22, #D35400);
+    color: white; font-family: inherit; font-size: 15px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 4px 20px var(--ficha-cta-glow);
+    transition: all var(--ficha-trans-fast); white-space: nowrap;
+  }
+  .ficha-unlock-btn:hover {
+    background: linear-gradient(135deg, #F39C12, #E67E22);
+    box-shadow: 0 6px 28px var(--ficha-cta-glow); transform: translateY(-1px);
+  }
+  .ficha-unlock-btn:active { transform: translateY(0); }
+  .ficha-unlock-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .ficha-credit-hint { font-size: 11px; color: var(--ficha-text-subtle); text-align: center; }
+
+  /* ─── Unlocked Banner ─────────────────────────────────────── */
+  .ficha-unlocked-banner {
+    display: none; align-items: center; gap: 10px; padding: 12px 20px;
+    background: rgba(39,174,96,0.08); border: 1px solid rgba(39,174,96,0.25);
+    border-radius: 10px; color: #2ECC71; font-size: 13px; font-weight: 500;
+  }
+  .ficha-unlocked-banner.ficha-visible { display: flex; }
+
+  /* ─── Data Grid ───────────────────────────────────────────── */
+  .ficha-data-grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .ficha-data-label, .ficha-data-value {
+    padding: 11px 16px; font-size: 12.5px;
+    border-bottom: 1px solid var(--ficha-border);
+  }
+  .ficha-data-label {
+    color: var(--ficha-text-muted); font-weight: 500;
+    background: rgba(255,255,255,0.015);
+  }
+  .ficha-data-value {
+    color: var(--ficha-text);
+    font-family: 'JetBrains Mono', monospace;
+    transition: filter var(--ficha-trans-normal);
   }
 
-  /* Col derecha: visual geo */
-  .ficha-col-geo {
-    background: #F8F9FA;
-    border-left: 1px solid var(--color-border);
-    overflow-y: auto;
-    padding: 1.25rem 1.1rem;
+  /* ─── Paywall sections ────────────────────────────────────── */
+  .ficha-premium {
+    position: relative;
+    transition: all var(--ficha-trans-normal);
   }
-  .ficha-col-geo__section { margin-bottom: 1.25rem; }
-  .ficha-col-geo__label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--color-text-muted); margin-bottom: 0.5rem; }
-  .ficha-col-geo iframe { border-radius: 10px; border: none; width: 100%; height: 180px; }
-
-  /* Responsive: en tablet colapsa a 1 columna */
-  @media (max-width: 1024px) {
-    .ficha-layout { grid-template-columns: 1fr; height: auto; }
-    .ficha-col-crm, .ficha-col-geo { border: none; border-top: 1px solid var(--color-border); }
-    .ficha-col-crm { height: auto; overflow-y: visible; }
+  .ficha-premium.ficha-locked .ficha-data-value,
+  .ficha-premium.ficha-locked .ficha-badge,
+  .ficha-premium.ficha-locked .ficha-calc-value,
+  .ficha-premium.ficha-locked .ficha-data-value * {
+    filter: blur(5px);
+    user-select: none;
+    pointer-events: none;
+  }
+  .ficha-premium.ficha-locked .ficha-card__body::after,
+  .ficha-premium.ficha-locked .ficha-premium-body::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(15,17,23,0.28);
+    border-radius: 0 0 var(--ficha-radius-lg) var(--ficha-radius-lg);
+    pointer-events: auto; cursor: not-allowed;
+    z-index: 2;
+  }
+  .ficha-premium.ficha-unlocked .ficha-data-value,
+  .ficha-premium.ficha-unlocked .ficha-badge,
+  .ficha-premium.ficha-unlocked .ficha-calc-value {
+    filter: none;
+    user-select: auto;
+    pointer-events: auto;
+  }
+  @keyframes fichaReveal {
+    from { filter: blur(5px); opacity: 0.6; }
+    to   { filter: none;     opacity: 1; }
+  }
+  .ficha-premium.ficha-animating .ficha-data-value,
+  .ficha-premium.ficha-animating .ficha-badge,
+  .ficha-premium.ficha-animating .ficha-calc-value {
+    animation: fichaReveal 500ms ease-out forwards;
   }
 
-  /* Report buttons */
-  .report-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
-  .btn-report-order { padding: 0.5rem 1rem; border-radius: 8px; border: 1.5px solid var(--color-primary); background: #fff; color: var(--color-primary); font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-  .btn-report-order:hover { background: var(--color-primary); color: #fff; }
-  .btn-report-ordered { padding: 0.5rem 1rem; border-radius: 8px; border: 1.5px solid #E0E0E0; background: #F1F3F4; color: #6C757D; font-size: 0.8125rem; cursor: default; }
-  .btn-report-download { padding: 0.5rem 1rem; border-radius: 8px; border: 1.5px solid var(--color-success); background: var(--color-success); color: #fff; font-size: 0.8125rem; font-weight: 600; text-decoration: none; display: inline-block; }
+  /* ─── Badges ──────────────────────────────────────────────── */
+  .ficha-badge {
+    display: inline-flex; align-items: center; padding: 2px 8px;
+    border-radius: 50px; font-size: 11px; font-family: inherit;
+    font-weight: 500; transition: filter var(--ficha-trans-normal);
+  }
+  .ficha-badge--success { background: rgba(39,174,96,0.15); color: #2ECC71; border: 1px solid rgba(39,174,96,0.3); }
+  .ficha-badge--danger  { background: rgba(231,76,60,0.15);  color: #E74C3C; border: 1px solid rgba(231,76,60,0.3); }
+  .ficha-badge--warning { background: rgba(243,156,18,0.15); color: #F39C12; border: 1px solid rgba(243,156,18,0.3); }
+  .ficha-badge--info    { background: rgba(46,134,193,0.15); color: #3498DB; border: 1px solid rgba(46,134,193,0.3); }
+  .ficha-badge--muted   { background: rgba(139,147,168,0.15);color: #8B93A8; border: 1px solid rgba(139,147,168,0.3); }
 
-  /* Investment box */
-  .invest-box { background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 0.9rem 1rem; margin-top: 1rem; }
-  .invest-box__title { font-size: 0.75rem; font-weight: 700; color: #166534; margin-bottom: 0.5rem; }
-  .invest-box__row { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.85rem; color: #166534; }
+  /* ─── Investment Calculator ───────────────────────────────── */
+  .ficha-calc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .ficha-calc-card {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--ficha-border);
+    border-radius: var(--ficha-radius-md); padding: 14px; text-align: center;
+  }
+  .ficha-calc-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ficha-text-subtle); margin-bottom: 8px; }
+  .ficha-calc-value { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ficha-text); }
+
+  /* ─── Map ─────────────────────────────────────────────────── */
+  #ficha-map { width: 100%; height: 320px; }
+  .ficha-map-placeholder {
+    width: 100%; height: 320px;
+    background: linear-gradient(135deg, #1C2235, #222940);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; color: var(--ficha-text-muted); font-size: 13px;
+  }
+
+  /* ─── External Links ──────────────────────────────────────── */
+  .ficha-links-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 10px; }
+  .ficha-link {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    background: rgba(255,255,255,0.03); border: 1px solid var(--ficha-border);
+    border-radius: var(--ficha-radius-md); text-decoration: none;
+    color: var(--ficha-text-muted); font-size: 13px; transition: all var(--ficha-trans-fast);
+  }
+  .ficha-link:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: var(--ficha-text); }
+  .ficha-link--cta { border-color: rgba(230,126,34,0.3); background: rgba(230,126,34,0.05); color: #E67E22; }
+  .ficha-link--cta:hover { background: rgba(230,126,34,0.1); border-color: rgba(230,126,34,0.5); }
+  .ficha-link__icon { font-size: 17px; opacity: 0.8; flex-shrink: 0; }
+  .ficha-link__label { font-weight: 500; }
+  .ficha-link__sub   { font-size: 11px; color: var(--ficha-text-subtle); }
+
+  /* ─── Title Report CTA ────────────────────────────────────── */
+  .ficha-title-report {
+    background: linear-gradient(135deg, rgba(230,126,34,0.06), rgba(211,84,0,0.03));
+    border: 1px solid rgba(230,126,34,0.25);
+    border-radius: var(--ficha-radius-lg); padding: 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  }
+  .ficha-title-report.ficha-hidden { display: none; }
+  .ficha-title-report__info h4    { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .ficha-title-report__info p     { font-size: 13px; color: var(--ficha-text-muted); }
+  .ficha-title-report__btn {
+    padding: 12px 28px; border-radius: 50px; border: none;
+    background: linear-gradient(135deg, #E67E22, #D35400);
+    color: white; font-family: inherit; font-size: 14px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 4px 20px var(--ficha-cta-glow);
+    transition: all var(--ficha-trans-fast); white-space: nowrap; flex-shrink: 0;
+  }
+  .ficha-title-report__btn:hover {
+    background: linear-gradient(135deg, #F39C12, #E67E22);
+    box-shadow: 0 6px 28px var(--ficha-cta-glow); transform: translateY(-1px);
+  }
+  .ficha-title-report__btn:active { transform: translateY(0); }
+
+  /* ─── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .ficha-paywall-cta  { flex-direction: column; }
+    .ficha-title-report { flex-direction: column; }
+    .ficha-calc-grid    { grid-template-columns: 1fr 1fr; }
+    .ficha-data-grid    { grid-template-columns: 1fr; }
+    .ficha-bid-amount   { font-size: 32px; }
+    .ficha-meta-grid    { grid-template-columns: 1fr 1fr; }
+  }
 </style>
 <% end %>
 
-<div class="ficha-layout">
+<!-- ── Page ──────────────────────────────────────────────────────────── -->
+<div class="ficha-page">
+  <div class="ficha-container">
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- COLUMNA IZQUIERDA — Mini CRM                               -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <aside class="ficha-col-crm" style="background: var(--color-zone-crm);">
-    <% unless request.xhr? %>
-      <% if @parcel.auction %>
-        <%= link_to research_parcels_path(auction_id: @parcel.auction_id), class: "ficha-back" do %>
-          ← Back to Parcels
-        <% end %>
-      <% else %>
-        <%= link_to research_parcels_path, class: "ficha-back" do %>
-          ← Back
-        <% end %>
-      <% end %>
+    <%# ── Back Button ────────────────────────────────────────────────── %>
+    <% back_path = session[:last_parcels_path] || research_parcels_path(auction_id: @parcel.auction_id) %>
+    <%= link_to back_path, class: "ficha-back" do %>
+      ← Ver parcelas
     <% end %>
 
-    <div class="ficha-col-crm__header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+    <%# ─ 1. HEADER — Datos Básicos (GRATUITO) ────────────────────────── %>
+    <div class="ficha-header-card">
+      <div class="ficha-apn-badge">
+        <div class="ficha-apn-dot"></div>
+        APN: <%= @parcel.parcel_id.presence || "—" %>
+      </div>
+      <div class="ficha-address"><%= @parcel.address.presence || "Address not available" %></div>
+      <div class="ficha-location">
+        <%= [@parcel.county, @parcel.state, @parcel.zip_code].select(&:present?).join(", ") %>
+      </div>
+
+      <div class="ficha-meta-grid">
+        <% if @parcel.auction&.sale_date.present? %>
+        <div class="ficha-meta-item">
+          <div class="ficha-meta-label">Sale Date</div>
+          <div class="ficha-meta-value"><%= @parcel.auction.sale_date.strftime("%b %d, %Y") %></div>
+        </div>
+        <% end %>
+        <% if @parcel.property_type.present? %>
+        <div class="ficha-meta-item">
+          <div class="ficha-meta-label">Property Type</div>
+          <div class="ficha-meta-value"><%= @parcel.property_type %></div>
+        </div>
+        <% end %>
+        <div class="ficha-meta-item">
+          <div class="ficha-meta-label">Auction Status</div>
+          <div class="ficha-meta-value">
+            <% status_class = @parcel.auction_status == "available" ? "success" : (@parcel.auction_status == "sold" ? "danger" : "muted") %>
+            <span class="ficha-badge ficha-badge--<%= status_class %>"><%= @parcel.auction_status&.titleize %></span>
+          </div>
+        </div>
+        <% if @parcel.crime_level.present? %>
+        <div class="ficha-meta-item">
+          <div class="ficha-meta-label">Crime Level</div>
+          <div class="ficha-meta-value">
+            <% crime_class = case @parcel.crime_level.downcase; when "low" then "success"; when "moderate" then "warning"; when "high" then "danger"; else "muted"; end %>
+            <span class="ficha-badge ficha-badge--<%= crime_class %>"><%= @parcel.crime_level.titleize %></span>
+          </div>
+        </div>
+        <% end %>
+      </div>
+
+      <div class="ficha-bid">
+        <div class="ficha-bid-label">Minimum Bid</div>
+        <div class="ficha-bid-amount">
+          <%= @parcel.opening_bid ? number_to_currency(@parcel.opening_bid) : "—" %>
+        </div>
+      </div>
+    </div>
+
+    <%# ─ 2. MINI CRM — SIEMPRE VISIBLE (aislado del paywall) ─────────── %>
+    <div class="ficha-card" id="ficha-crm">
+      <div class="ficha-card__hdr">
+        <span class="ficha-card__hdr-icon">🏷</span>
+        <h3 class="ficha-card__hdr-title">My CRM — Tags & Notes</h3>
+      </div>
+      <div class="ficha-card__body">
+        <%# Tags %>
+        <div class="crm-tags-row">
+          <% tag_value = @current_tag&.tag %>
+          <% [
+            { key: "target",     label: "🎯 Target",     css: "target"    },
+            { key: "diligence",  label: "🔍 Due Diligence", css: "diligence" },
+            { key: "ready",      label: "✅ Ready to Bid", css: "ready"    },
+            { key: "dismissed",  label: "❌ Dismissed",   css: "dismissed" }
+          ].each do |t| %>
+            <%= button_to research_parcel_user_tags_path(parcel_id: @parcel.id),
+                method: :post,
+                params: { tag: t[:key] },
+                class: "crm-chip crm-chip--#{t[:css]}#{tag_value == t[:key] ? ' active' : ''}",
+                data: { turbo_method: :post } do %>
+              <%= t[:label] %>
+            <% end %>
+          <% end %>
+        </div>
+
+        <%# Existing notes %>
+        <% if @notes.any? %>
+        <div class="crm-notes-list">
+          <% @notes.each do |note| %>
+          <div class="crm-note-item">
+            <div class="crm-note-item__body"><%= note.body %></div>
+            <div class="crm-note-item__time"><%= note.created_at.strftime("%b %d, %Y at %I:%M %p") %></div>
+          </div>
+          <% end %>
+        </div>
+        <% end %>
+
+        <%# New note form %>
+        <%= form_with url: research_parcel_user_notes_path(parcel_id: @parcel.id), method: :post, local: false do |f| %>
+          <%= f.text_area :body, class: "crm-textarea",
+              placeholder: "Add your private note about this property...\n(Only visible to you)" %>
+          <%= f.submit "Save Note", class: "crm-save-btn" %>
+        <% end %>
+      </div>
+    </div>
+
+    <%# ─ 3. PAYWALL CTA — visible solo si locked ─────────────────────── %>
+    <div class="ficha-paywall-cta<%= ' ficha-hidden' if @unlocked %>" id="ficha-paywall-cta">
       <div>
-        <p class="ficha-col-crm__title">Mini CRM</p>
-        <p class="ficha-col-crm__addr"><%= @parcel.address || "—" %></p>
+        <p class="paywall-info__title">Unlock Full Property Report</p>
+        <p class="paywall-info__desc">Get complete property data, investment analysis, and access to order a Title Report.</p>
+        <div class="paywall-info__items">
+          <span class="paywall-item-badge">✓ Property Characteristics</span>
+          <span class="paywall-item-badge">✓ Valuation Data</span>
+          <span class="paywall-item-badge">✓ Investment Calculator</span>
+          <span class="paywall-item-badge">✓ Mortgages & Liens</span>
+          <span class="paywall-item-badge">✓ FEMA / Risk Data</span>
+          <span class="paywall-item-badge">✓ Owner Info</span>
+          <span class="paywall-item-badge">✓ Title Report Access</span>
+        </div>
       </div>
-      <% if request.xhr? %>
-        <button class="modal-close" onclick="closeParcelDrawer()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--color-text-muted);">&times;</button>
-      <% end %>
-    </div>
-
-    <div class="ficha-col-crm__body">
-      <!-- Tags -->
-      <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--color-text-muted);margin-bottom:.6rem;">Status Tag</p>
-      <div class="crm-tags" id="crm-tags">
-        <% ParcelUserTag::VALID_TAGS.each do |tag_val| %>
-          <%
-            color      = ParcelUserTag::TAG_COLORS[tag_val]
-            label      = ParcelUserTag::TAG_LABELS[tag_val]
-            is_active  = @crm_tag&.tag == tag_val
-          %>
-          <button class="crm-tag-btn <%= 'active' if is_active %>"
-                  id="crm-tag-<%= tag_val %>"
-                  style="<%= is_active ? "background:#{color};border-color:#{color};" : "border-color:#{color}15;" %>"
-                  onclick="setCrmTag('<%= tag_val %>', '<%= color %>', '<%= j label %>')">
-            <span class="crm-tag-dot" style="background:<%= color %>;"></span>
-            <%= label %>
-            <% if is_active %><span style="margin-left:auto;font-size:0.7rem;">✓</span><% end %>
-          </button>
-        <% end %>
-        <!-- Botón para quitar tag -->
-        <button class="crm-tag-btn" style="border-color:#dee2e6;color:var(--color-text-muted);font-size:0.75rem;"
-                onclick="setCrmTag('', '', '')" id="crm-tag-clear">
-          <span class="crm-tag-dot" style="background:#dee2e6;"></span>
-          Clear tag
+      <div class="ficha-unlock-wrap">
+        <button class="ficha-unlock-btn" id="ficha-unlock-btn"
+                onclick="fichaUnlock(<%= @parcel.id %>)">
+          🔓 Unlock Full Report — 1 Credit
         </button>
-      </div>
-
-      <hr class="crm-divider">
-
-      <!-- Notas -->
-      <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--color-text-muted);margin-bottom:.6rem;">Private Notes</p>
-
-      <div class="crm-notes-list" id="crm-notes-list">
-        <% if @crm_notes.any? %>
-          <% @crm_notes.each do |note| %>
-            <div class="crm-note-item" id="crm-note-<%= note.id %>">
-              <div class="crm-note-item__body"><%= simple_format(note.body) %></div>
-              <div class="crm-note-item__time"><%= note.created_at.strftime("%b %d, %Y %H:%M") %></div>
-            </div>
-          <% end %>
-        <% else %>
-          <p id="crm-notes-empty" style="font-size:0.8rem;color:var(--color-text-muted);">No notes yet.</p>
-        <% end %>
-      </div>
-
-      <div class="crm-note-form">
-        <textarea id="crm-note-input" placeholder="Add a private evaluation note…" rows="3"></textarea>
-        <button onclick="saveCrmNote()">Save Note</button>
-      </div>
-    </div>
-  </aside>
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- COLUMNA CENTRAL — Datos Técnicos + Solicitud de Reportes  -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <main class="ficha-col-main" style="background: var(--color-zone-data);">
-    <!-- Header de la propiedad -->
-    <h1 style="font-size:1.25rem;font-weight:800;color:var(--color-primary);margin-bottom:0.2rem;">
-      <%= @parcel.address || "Parcel #{@parcel.id}" %>
-    </h1>
-    <p style="font-size:0.85rem;color:var(--color-text-muted);margin-bottom:1.5rem;">
-      <% if @parcel.parcel_id %>
-        <strong>APN:</strong> <%= @parcel.parcel_id %> &nbsp;·&nbsp;
-      <% end %>
-      <%= [@parcel.county, @parcel.state, @parcel.zip_code].compact.join(", ") %>
-      <% if @parcel.auction %>
-        &nbsp;·&nbsp; Sale: <strong><%= @parcel.auction.sale_date&.strftime("%b %d, %Y") %></strong>
-      <% end %>
-    </p>
-
-    <!-- ── Solicitud de Reportes ── -->
-    <div class="data-table-wrap" style="margin-bottom:1.25rem;">
-      <div style="padding:.85rem 1.1rem;border-bottom:1px solid var(--color-border);">
-        <h2 style="font-size:.8125rem;font-weight:700;color:var(--color-primary);margin:0;">📋 Reports</h2>
-      </div>
-      <div style="padding:.85rem 1.1rem;">
-        <div class="report-actions" id="report-actions">
-          <%
-            report_defs = [
-              { type: "avm",            label: "Order AVM Report",   short: "AVM" },
-              { type: "property_scope", label: "Order Property Scope", short: "Scope" },
-              { type: "title_search",   label: "Order Title Search", short: "Title" }
-            ]
-            report_defs.each do |rd|
-              existing = @reports.find { |r| r.report_type == rd[:type] }
-          %>
-            <% if existing&.generated? %>
-              <%= link_to "⬇ Download #{rd[:short]}",
-                  existing.pdf_url || '#',
-                  target: '_blank', class: "btn-report-download" %>
-            <% elsif existing %>
-              <span class="btn-report-ordered">⏳ <%= rd[:short] %> Ordered</span>
-            <% else %>
-              <button class="btn-order-report"
-                      id="report-btn-<%= rd[:type] %>"
-                      onclick="orderReport(<%= @parcel.id %>, '<%= rd[:type] %>', this)">
-                💳 <%= rd[:label] %>
-              </button>
-            <% end %>
-          <% end %>
-        </div>
-        <p style="font-size:.7rem;color:var(--color-text-muted);">Credits are consumed when ordered, not downloaded.</p>
+        <% credits_left = current_user.subscription&.limit_parcels.to_i - current_user.subscription&.used_parcels.to_i %>
+        <div class="ficha-credit-hint"><%= credits_left %> credits remaining</div>
       </div>
     </div>
 
-    <!-- ── Grid: Características + Valuación ── -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+    <%# Unlocked Banner — visible after unlock %>
+    <div class="ficha-unlocked-banner<%= ' ficha-visible' if @unlocked %>" id="ficha-unlocked-banner">
+      <span>🔓</span>
+      <span>Full report unlocked — all advanced data is visible below.</span>
+    </div>
 
-      <!-- Características -->
-      <div class="data-table-wrap">
-        <div style="padding:.75rem 1rem;border-bottom:1px solid var(--color-border);">
-          <h2 style="font-size:.8125rem;font-weight:700;color:var(--color-primary);margin:0;">🏠 Property Characteristics</h2>
-        </div>
-        <div style="padding:.75rem 1rem;">
-          <div class="detail-grid">
-            <div class="detail-item"><div class="detail-item__label">Property Type</div><div class="detail-item__value"><%= @parcel.property_type || '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Land Use</div><div class="detail-item__value"><%= @parcel.land_use || '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Zoning</div><div class="detail-item__value"><%= @parcel.zoning || '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Year Built</div><div class="detail-item__value"><%= @parcel.year_built || '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Living Area</div><div class="detail-item__value"><%= @parcel.living_area_sqft ? "#{number_with_delimiter(@parcel.living_area_sqft)} sqft" : '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Lot Area</div><div class="detail-item__value"><%= @parcel.lot_area_acres ? "#{@parcel.lot_area_acres} acres" : '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Bedrooms</div><div class="detail-item__value"><%= @parcel.bedrooms || '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Bathrooms</div><div class="detail-item__value"><%= @parcel.bathrooms || '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Owner</div><div class="detail-item__value"><%= @parcel.owner_name || '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">HOA</div><div class="detail-item__value"><%= @parcel.hoa || '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Homestead</div><div class="detail-item__value"><%= @parcel.homestead_flag || '—' %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Crime Level</div><div class="detail-item__value"><%= @parcel.crime_level || '—' %></div></div>
+    <%# ─ 4. DATOS AVANZADOS (blur if locked) ─────────────────────────── %>
+
+    <%# Property Characteristics %>
+    <div class="ficha-card ficha-premium <%= @unlocked ? 'ficha-unlocked' : 'ficha-locked' %>" id="ficha-premium-1">
+      <div class="ficha-card__hdr">
+        <span class="ficha-card__hdr-icon">🏠</span>
+        <h3 class="ficha-card__hdr-title">Property Characteristics</h3>
+      </div>
+      <div class="ficha-premium-body" style="position:relative;">
+        <div class="ficha-data-grid">
+          <div class="ficha-data-label">Year Built</div>
+          <div class="ficha-data-value"><%= @parcel.year_built.presence || "—" %></div>
+
+          <div class="ficha-data-label">Sqft Living Area</div>
+          <div class="ficha-data-value"><%= @parcel.living_area_sqft.present? ? number_with_delimiter(@parcel.living_area_sqft) + " sqft" : "—" %></div>
+
+          <div class="ficha-data-label">Sqft Lot</div>
+          <div class="ficha-data-value"><%= @parcel.sqft_lot.present? ? number_with_delimiter(@parcel.sqft_lot) + " sqft" : "—" %></div>
+
+          <div class="ficha-data-label">Lot Area (Acres)</div>
+          <div class="ficha-data-value"><%= @parcel.lot_area_acres.present? ? "#{@parcel.lot_area_acres} ac" : "—" %></div>
+
+          <div class="ficha-data-label">Bedrooms</div>
+          <div class="ficha-data-value"><%= @parcel.bedrooms.presence || "—" %></div>
+
+          <div class="ficha-data-label">Bathrooms</div>
+          <div class="ficha-data-value"><%= @parcel.bathrooms.presence || "—" %></div>
+
+          <div class="ficha-data-label">Zoning</div>
+          <div class="ficha-data-value"><%= @parcel.zoning.presence || "—" %></div>
+
+          <div class="ficha-data-label">Land Use</div>
+          <div class="ficha-data-value"><%= @parcel.land_use.presence || "—" %></div>
+
+          <div class="ficha-data-label">Lot Shape</div>
+          <div class="ficha-data-value"><%= @parcel.lot_shape.presence || "—" %></div>
+
+          <div class="ficha-data-label">Min. Lot Size</div>
+          <div class="ficha-data-value"><%= @parcel.minimum_lot_size.presence || "—" %></div>
+
+          <div class="ficha-data-label">Jurisdiction</div>
+          <div class="ficha-data-value"><%= @parcel.jurisdiction.presence || "—" %></div>
+
+          <div class="ficha-data-label">Homestead</div>
+          <div class="ficha-data-value">
+            <% if @parcel.homestead_flag.present? %>
+              <% hc = @parcel.homestead_flag.downcase == "homestead" ? "success" : "info" %>
+              <span class="ficha-badge ficha-badge--<%= hc %>"><%= @parcel.homestead_flag.titleize %></span>
+            <% else %>—<% end %>
           </div>
+
           <% if @parcel.legal_description.present? %>
-            <div style="margin-top:.75rem;padding:.65rem .85rem;background:#F8F9FA;border-radius:8px;font-size:.75rem;color:var(--color-text-muted);line-height:1.5;">
-              <strong style="color:var(--color-text);">Legal Description:</strong><br><%= @parcel.legal_description %>
-            </div>
+          <div class="ficha-data-label">Legal Description</div>
+          <div class="ficha-data-value" style="font-family:inherit;font-size:12px;line-height:1.4;"><%= @parcel.legal_description %></div>
           <% end %>
         </div>
       </div>
+    </div>
 
-      <!-- Valuación -->
-      <div class="data-table-wrap">
-        <div style="padding:.75rem 1rem;border-bottom:1px solid var(--color-border);">
-          <h2 style="font-size:.8125rem;font-weight:700;color:var(--color-primary);margin:0;">💰 Property Valuation</h2>
-        </div>
-        <div style="padding:.75rem 1rem;">
-          <div class="detail-grid">
-            <div class="detail-item"><div class="detail-item__label">Opening Bid</div><div class="detail-item__value" style="color:var(--color-primary);font-weight:800;"><% if @parcel.opening_bid %><span class="money-value">$<%= number_with_delimiter(@parcel.opening_bid.to_i) %></span><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Assessed Value</div><div class="detail-item__value"><% if @parcel.assessed_value %><span class="money-value">$<%= number_with_delimiter(@parcel.assessed_value.to_i) %></span><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Market Value</div><div class="detail-item__value"><% if @parcel.market_value %><span class="money-value" style="font-size:1.25rem;">$<%= number_with_delimiter(@parcel.market_value.to_i) %></span><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Land Value</div><div class="detail-item__value"><% if @parcel.land_value %><span class="money-value">$<%= number_with_delimiter(@parcel.land_value.to_i) %></span><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Improvement Value</div><div class="detail-item__value"><% if @parcel.improvement_value %><span class="money-value">$<%= number_with_delimiter(@parcel.improvement_value.to_i) %></span><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Delinquent Amount</div><div class="detail-item__value" style="color:var(--color-danger);"><% if @parcel.delinquent_amount %><span class="money-value">$<%= number_with_delimiter(@parcel.delinquent_amount.to_f.round(2)) %></span><% else %>—<% end %></div></div>
-            <div class="detail-item"><div class="detail-item__label">Tax Year</div><div class="detail-item__value"><%= @parcel.tax_year || '—' %></div></div>
+    <%# Property Valuation %>
+    <div class="ficha-card ficha-premium <%= @unlocked ? 'ficha-unlocked' : 'ficha-locked' %>" id="ficha-premium-2">
+      <div class="ficha-card__hdr">
+        <span class="ficha-card__hdr-icon">💰</span>
+        <h3 class="ficha-card__hdr-title">Property Valuation</h3>
+      </div>
+      <div class="ficha-premium-body" style="position:relative;">
+        <div class="ficha-data-grid">
+          <div class="ficha-data-label">Assessed Value</div>
+          <div class="ficha-data-value"><%= @parcel.assessed_value ? number_to_currency(@parcel.assessed_value) : "—" %></div>
+
+          <div class="ficha-data-label">Market Value</div>
+          <div class="ficha-data-value"><%= @parcel.market_value ? number_to_currency(@parcel.market_value) : "—" %></div>
+
+          <div class="ficha-data-label">Land Value</div>
+          <div class="ficha-data-value"><%= @parcel.land_value ? number_to_currency(@parcel.land_value) : "—" %></div>
+
+          <div class="ficha-data-label">Improvement Value</div>
+          <div class="ficha-data-value"><%= @parcel.improvement_value ? number_to_currency(@parcel.improvement_value) : "—" %></div>
+
+          <div class="ficha-data-label">Delinquent Amount</div>
+          <div class="ficha-data-value" style="color:#E74C3C; font-weight:600;">
+            <%= @parcel.delinquent_amount ? number_to_currency(@parcel.delinquent_amount) : "—" %>
           </div>
-          <div class="invest-box data-premium-locked" style="position:relative;">
-            <p class="invest-box__title">📊 Investment Calculator (Premium)</p>
-            <div class="invest-box__row data-value">
-              <span>Max Bid 30%: <strong><% if @parcel.max_bid_30 %>$<%= number_with_delimiter(@parcel.max_bid_30.to_i) %><% else %>—<% end %></strong></span>
-              <span>Max Bid 35%: <strong><% if @parcel.max_bid_35 %>$<%= number_with_delimiter(@parcel.max_bid_35.to_i) %><% else %>—<% end %></strong></span>
-              <span>Bid +16%: <strong><% if @parcel.adjusted_value_16 %>$<%= number_with_delimiter(@parcel.adjusted_value_16.to_i) %><% else %>—<% end %></strong></span>
-            </div>
-            <% unless @reports.find { |r| r.report_type == 'avm' } %>
-            <div class="unlock-overlay" onclick="document.getElementById('report-btn-avm').click()">
-              <span>🔒 Order AVM Report to Unlock Calculator</span>
-            </div>
-            <% end %>
+
+          <div class="ficha-data-label">Est. Sale Value</div>
+          <div class="ficha-data-value"><%= @parcel.estimated_sale_value ? number_to_currency(@parcel.estimated_sale_value) : "—" %></div>
+
+          <div class="ficha-data-label">Price per Acre</div>
+          <div class="ficha-data-value"><%= @parcel.price_per_acre ? number_to_currency(@parcel.price_per_acre) : "—" %></div>
+
+          <div class="ficha-data-label">Owner Name</div>
+          <div class="ficha-data-value"><%= @parcel.owner_name.presence || "—" %></div>
+
+          <div class="ficha-data-label">Property Address</div>
+          <div class="ficha-data-value"><%= @parcel.property_address.presence || "—" %></div>
+        </div>
+      </div>
+    </div>
+
+    <%# Investment Calculator %>
+    <div class="ficha-card ficha-premium <%= @unlocked ? 'ficha-unlocked' : 'ficha-locked' %>" id="ficha-premium-3">
+      <div class="ficha-card__hdr">
+        <span class="ficha-card__hdr-icon">📊</span>
+        <h3 class="ficha-card__hdr-title">Investment Calculator</h3>
+      </div>
+      <div class="ficha-card__body ficha-premium-body" style="position:relative;">
+        <div class="ficha-calc-grid">
+          <div class="ficha-calc-card">
+            <div class="ficha-calc-label">Max Bid at 30%</div>
+            <div class="ficha-calc-value"><%= @parcel.max_bid_30 ? number_to_currency(@parcel.max_bid_30) : "—" %></div>
+          </div>
+          <div class="ficha-calc-card">
+            <div class="ficha-calc-label">Max Bid at 35%</div>
+            <div class="ficha-calc-value"><%= @parcel.max_bid_35 ? number_to_currency(@parcel.max_bid_35) : "—" %></div>
+          </div>
+          <div class="ficha-calc-card">
+            <div class="ficha-calc-label">Minimum Bid +16%</div>
+            <div class="ficha-calc-value"><%= @parcel.adjusted_value_16 ? number_to_currency(@parcel.adjusted_value_16) : "—" %></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── Liens ── -->
-    <div class="data-table-wrap" style="margin-bottom:1.25rem;">
-      <div style="padding:.75rem 1rem;border-bottom:1px solid var(--color-border);">
-        <h2 style="font-size:.8125rem;font-weight:700;color:var(--color-primary);margin:0;">📎 Mortgages & Liens (Premium)</h2>
+    <%# Utilities & Environmental Risk %>
+    <div class="ficha-card ficha-premium <%= @unlocked ? 'ficha-unlocked' : 'ficha-locked' %>" id="ficha-premium-4">
+      <div class="ficha-card__hdr">
+        <span class="ficha-card__hdr-icon">⚡</span>
+        <h3 class="ficha-card__hdr-title">Utilities & Environmental Risk</h3>
       </div>
-      <div class="data-premium-locked" style="position:relative; padding:0;">
-        <div class="data-value">
-          <% if @parcel.parcel_liens.any? %>
-            <table class="data-table">
-              <thead>
-                <tr><th>Lender</th><th>Type</th><th>Amount</th><th>Recorded</th><th>Status</th></tr>
-              </thead>
-              <tbody>
-                <% @parcel.parcel_liens.each do |lien| %>
-                  <tr>
-                    <td><%= lien.lender || '—' %></td>
-                    <td><%= lien.lien_type || '—' %></td>
-                    <td><% if lien.amount %><span class="money-value">$<%= number_with_delimiter(lien.amount.to_f.round(2)) %></span><% else %>—<% end %></td>
-                    <td style="white-space:nowrap;font-size:.8rem;"><%= lien.recorded_date&.strftime("%b %d, %Y") || '—' %></td>
-                    <td><span class="badge badge-<%= lien.status == 'active' ? 'active' : 'completed' %>"><%= lien.status&.capitalize || '—' %></span></td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          <% else %>
-            <p style="padding:.85rem 1.1rem;color:var(--color-text-muted);font-size:.875rem;">No recorded liens found for this parcel.</p>
+      <div class="ficha-premium-body" style="position:relative;">
+        <div class="ficha-data-grid">
+          <% [
+            { label: "Electric",  val: @parcel.electric },
+            { label: "Water",     val: @parcel.water    },
+            { label: "Sewer",     val: @parcel.sewer    },
+            { label: "HOA",       val: @parcel.hoa      }
+          ].each do |u| %>
+          <div class="ficha-data-label"><%= u[:label] %></div>
+          <div class="ficha-data-value">
+            <% if u[:val].present? %>
+              <% vc = u[:val].downcase == "yes" ? "success" : "danger" %>
+              <span class="ficha-badge ficha-badge--<%= vc %>"><%= u[:val].titleize %></span>
+            <% else %>—<% end %>
+          </div>
           <% end %>
-          <p style="padding:0 1.1rem .75rem;margin-top:.75rem;font-size:.7rem;color:var(--color-text-muted);">ℹ️ In Tax Deed sales, most liens are extinguished at auction. Shown for pre-sale title risk assessment only.</p>
-        </div>
-        <% unless @reports.find { |r| r.report_type == 'title_search' } %>
-          <div class="unlock-overlay" onclick="document.getElementById('report-btn-title_search').click()">
-            <span>🔒 Order Title Search to Unlock</span>
+
+          <div class="ficha-data-label">Wetlands</div>
+          <div class="ficha-data-value">
+            <% unless @parcel.wetlands.nil? %>
+              <span class="ficha-badge ficha-badge--<%= @parcel.wetlands ? 'warning' : 'success' %>">
+                <%= @parcel.wetlands ? "Yes" : "No" %>
+              </span>
+            <% else %>—<% end %>
           </div>
-        <% end %>
-      </div>
-    </div>
 
-    <!-- ── Utilidades (Electric, Water, Sewer, FEMA) ── -->
-    <% if [@parcel.electric, @parcel.water, @parcel.sewer, @parcel.fema_risk_level].any?(&:present?) %>
-    <div class="data-table-wrap">
-      <div style="padding:.75rem 1rem;border-bottom:1px solid var(--color-border);">
-        <h2 style="font-size:.8125rem;font-weight:700;color:var(--color-primary);margin:0;">⚡ Utilities & Risk</h2>
-      </div>
-      <div style="padding:.75rem 1rem;">
-        <div class="detail-grid">
-          <div class="detail-item"><div class="detail-item__label">Electric</div><div class="detail-item__value"><%= @parcel.electric&.capitalize || '—' %></div></div>
-          <div class="detail-item"><div class="detail-item__label">Water</div><div class="detail-item__value"><%= @parcel.water&.capitalize || '—' %></div></div>
-          <div class="detail-item"><div class="detail-item__label">Sewer</div><div class="detail-item__value"><%= @parcel.sewer&.capitalize || '—' %></div></div>
-          <div class="detail-item"><div class="detail-item__label">Wetlands</div><div class="detail-item__value"><%= @parcel.wetlands? ? '⚠️ Yes' : 'No' %></div></div>
-          <div class="detail-item"><div class="detail-item__label">FEMA Risk</div><div class="detail-item__value"><%= @parcel.fema_risk_level || '—' %></div></div>
+          <div class="ficha-data-label">FEMA Risk Level</div>
+          <div class="ficha-data-value">
+            <% if @parcel.fema_risk_level.present? %>
+              <% fc = @parcel.fema_risk_level.downcase.include?("minimal") ? "success" : (@parcel.fema_risk_level.downcase.include?("high") ? "danger" : "warning") %>
+              <span class="ficha-badge ficha-badge--<%= fc %>"><%= @parcel.fema_risk_level %></span>
+            <% else %>—<% end %>
+          </div>
+
+          <% if @parcel.fema_notes.present? %>
+          <div class="ficha-data-label">FEMA Notes</div>
+          <div class="ficha-data-value" style="font-family:inherit;font-size:12px;line-height:1.4;"><%= @parcel.fema_notes %></div>
+          <% end %>
         </div>
       </div>
     </div>
-    <% end %>
-  </main>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- COLUMNA DERECHA — Visualización Geográfica                 -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <aside class="ficha-col-geo" style="background: var(--color-zone-visual);">
-    <% if @parcel.has_coords? %>
-      <%# ── Regrid Parcel Boundaries (Leaflet + tile proxy) ── %>
-      <div class="ficha-col-geo__section">
-        <p class="ficha-col-geo__label">🗺 Parcel Boundaries</p>
-        <div id="regrid-map" style="width:100%;height:220px;border-radius:10px;overflow:hidden;border:1px solid var(--color-border);"></div>
+    <%# ─ 5. GIS MAP — SIEMPRE VISIBLE ────────────────────────────────── %>
+    <div class="ficha-card" id="ficha-gis">
+      <div class="ficha-card__hdr">
+        <span class="ficha-card__hdr-icon">🗺</span>
+        <h3 class="ficha-card__hdr-title">GIS Map — Parcel Boundaries</h3>
       </div>
-
-      <% if @api_key.present? %>
-        <div class="ficha-col-geo__section">
-          <p class="ficha-col-geo__label">📷 Street View</p>
-          <iframe src="<%= @parcel.street_view_url(@api_key) %>" allowfullscreen loading="lazy"></iframe>
-        </div>
-        <div class="ficha-col-geo__section">
-          <p class="ficha-col-geo__label">📍 Satellite Map</p>
-          <iframe src="https://www.google.com/maps/embed/v1/place?key=<%= @api_key %>&q=<%= @parcel.latitude %>,<%= @parcel.longitude %>&zoom=16" allowfullscreen loading="lazy"></iframe>
+      <% if @parcel.has_coords? %>
+        <div id="ficha-map"></div>
+      <% else %>
+        <div class="ficha-map-placeholder">
+          <span style="font-size:36px;opacity:0.3;">🗺</span>
+          <span>No coordinates available for this parcel</span>
         </div>
       <% end %>
-    <% else %>
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:50%;text-align:center;padding:2rem;color:var(--color-text-muted);">
-        <div style="font-size:2.5rem;margin-bottom:.75rem;">🗺</div>
-        <p style="font-size:.85rem;">No coordinates available for this parcel.</p>
+    </div>
+
+    <%# ─ 6. STREET VIEW — SIEMPRE VISIBLE ─────────────────────────────── %>
+    <% if @parcel.has_coords? && ENV['GOOGLE_MAPS_API_KEY'].present? %>
+    <div class="ficha-card" id="ficha-streetview">
+      <div class="ficha-card__hdr">
+        <span class="ficha-card__hdr-icon">📷</span>
+        <h3 class="ficha-card__hdr-title">Street View</h3>
       </div>
+      <iframe
+        src="<%= @parcel.street_view_url(ENV['GOOGLE_MAPS_API_KEY']) %>"
+        style="width:100%;height:260px;border:none;display:block;"
+        allowfullscreen
+        loading="lazy"
+      ></iframe>
+    </div>
     <% end %>
 
-    <!-- Links externos -->
-    <div class="ficha-col-geo__section" style="margin-top:.5rem;">
-      <p class="ficha-col-geo__label">External Links</p>
-      <div style="display:flex;flex-direction:column;gap:.4rem;">
-        <% if @parcel.regrid_url.present? %>
-          <%= link_to "🗺 Regrid Parcel Data", @parcel.regrid_url, target: "_blank",
-              style: "font-size:.8rem;color:var(--color-accent);" %>
-        <% end %>
-        <% if @parcel.clerk_url.present? %>
-          <%= link_to "📄 County Clerk", @parcel.clerk_url, target: "_blank",
-              style: "font-size:.8rem;color:var(--color-accent);" %>
-        <% end %>
-        <% if @parcel.tax_collector_url.present? %>
-          <%= link_to "🏛 Tax Collector", @parcel.tax_collector_url, target: "_blank",
-              style: "font-size:.8rem;color:var(--color-accent);" %>
-        <% end %>
-        <% if @parcel.auction&.bidding_url.present? %>
-          <%= link_to "🔨 Auction Bidding Portal", @parcel.auction.bidding_url, target: "_blank",
-              style: "font-size:.8rem;color:var(--color-primary);font-weight:600;" %>
-        <% end %>
+    <%# ─ 7. EXTERNAL LINKS — SIEMPRE VISIBLE ───────────────────────────── %>
+    <div class="ficha-card" id="ficha-links">
+      <div class="ficha-card__hdr">
+        <span class="ficha-card__hdr-icon">🔗</span>
+        <h3 class="ficha-card__hdr-title">External Links</h3>
+      </div>
+      <div class="ficha-card__body">
+        <div class="ficha-links-grid">
+          <% if @parcel.auction&.bidding_url.present? %>
+          <a href="<%= @parcel.auction.bidding_url %>" target="_blank" rel="noopener" class="ficha-link ficha-link--cta">
+            <span class="ficha-link__icon">🏛</span>
+            <div>
+              <div class="ficha-link__label">Bid at Auction</div>
+              <div class="ficha-link__sub"><%= @parcel.auction.jurisdiction.presence || @parcel.county %></div>
+            </div>
+          </a>
+          <% end %>
+          <% if @parcel.regrid_url.present? %>
+          <a href="<%= @parcel.regrid_url %>" target="_blank" rel="noopener" class="ficha-link">
+            <span class="ficha-link__icon">🗺</span>
+            <div>
+              <div class="ficha-link__label">Regrid</div>
+              <div class="ficha-link__sub">Parcel boundaries</div>
+            </div>
+          </a>
+          <% end %>
+          <% if @parcel.google_maps_url.present? %>
+          <a href="<%= @parcel.google_maps_url %>" target="_blank" rel="noopener" class="ficha-link">
+            <span class="ficha-link__icon">📍</span>
+            <div>
+              <div class="ficha-link__label">Google Maps</div>
+              <div class="ficha-link__sub">View location</div>
+            </div>
+          </a>
+          <% end %>
+          <% if @parcel.clerk_url.present? %>
+          <a href="<%= @parcel.clerk_url %>" target="_blank" rel="noopener" class="ficha-link">
+            <span class="ficha-link__icon">⚖️</span>
+            <div>
+              <div class="ficha-link__label">Clerk of Courts</div>
+              <div class="ficha-link__sub">Public records</div>
+            </div>
+          </a>
+          <% end %>
+          <% if @parcel.tax_collector_url.present? %>
+          <a href="<%= @parcel.tax_collector_url %>" target="_blank" rel="noopener" class="ficha-link">
+            <span class="ficha-link__icon">🧾</span>
+            <div>
+              <div class="ficha-link__label">Tax Collector</div>
+              <div class="ficha-link__sub">Tax records</div>
+            </div>
+          </a>
+          <% end %>
+          <% if @parcel.fema_url.present? %>
+          <a href="<%= @parcel.fema_url %>" target="_blank" rel="noopener" class="ficha-link">
+            <span class="ficha-link__icon">💧</span>
+            <div>
+              <div class="ficha-link__label">FEMA Map</div>
+              <div class="ficha-link__sub">Flood zone</div>
+            </div>
+          </a>
+          <% end %>
+          <% if @parcel.gis_image_url.present? %>
+          <a href="<%= @parcel.gis_image_url %>" target="_blank" rel="noopener" class="ficha-link">
+            <span class="ficha-link__icon">🖼</span>
+            <div>
+              <div class="ficha-link__label">GIS Image</div>
+              <div class="ficha-link__sub">Aerial view</div>
+            </div>
+          </a>
+          <% end %>
+          <% if @parcel.property_image_url.present? %>
+          <a href="<%= @parcel.property_image_url %>" target="_blank" rel="noopener" class="ficha-link">
+            <span class="ficha-link__icon">🏠</span>
+            <div>
+              <div class="ficha-link__label">Property Photo</div>
+              <div class="ficha-link__sub">Street-level image</div>
+            </div>
+          </a>
+          <% end %>
+        </div>
       </div>
     </div>
-  </aside>
 
-</div><!-- /.ficha-layout -->
+    <%# ─ 8. TITLE REPORT CTA — Solo si unlocked ──────────────────────── %>
+    <div class="ficha-title-report<%= ' ficha-hidden' unless @unlocked %>" id="ficha-title-report">
+      <div class="ficha-title-report__info">
+        <h4>📄 Generate Title Report</h4>
+        <p>Order a professional title search to verify liens, mortgages, and ownership history. Delivered as PDF.</p>
+      </div>
+      <% existing_title_report = @parcel.reports.where(user: current_user, report_type: :title_search).last %>
+      <% if existing_title_report&.generated? %>
+        <%= link_to "⬇ Download PDF", existing_title_report.download_url,
+            target: "_blank",
+            class: "ficha-title-report__btn" %>
+      <% elsif existing_title_report %>
+        <button class="ficha-title-report__btn" disabled>
+          ⏳ Processing...
+        </button>
+      <% else %>
+        <%= button_to "Generate Title Report →",
+            research_purchased_reports_path(parcel_id: @parcel.id, report_type: "title_search"),
+            method: :post,
+            class: "ficha-title-report__btn",
+            form: { data: { turbo_confirm: "Order a Title Report for this property?" } } %>
+      <% end %>
+    </div>
 
+  </div><%# .ficha-container %>
+</div><%# .ficha-page %>
+
+<%# ── JavaScript ──────────────────────────────────────────────────────── %>
 <script>
-// ── MINI CRM: Tags ────────────────────────────────────────────
-var PARCEL_ID   = <%= @parcel.id %>;
-var TAG_URL     = '<%= tag_research_parcel_path(@parcel) %>';
-var NOTES_URL   = '<%= notes_research_parcel_path(@parcel) %>';
-var CSRF_TOKEN  = document.querySelector('meta[name="csrf-token"]')?.content;
-var currentTag  = '<%= @crm_tag&.tag.to_s %>';
-
-function setCrmTag(tagVal, color, label) {
-  fetch(TAG_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN, 'Accept': 'application/json' },
-    body: JSON.stringify({ tag: tagVal })
-  })
-  .then(r => r.json())
-  .then(function(d) {
-    currentTag = tagVal;
-    // Actualizar estilos de los botones
-    document.querySelectorAll('.crm-tag-btn').forEach(function(btn) {
-      btn.classList.remove('active');
-      btn.style.background = '#fff';
-      btn.style.borderColor = '';
-      btn.style.color = '';
-      btn.querySelector('span:last-child')?.remove?.();
+  // ─── Toggle CRM chips (optimistic, real save via form submit) ──────
+  document.querySelectorAll('.crm-chip').forEach(chip => {
+    // Tags are submitted via button_to — visual toggle on click
+    chip.addEventListener('click', function() {
+      document.querySelectorAll('.crm-chip').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
     });
-    if (tagVal) {
-      var activeBtn = document.getElementById('crm-tag-' + tagVal);
-      if (activeBtn) {
-        activeBtn.classList.add('active');
-        activeBtn.style.background = color;
-        activeBtn.style.borderColor = color;
-        activeBtn.style.color = '#fff';
-        var check = document.createElement('span');
-        check.style.marginLeft = 'auto';
-        check.style.fontSize = '0.7rem';
-        check.textContent = '✓';
-        activeBtn.appendChild(check);
+  });
+
+  // ─── Unlock action ─────────────────────────────────────────────────
+  function fichaUnlock(parcelId) {
+    const btn = document.getElementById('ficha-unlock-btn');
+    btn.disabled = true;
+    btn.textContent = 'Unlocking…';
+
+    fetch(`/research/parcels/${parcelId}/unlock`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
       }
-    }
-  });
-}
-
-// ── MINI CRM: Notas ───────────────────────────────────────────
-function saveCrmNote() {
-  var body = document.getElementById('crm-note-input').value.trim();
-  if (!body) return;
-
-  fetch(NOTES_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN, 'Accept': 'application/json' },
-    body: JSON.stringify({ body: body })
-  })
-  .then(r => r.json())
-  .then(function(d) {
-    if (d.error) { alert(d.error); return; }
-    // Quitar mensaje vacío si existe
-    var emptyMsg = document.getElementById('crm-notes-empty');
-    if (emptyMsg) emptyMsg.remove();
-    // Agregar nota al final de la lista
-    var list = document.getElementById('crm-notes-list');
-    var item = document.createElement('div');
-    item.className = 'crm-note-item';
-    item.id = 'crm-note-' + d.id;
-    item.innerHTML = '<div class="crm-note-item__body">' + escapeHtml(d.body).replace(/\n/g, '<br>') + '</div>' +
-                     '<div class="crm-note-item__time">' + d.created_at + '</div>';
-    list.appendChild(item);
-    document.getElementById('crm-note-input').value = '';
-  });
-}
-
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ── REPORTS ────────────────────────────────────────────────────
-function orderReport(parcelId, reportType, btn) {
-  btn.disabled = true;
-  btn.textContent = '⏳ Ordering…';
-  fetch('<%= research_purchased_reports_path %>', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN, 'Accept': 'application/json' },
-    body: JSON.stringify({ parcel_id: parcelId, report_type: reportType })
-  })
-  .then(r => r.json())
-  .then(function(d) {
-    if (d.error) {
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.unlocked) {
+        fichaRevealAll();
+      } else {
+        btn.disabled = false;
+        btn.textContent = '🔓 Unlock Full Report — 1 Credit';
+        alert(data.error || 'Could not unlock. Please check your credits.');
+      }
+    })
+    .catch(() => {
       btn.disabled = false;
-      btn.textContent = btn.dataset.originalLabel || 'Order';
-      alert(d.error);
-    } else {
-      btn.className    = 'btn-report-ordered';
-      btn.textContent  = '⏳ Ordered';
-    }
+      btn.textContent = '🔓 Unlock Full Report — 1 Credit';
+      alert('Network error. Please try again.');
+    });
+  }
+
+  function fichaRevealAll() {
+    // Hide paywall CTA
+    document.getElementById('ficha-paywall-cta')?.classList.add('ficha-hidden');
+    // Show unlocked banner
+    document.getElementById('ficha-unlocked-banner')?.classList.add('ficha-visible');
+    // Show title report CTA
+    document.getElementById('ficha-title-report')?.classList.remove('ficha-hidden');
+
+    // Reveal premium sections with staggered animation
+    const sections = document.querySelectorAll('.ficha-premium');
+    sections.forEach((s, i) => {
+      setTimeout(() => {
+        s.classList.remove('ficha-locked');
+        s.classList.add('ficha-unlocked', 'ficha-animating');
+        setTimeout(() => s.classList.remove('ficha-animating'), 600);
+      }, i * 120);
+    });
+  }
+
+  <% if @parcel.has_coords? %>
+  // ─── Leaflet GIS Map ──────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function () {
+    const lat = <%= @parcel.latitude %>;
+    const lng = <%= @parcel.longitude %>;
+
+    const map = L.map('ficha-map', {
+      center: [lat, lng],
+      zoom: 16,
+      scrollWheelZoom: false
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    const markerHtml = `<div style="
+      width:14px;height:14px;border-radius:50%;
+      background:#E67E22;border:2px solid white;
+      box-shadow:0 0 8px rgba(230,126,34,0.6);">
+    </div>`;
+    const icon = L.divIcon({ html: markerHtml, iconSize: [14, 14], className: '' });
+
+    L.marker([lat, lng], { icon })
+      .addTo(map)
+      .bindPopup(`<strong><%= j @parcel.address %></strong><br>APN: <%= j @parcel.parcel_id.to_s %>`)
+      .openPopup();
+
+    <% if ENV['REGRID_API_KEY'].present? %>
+    // Regrid parcel boundary layer
+    fetch(`https://app.regrid.com/api/v1/parcel/query.geojson?lat=${lat}&lon=${lng}&token=<%= ENV['REGRID_API_KEY'] %>`)
+      .then(r => r.json())
+      .then(geojson => {
+        L.geoJSON(geojson, {
+          style: { color: '#E67E22', weight: 2, fillOpacity: 0.12, fillColor: '#E67E22' }
+        }).addTo(map);
+      })
+      .catch(() => {}); // silently ignore if Regrid unavailable
+    <% end %>
   });
-}
-// ── REGRID PARCEL MAP (Leaflet + server-side tile proxy) ──────
-<% if @parcel.has_coords? %>
-(function() {
-  var lat = <%= @parcel.latitude %>;
-  var lng = <%= @parcel.longitude %>;
-  var mapEl = document.getElementById('regrid-map');
-  if (!mapEl) return;
-
-  var map = L.map('regrid-map', {
-    center: [lat, lng],
-    zoom: 17,
-    zoomControl: true,
-    attributionControl: true
-  });
-
-  // Base layer: OpenStreetMap
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 21,
-    attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
-
-  // Regrid parcel boundaries overlay (via server-side proxy — token hidden)
-  L.tileLayer('/api/regrid/tiles/{z}/{x}/{y}', {
-    minZoom: 10,
-    maxZoom: 21,
-    opacity: 0.7,
-    attribution: '&copy; Regrid'
-  }).addTo(map);
-
-  // Marker en la parcela
-  L.marker([lat, lng]).addTo(map)
-    .bindPopup('<strong><%= j(@parcel.address || "Parcel") %></strong>')
-    .openPopup();
-
-  // Fix Leaflet rendering en contenedores ocultos/redimensionados
-  setTimeout(function() { map.invalidateSize(); }, 250);
-})();
-<% end %>
+  <% end %>
 </script>

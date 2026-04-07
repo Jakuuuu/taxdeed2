@@ -1,4 +1,4 @@
-# seeds.rb — Tax Sale Resources
+# seeds.rb — TaxDeed Lion
 # Idempotent: uses find_or_create_by! on stable unique keys.
 
 puts "=== Seeding Auctions (Tax Deed) ==="

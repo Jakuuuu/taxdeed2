@@ -58,6 +58,7 @@ class Subscription < ApplicationRecord
   # Admin: reset all usage counters back to zero for the current cycle
   def reset_usage!
     update!(
+      used_parcels:       0,
       used_avm:           0,
       used_scope:         0,
       title_search_used:  false

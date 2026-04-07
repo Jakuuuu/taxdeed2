@@ -4,10 +4,8 @@ default: &default
   pool: 5
 
 development:
-  adapter: postgresql
-  encoding: unicode
-  pool: 5
-  database: tax_sale_resources_development
+  <<: *default
+  url: <%= ENV.fetch("DATABASE_URL", "postgres://localhost/tax_sale_resources_development") %>
 
 test:
   <<: *default

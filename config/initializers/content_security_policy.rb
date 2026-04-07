@@ -1,6 +1,6 @@
 # Be sure to restart your server when you modify this file.
 #
-# Content Security Policy (CSP) — Tax Sale Resources
+# Content Security Policy (CSP) — TaxDeed Lion
 # Allowlist estricto para los dominios de terceros que realmente usamos.
 #
 # MODO ACTUAL: report_only = true → solo reporta violaciones, no bloquea.

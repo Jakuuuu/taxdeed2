@@ -10,8 +10,15 @@ class User < ApplicationRecord
   # No se persiste en users sino en subscriptions.
   attr_accessor :plan
 
-  has_one  :subscription, dependent: :destroy
-  has_many :reports,      dependent: :destroy
+  has_one  :subscription,       dependent: :destroy
+  has_many :reports,            dependent: :destroy
+
+  # ── Mini CRM ────────────────────────────────────────────────────────
+  has_many :parcel_user_tags,   dependent: :destroy
+  has_many :parcel_user_notes,  dependent: :destroy
+
+  # ── Unlock / Viewed History ─────────────────────────────────────────
+  has_many :viewed_parcels,     dependent: :destroy
 
   def full_name
     "#{first_name} #{last_name}".strip

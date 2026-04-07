@@ -17,14 +17,16 @@ Rails.application.routes.draw do
   namespace :research do
     resources :parcels, only: [:index, :show] do
       member do
-        # Mini CRM — Rama 2 escribe exclusivamente
-        post :tag               # POST /research/parcels/:id/tag
-        post :notes             # POST /research/parcels/:id/notes
+        post :unlock            # POST /research/parcels/:id/unlock — Blur Paywall: consume 1 credit
       end
       collection do
         get :map_data           # GET /research/parcels/map_data.json
       end
     end
+
+    # Mini CRM — Rama 2 escribe exclusivamente (nested under parcel context)
+    resources :parcel_user_tags,  only: [:create],                   path: "parcel_user_tags"
+    resources :parcel_user_notes, only: [:create, :destroy],         path: "parcel_user_notes"
     resources :auctions,          only: [:index, :show]
     resources :purchased_reports, only: [:index, :create]
     resource  :settings,          only: [:show] do
