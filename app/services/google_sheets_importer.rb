@@ -7,7 +7,7 @@
 # Sheet tab:     "Properties" (fila 1 = encabezado, fila 2+ = datos)
 #
 class GoogleSheetsImporter
-  SHEET_TAB  = "Properties"
+  SHEET_TAB  = "Propeties"  # ⚠️ Nombre exacto de la pestaña en el Sheet (tiene typo intencional)
   DATA_RANGE = "#{SHEET_TAB}!A2:CB" # A2:CB cubre hasta col 79 (CB = index 78)
 
   def self.fetch_rows(sheet_id)
