@@ -63,7 +63,7 @@ module Research
 
       parcels = Parcel.for_auction(@auction.id)
                       .has_coords
-                      .select(:id, :address, :city, :county, :state,
+                      .select(:id, :address, :city, :county, :state, :zip,
                               :parcel_id, :opening_bid, :latitude, :longitude,
                               :property_type, :land_use)
 
@@ -74,6 +74,7 @@ module Research
           city:          p.city,
           county:        p.county,
           state:         p.state,
+          zip:           p.zip,
           parcel_id:     p.parcel_id,
           opening_bid:   p.opening_bid&.to_f,
           property_type: p.property_type,

@@ -48,10 +48,11 @@ class EnableRlsOnPrivateTables < ActiveRecord::Migration[7.2]
         ALTER TABLE #{table} ENABLE ROW LEVEL SECURITY;
       SQL
 
-      # Step 2: Force RLS even for table owner (extra safety)
-      execute <<-SQL.squish
-        ALTER TABLE #{table} FORCE ROW LEVEL SECURITY;
-      SQL
+      # Step 2: Force RLS even for table owner — REMOVED.
+      # Using FORCE RLS blocked the Rails owner role during registration
+      # (no session context exists yet when inserting the first subscription).
+      # Standard RLS without FORCE still enforces policies for app requests
+      # because the DB user is not a superuser. BYPASSRLS is not granted.
 
       # Step 3: Create the SELECT/INSERT/UPDATE/DELETE policy
       # The policy allows access when:

@@ -8,64 +8,72 @@
 #
 module SheetColumnMap
   # ── IDENTIFICACIÓN Y UBICACIÓN ──────────────────────────────────────────────
-  COUNTY              = 0   # col A  — Condado
-  STATE               = 1   # col B  — Estado
-  ADDRESS             = 2   # col C  — Direccion (dirección del remate)
-  OPENING_BID         = 3   # col D  — Min. Bid
-  PARCEL_ID           = 4   # col E  — Parcel Number (clave de upsert)
+  STATE               = 0   # col A  — Estado
+  COUNTY              = 1   # col B  — Condado
+  PARCEL_ID           = 2   # col C  — Parcel Number
+  
+  # ⛔ cols D, E, F (3, 4, 5) — Estatus, NOTAS, Comments do VA
 
-  # ⛔ col F (5)  = Estado de análisis  → IGNORAR (referencia interna)
-  # ⛔ col G (6)  = NOTAS               → IGNORAR (referencia interna)
-  # ⛔ col H (7)  = Comments do V.A     → IGNORAR (referencia interna)
+  AUCTION_DATE        = 6   # col G  — Auction Date (MM/DD/YYYY)
+  MARKET_VALUE        = 7   # col H  — Appraisal (Market Value)
+  OPENING_BID         = 8   # col I  — Min. Bid
+  ASSESSED_VALUE      = 9   # col J  — Assessed Value
+  LOT_AREA_ACRES      = 10  # col K  — Lot Area (acres)
+  SQFT_LOT            = 11  # col L  — Lot Area sqft
+  SQFT_LIVING         = 12  # col M  — Lot Area Home (sqft)
+  
+  # ⛔ cols N, O (13, 14) — Hab, Bd
 
-  AUCTION_DATE        = 8   # col I  — Auction Date (MM/DD/YYYY)
-  MARKET_VALUE        = 9   # col J  — Appraisal (Market Value)
-  ASSESSED_VALUE      = 10  # col K  — Assessed Value
-  LOT_AREA_ACRES      = 11  # col L  — Lot Area (acres)
-  SQFT_LOT            = 12  # col M  — Lot Area sqft
-  SQFT_LIVING         = 13  # col N  — Lot Area Home (sqft living area)
-  MINIMUM_LOT_SIZE    = 14  # col O  — Minimum Lot Size (texto)
-  ZONING              = 15  # col P  — Zoning Code
-  JURISDICTION        = 16  # col Q  — Jurisdiction
-  LAND_USE            = 17  # col R  — Type Lot / Land Use
-  OWNER_NAME          = 18  # col S  — Owner Name
-  OWNER_MAIL_ADDRESS  = 19  # col T  — Mail Address (NO exponer en API pública)
-  PROPERTY_ADDRESS    = 20  # col U  — Property Address (dirección física del predio)
-  ZIP                 = 21  # col V  — Zip Code
-  LEGAL_DESCRIPTION   = 22  # col W  — Legal Description
-  CRIME_LEVEL         = 23  # col X  — Crime level ("Low" | "Moderate" | "High")
-  HOMESTEAD_FLAG      = 24  # col Y  — Homestead x Investor ("Homestead" | "Investor")
-  REGRID_URL          = 25  # col Z  — Regrid Link
-  GIS_IMAGE_URL       = 26  # col AA — GIS Map Image URL
-  GOOGLE_MAPS_URL     = 27  # col AB — Google Maps URL
-  ELECTRIC            = 28  # col AC — Electric ("yes" | "no")
-  WATER               = 29  # col AD — Water ("yes" | "no")
-  SEWER               = 30  # col AE — Sewer ("yes" | "no")
-  LOT_SHAPE           = 31  # col AF — Forma Terreno ("Flat" etc.)
-  WETLANDS_RAW        = 32  # col AG — Wetlands ("yes" | "no" → boolean)
-  FEMA_NOTES          = 33  # col AH — Comments on FEMA image
-  FEMA_RISK_LEVEL     = 34  # col AI — Risk factor / FEMA Image label
-  FEMA_URL            = 35  # col AJ — FEMA Link
-  PROPERTY_IMAGE_URL  = 36  # col AK — Property Image URL
+  MINIMUM_LOT_SIZE    = 15  # col P  — Minimum Lot Size (texto)
+  ZONING              = 16  # col Q  — Zoning Code
+  JURISDICTION        = 17  # col R  — Jurisdiction
+  LAND_USE            = 18  # col S  — Type Lot / Land Use
+  OWNER_NAME          = 19  # col T  — Owner Name
+  OWNER_MAIL_ADDRESS  = 20  # col U  — Mail Address (NO exponer en API pública)
+  
+  PROPERTY_ADDRESS    = 21  # col V  — Property Address (física)
+  ADDRESS             = 21  # (Mantiene retrocompatibilidad mapeando a Property Address)
+  
+  ZIP                 = 22  # col W  — Zip Code
+  CITY                = 23  # col X  — Localidad / Ciudad
+  
+  LEGAL_DESCRIPTION   = 24  # col Y  — Legal Description
+  CRIME_LEVEL         = 25  # col Z  — Crime level ("Low" | "Moderate" | "High")
+  HOMESTEAD_FLAG      = 26  # col AA — Homestead x Investor ("Homestead" | "Investor")
+  REGRID_URL          = 27  # col AB — Regrid Link
+  GIS_IMAGE_URL       = 28  # col AC — GIS Map Image URL
+  GOOGLE_MAPS_URL     = 29  # col AD — Google Maps URL
+  ELECTRIC            = 30  # col AE — Electric ("yes" | "no")
+  WATER               = 31  # col AF — Water ("yes" | "no")
+  SEWER               = 32  # col AG — Sewer ("yes" | "no")
+  LOT_SHAPE           = 33  # col AH — Forma Terreno ("Flat" etc.)
+  
+  # ⛔ col AI (34) — NEIGHBOR address
+  COORDINATES_RAW     = 35  # col AJ — Coordinates Lat x Log (formato: "30.452145, -87.270564")
 
-  # ⛔ col AL (37) — buffer sin uso conocido (entre AK y AM)
+  WETLANDS_RAW        = 36  # col AK — Wetlands ("yes" | "no" → boolean)
+  FEMA_NOTES          = 37  # col AL — Comments on FEMA image
+  FEMA_URL            = 38  # col AM — Link FEMA
+  FEMA_RISK_LEVEL     = 39  # col AN — Risk factor/FEMA Image label
+  PROPERTY_IMAGE_URL  = 40  # col AO — Property Image URL
+  
+  # ⛔ col AP (41) — Zillow (metadata / string)
+  
+  HOA                 = 42  # col AQ — POA/HOA ("yes" | "no")
 
-  HOA                 = 38  # col AM — POA/HOA ("yes" | "no")
+  # ⛔ cols AR→BO (43→66) — Zillow comps (Links, Price, Sqft, Acres, etc.)
 
-  # ⛔ cols AN (39)            — posible buffer adicional
+  ESTIMATED_SALE_VALUE = 67 # col BP — Estimate Sale (sites)
 
-  # ⛔ cols AO→BL (40→63)     — 4x sets Zillow comps → IGNORAR (referencia interna)
+  # ⛔ cols BQ→BW (68→74) — Cálculos duplicados y estimaciones extra
 
-  ESTIMATED_SALE_VALUE = 64  # col BM — Estimate Sale (sites)
+  CLERK_URL           = 75  # col BX — Clerk of Courts URL
+  TAX_COLLECTOR_URL   = 76  # col BY — Tax Collector URL
 
-  # ⛔ cols BN→BS (65→70)     — cálculos duplicados (16%, MaxBid, etc.) → calcular al vuelo en UI
-
-  CLERK_URL           = 71  # col BT — Clerk of Courts URL
-  TAX_COLLECTOR_URL   = 72  # col BU — Tax Collector URL
+  # ⛔ cols BZ→CA (77→78) — Realforeclose, Zoning Ordinances
 
   # ── COLUMNAS IGNORADAS (documentadas para referencia) ────────────────────────
-  IGNORED_INTERNAL = [5, 6, 7].freeze          # Estado análisis, NOTAS, Comments V.A
-  IGNORED_BUFFER   = [37, 39].freeze           # Buffers sin uso
-  IGNORED_ZILLOW   = (40..63).to_a.freeze      # 4x sets Zillow comps
-  IGNORED_CALCS    = (65..70).to_a.freeze      # Cálculos duplicados
+  IGNORED_INTERNAL = [3, 4, 5, 13, 14, 34, 41, 77, 78].freeze  # 35 (AJ) ahora es COORDINATES_RAW
+  IGNORED_ZILLOW   = (43..66).to_a.freeze
+  IGNORED_CALCS    = (68..74).to_a.freeze
 end

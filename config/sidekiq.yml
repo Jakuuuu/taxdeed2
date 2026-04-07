@@ -17,3 +17,9 @@
       - "<%= ENV['GOOGLE_SHEETS_SHEET_ID'] %>"
     queue: data_sync
     description: "Importar propiedades desde Google Sheets a PostgreSQL"
+
+  regrid_key_health_check:
+    cron: "0 12 1 * *"  # Día 1 de cada mes, 12:00 UTC = 8:00 AM ET
+    class: RegridKeyHealthCheckJob
+    queue: low
+    description: "Verificar validez mensual de la API key de Regrid (rota mes a mes)"

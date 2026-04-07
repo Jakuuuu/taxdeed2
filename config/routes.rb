@@ -78,6 +78,14 @@ Rails.application.routes.draw do
     end
   end
 
+  # ── API interna (requiere autenticación) ──────────────────────────────────
+  namespace :api do
+    # Proxy server-side para Regrid tile server (oculta API token del frontend)
+    get "regrid/tiles/:z/:x/:y", to: "regrid_tiles#show",
+      constraints: { z: /\d+/, x: /\d+/, y: /\d+/ },
+      as: :regrid_tile
+  end
+
   # Webhooks de Stripe (endpoint publico, verificado por firma)
   namespace :stripe do
     post "webhooks", to: "webhooks#create"

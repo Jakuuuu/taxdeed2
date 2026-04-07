@@ -10,6 +10,16 @@ class Parcel < ApplicationRecord
   has_many :parcel_user_tags,  dependent: :destroy
   has_many :parcel_user_notes, dependent: :destroy
 
+  # ── Alias: nombres usados en vistas → columnas reales en BD ─────
+  alias_attribute :zip_code,         :zip           # vista usa zip_code, BD tiene zip
+  alias_attribute :living_area_sqft, :sqft_living   # vista usa living_area_sqft, BD tiene sqft_living
+
+  # tax_year no existe en BD — exponer como nil seguro hasta que
+  # se agregue columna o proveedor externo lo suministre
+  def tax_year
+    nil # TODO: agregar columna si llega de nuevo proveedor de datos
+  end
+
   # ── Scopes ──────────────────────────────────────────────────────
   scope :for_auction, ->(id) { where(auction_id: id) }
   scope :search_text, ->(q)  {

@@ -54,6 +54,7 @@ class SheetRowProcessor
       state:                col(STATE),
       county:               col(COUNTY),
       zip:                  col(ZIP),
+      city:                 col(CITY),
       # Propietario
       owner_name:           col(OWNER_NAME),
       owner_mail_address:   col(OWNER_MAIL_ADDRESS),
@@ -86,6 +87,8 @@ class SheetRowProcessor
       fema_risk_level:      col(FEMA_RISK_LEVEL),
       fema_notes:           col(FEMA_NOTES),
       fema_url:             col(FEMA_URL),
+      # Coordenadas (col AJ — "30.452145, -87.270564")
+      **parsed_coords,
       # Links externos
       regrid_url:           col(REGRID_URL),
       gis_image_url:        col(GIS_IMAGE_URL),
@@ -99,6 +102,30 @@ class SheetRowProcessor
     )
 
     parcel.save!
+  end
+
+  # Parsea la cadena de coordenadas del Sheet (col AJ)
+  # Formato esperado: "30.452145, -87.270564" (lat, lng separados por coma)
+  # También soporta: "30.452145 x -87.270564" o "30.452145 -87.270564"
+  # @return [Hash] { latitude: BigDecimal, longitude: BigDecimal } o {}
+  def parsed_coords
+    raw = col(COORDINATES_RAW)
+    return {} if raw.blank?
+
+    # Separar por coma, "x", o espacios múltiples
+    parts = raw.split(/[,x]|\s{2,}/).map(&:strip).reject(&:blank?)
+    return {} unless parts.size == 2
+
+    lat = parts[0].to_d
+    lng = parts[1].to_d
+
+    # Validación básica de rangos
+    return {} unless lat.between?(-90, 90) && lng.between?(-180, 180)
+    return {} if lat.zero? && lng.zero?
+
+    { latitude: lat, longitude: lng }
+  rescue ArgumentError
+    {}
   end
 
   # ── HELPERS ───────────────────────────────────────────────────────────────────

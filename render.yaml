@@ -19,6 +19,8 @@ services:
         sync: false
       - key: GOOGLE_MAPS_API_KEY
         value: AIzaSyBpP3B3FTvqXYMoPs0vMdQfQPK8HUHn4OU
+      - key: REGRID_API_TOKEN
+        sync: false
       - key: RAILS_SERVE_STATIC_FILES
         value: "true"
       - key: RAILS_LOG_TO_STDOUT
@@ -43,6 +45,8 @@ services:
       - key: RAILS_ENV
         value: production
       - key: RAILS_MASTER_KEY
+        sync: false
+      - key: REGRID_API_TOKEN
         sync: false
       - key: DATABASE_URL
         fromDatabase:

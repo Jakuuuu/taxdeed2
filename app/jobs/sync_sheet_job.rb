@@ -11,6 +11,7 @@
 #   - Error de red Google API → job falla completo → Sidekiq retry automático (max 3)
 #   - Idempotente: upsert por parcel_id, auction por (county+state+sale_date)
 #   - Registra resultado en SyncLog para el Sync Dashboard del admin
+#   - Post-sync: encola geocodificación para parcelas sin coordenadas (Regrid API)
 #
 class SyncSheetJob < ApplicationJob
   queue_as :data_sync
@@ -35,6 +36,9 @@ class SyncSheetJob < ApplicationJob
     rows    = GoogleSheetsImporter.fetch_rows(sheet_id)
     results = process_rows(rows)
     refresh_auction_counts
+
+    # ── POST-SYNC: Geocodificación automática ──────────────────────────────
+    enqueue_geocoding(started_at)
 
     elapsed = (Time.current - started_at).round(1)
     Rails.logger.info "[SyncSheetJob] Completado en #{elapsed}s. " \
@@ -87,5 +91,30 @@ class SyncSheetJob < ApplicationJob
     end
   rescue => e
     Rails.logger.error "[SyncSheetJob] Error al actualizar parcel_count: #{e.message}"
+  end
+
+  # ── Geocodificación post-sync (FALLBACK) ──────────────────────────────────
+  # Fuente primaria de coordenadas: Google Sheet columna AJ (COORDINATES_RAW)
+  # Si la columna AJ está vacía, encola geocodificación vía Regrid API como fallback.
+  #
+  # Este paso es fire-and-forget: si falla el enqueue, NO afecta el resultado
+  # del sync principal. Las parcelas se geocodificarán en el siguiente ciclo.
+  def enqueue_geocoding(sync_started_at)
+    return unless ENV["REGRID_API_TOKEN"].present?
+
+    synced = Parcel.where("last_synced_at >= ?", sync_started_at)
+    total  = synced.count
+    with_coords    = synced.where.not(latitude: nil).count
+    without_coords = synced.where(latitude: nil).pluck(:id)
+
+    Rails.logger.info "[SyncSheetJob] 📊 Coords: #{with_coords}/#{total} from Sheet, #{without_coords.size} need Regrid fallback"
+
+    return if without_coords.empty?
+
+    Rails.logger.info "[SyncSheetJob] 🌐 Enqueuing Regrid geocoding for #{without_coords.size} parcels missing Sheet coordinates"
+    GeocodeParcelsBatchJob.perform_later(without_coords)
+  rescue => e
+    # No interrumpir el sync por errores de geocodificación
+    Rails.logger.warn "[SyncSheetJob] Geocoding enqueue failed (non-fatal): #{e.message}"
   end
 end

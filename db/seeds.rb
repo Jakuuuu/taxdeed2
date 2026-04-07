@@ -146,7 +146,10 @@ def seed_parcels_for(auction, count)
   count.times do |i|
     opening_bid    = rand(2_000..45_000).to_f
     assessed_value = (opening_bid * rand(1.3..3.5)).round(2)
-    max_bid_30     = (assessed_value * 0.30).round(2)
+
+    # Coordenadas realistas alrededor de la ubicación de la subasta
+    lat_jitter = rand(-0.15..0.15)
+    lng_jitter = rand(-0.15..0.15)
 
     parcel_id = "#{auction.state}-#{auction.county.upcase.gsub(/\W/, '')[0..4]}-#{"%06d" % (i + 1001)}"
 
@@ -159,8 +162,10 @@ def seed_parcels_for(auction, count)
       p.county          = auction.county
       p.opening_bid     = opening_bid
       p.assessed_value  = assessed_value
-      p.max_bid_30      = max_bid_30
+      p.latitude        = auction.latitude  + lat_jitter
+      p.longitude       = auction.longitude + lng_jitter
       p.land_use        = %w[residential commercial vacant].sample
+      p.property_type   = %w[Single\ Family Commercial Vacant\ Land Multi-Family].sample
       p.status          = %w[active pending].sample
     end
   end

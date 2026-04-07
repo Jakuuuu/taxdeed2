@@ -8,7 +8,7 @@
 #
 class GoogleSheetsImporter
   SHEET_TAB  = "Properties"
-  DATA_RANGE = "#{SHEET_TAB}!A2:BW" # A2:BW cubre hasta col 75 (BW = index 74)
+  DATA_RANGE = "#{SHEET_TAB}!A2:CB" # A2:CB cubre hasta col 79 (CB = index 78)
 
   def self.fetch_rows(sheet_id)
     service = build_service

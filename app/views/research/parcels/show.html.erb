@@ -1,6 +1,9 @@
 <% content_for :title, "#{@parcel.address} — Tax Sale Resources" %>
 
 <% content_for :head do %>
+<%# Leaflet.js CDN for Regrid parcel boundary map %>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
   /* ── Layout 3 columnas ── */
   .ficha-layout {
@@ -124,7 +127,7 @@
 </style>
 <% end %>
 
-<div class="property-detail-grid" style="height:100vh;">
+<div class="ficha-layout">
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- COLUMNA IZQUIERDA — Mini CRM                               -->
@@ -382,15 +385,23 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <aside class="ficha-col-geo" style="background: var(--color-zone-visual);">
-    <% if @parcel.has_coords? && @api_key.present? %>
+    <% if @parcel.has_coords? %>
+      <%# ── Regrid Parcel Boundaries (Leaflet + tile proxy) ── %>
       <div class="ficha-col-geo__section">
-        <p class="ficha-col-geo__label">Street View</p>
-        <iframe src="<%= @parcel.street_view_url(@api_key) %>" allowfullscreen loading="lazy"></iframe>
+        <p class="ficha-col-geo__label">🗺 Parcel Boundaries</p>
+        <div id="regrid-map" style="width:100%;height:220px;border-radius:10px;overflow:hidden;border:1px solid var(--color-border);"></div>
       </div>
-      <div class="ficha-col-geo__section">
-        <p class="ficha-col-geo__label">Parcel Map</p>
-        <iframe src="https://www.google.com/maps/embed/v1/place?key=<%= @api_key %>&q=<%= @parcel.latitude %>,<%= @parcel.longitude %>&zoom=16" allowfullscreen loading="lazy"></iframe>
-      </div>
+
+      <% if @api_key.present? %>
+        <div class="ficha-col-geo__section">
+          <p class="ficha-col-geo__label">📷 Street View</p>
+          <iframe src="<%= @parcel.street_view_url(@api_key) %>" allowfullscreen loading="lazy"></iframe>
+        </div>
+        <div class="ficha-col-geo__section">
+          <p class="ficha-col-geo__label">📍 Satellite Map</p>
+          <iframe src="https://www.google.com/maps/embed/v1/place?key=<%= @api_key %>&q=<%= @parcel.latitude %>,<%= @parcel.longitude %>&zoom=16" allowfullscreen loading="lazy"></iframe>
+        </div>
+      <% end %>
     <% else %>
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:50%;text-align:center;padding:2rem;color:var(--color-text-muted);">
         <div style="font-size:2.5rem;margin-bottom:.75rem;">🗺</div>
@@ -519,4 +530,42 @@ function orderReport(parcelId, reportType, btn) {
     }
   });
 }
+// ── REGRID PARCEL MAP (Leaflet + server-side tile proxy) ──────
+<% if @parcel.has_coords? %>
+(function() {
+  var lat = <%= @parcel.latitude %>;
+  var lng = <%= @parcel.longitude %>;
+  var mapEl = document.getElementById('regrid-map');
+  if (!mapEl) return;
+
+  var map = L.map('regrid-map', {
+    center: [lat, lng],
+    zoom: 17,
+    zoomControl: true,
+    attributionControl: true
+  });
+
+  // Base layer: OpenStreetMap
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 21,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+
+  // Regrid parcel boundaries overlay (via server-side proxy — token hidden)
+  L.tileLayer('/api/regrid/tiles/{z}/{x}/{y}', {
+    minZoom: 10,
+    maxZoom: 21,
+    opacity: 0.7,
+    attribution: '&copy; Regrid'
+  }).addTo(map);
+
+  // Marker en la parcela
+  L.marker([lat, lng]).addTo(map)
+    .bindPopup('<strong><%= j(@parcel.address || "Parcel") %></strong>')
+    .openPopup();
+
+  // Fix Leaflet rendering en contenedores ocultos/redimensionados
+  setTimeout(function() { map.invalidateSize(); }, 250);
+})();
+<% end %>
 </script>
