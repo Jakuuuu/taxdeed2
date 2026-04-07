@@ -512,7 +512,7 @@ window.gMapsReady = function() {
   });
 
   // Fetch parcelas GeoJSON
-  fetch(MAP_DATA_URL + '&auction_id=' + AUCTION_ID, {
+  fetch(MAP_DATA_URL + '?auction_id=' + AUCTION_ID, {
     headers: { 'Accept': 'application/json' }
   })
   .then(function(r) { return r.json(); })
