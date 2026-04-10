@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tax Sale Auctions — TaxDeed Lion [UI EXPERIMENT]</title>
+  <meta name="description" content="Rama 1: Auctions module prototype — statistical infogram, calendar view, and auction table." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <style>
+    /* ─── CSS Custom Properties (Design System) ──────────────────────────── */
+    :root {
+      --color-primary:       #1E3A5F;
+      --color-primary-hover: #2A4F82;
+      --color-accent:        #2E86C1;
+      --color-accent-light:  #EBF5FB;
+      --color-bg:            #F8F9FA;
+      --color-surface:       #FFFFFF;
+      --color-border:        #DEE2E6;
+      --color-text-primary:  #212529;
+      --color-text-secondary:#6C757D;
+      --color-text-muted:    #ADB5BD;
+      --color-success:       #28A745;
+      --color-warning:       #FFC107;
+      --color-danger:        #DC3545;
+      --color-info:          #17A2B8;
+      --font-ui:             'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-money:          'DM Serif Display', serif;
+      --font-numeric:        'JetBrains Mono', monospace;
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --transition-normal:  300ms ease-in-out;
+      --transition-fast:    150ms ease;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-ui);
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+      background: var(--color-bg);
+    }
+
+    /* ─── EXPERIMENT BANNER ───────────────────────────────────────────────── */
+    .experiment-banner {
+      background: #856404;
+      color: #FFF3CD;
+      text-align: center;
+      font-size: var(--text-xs);
+      font-weight: 600;
+      padding: 5px 16px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ─── NAVBAR ─────────────────────────────────────────────────────────── */
+    .navbar {
+      height: 56px;
+      background: var(--color-primary);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .navbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      margin-right: auto;
+    }
+    .navbar-logo-icon {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, #2E86C1, #1E3A5F);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+    .navbar-brand {
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .navbar-brand span {
+      display: block;
+      font-size: 9px;
+      font-weight: 400;
+      opacity: 0.65;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .navbar-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .nav-link {
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: var(--radius-md);
+      transition: all var(--transition-fast);
+    }
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .nav-link.active {
+      color: #fff;
+      background: rgba(255,255,255,0.15);
+      font-weight: 600;
+    }
+    .navbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+    .btn-icon {
+      width: 34px;
+      height: 34px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.85);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-fast);
+    }
+    .btn-icon:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.9);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .user-badge:hover { background: rgba(255,255,255,0.1); }
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2E86C1, #1a5276);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .notif-badge {
+      position: relative;
+    }
+    .notif-badge::after {
+      content: '1';
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 16px;
+      height: 16px;
+      background: var(--color-danger);
+      border-radius: 50%;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      line-height: 16px;
+      text-align: center;
+    }
+
+    /* ─── SUB-NAV TABS ────────────────────────────────────────────────────── */
+    .sub-nav {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .sub-tab {
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      padding: 12px 18px;
+      border-bottom: 2px solid transparent;
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+    .sub-tab:hover { color: var(--color-accent); border-bottom-color: rgba(46,134,193,0.3); }
+    .sub-tab.active {
+      color: var(--color-accent);
+      border-bottom-color: var(--color-accent);
+      font-weight: 600;
+    }
+
+    /* ─── FILTER BAR ──────────────────────────────────────────────────────── */
+    .filter-bar {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .filter-select {
+      height: 32px;
+      padding: 0 28px 0 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-ui);
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+      background: var(--color-surface);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236C757D'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 10px;
+      transition: border-color var(--transition-fast);
+      white-space: nowrap;
+    }
+    .filter-select:hover, .filter-select:focus {
+      border-color: var(--color-accent);
+      outline: none;
+    }
+    .filter-select.has-value {
+      border-color: var(--color-accent);
+      background-color: var(--color-accent-light);
+      color: var(--color-accent);
+      font-weight: 500;
+    }
+    .filter-date-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .filter-date {
+      height: 32px;
+      padding: 0 28px 0 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-ui);
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+      background: var(--color-surface);
+      cursor: pointer;
+      transition: border-color var(--transition-fast);
+    }
+    .filter-date::placeholder { color: var(--color-text-muted); }
+    .filter-date:hover, .filter-date:focus {
+      border-color: var(--color-accent);
+      outline: none;
+    }
+    .filter-clear {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      padding: 2px;
+      border-radius: 3px;
+      transition: color var(--transition-fast);
+    }
+    .filter-clear:hover { color: var(--color-danger); }
+
+    .filter-spacer { flex: 1; }
+
+    .view-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 3px;
+    }
+    .view-btn {
+      width: 30px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      color: var(--color-text-muted);
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-fast);
+    }
+    .view-btn:hover { color: var(--color-text-secondary); background: rgba(0,0,0,0.05); }
+    .view-btn.active {
+      background: var(--color-accent);
+      color: #fff;
+    }
+
+    /* ─── MAIN CONTENT AREA ───────────────────────────────────────────────── */
+    .main-content {
+      padding: 20px 24px;
+      max-width: 100%;
+    }
+
+    /* ─── VIEW PANELS (map / calendar / table) ────────────────────────────── */
+    .view-panel {
+      display: none;
+      animation: fadeIn 250ms ease-in-out;
+    }
+    .view-panel.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── US CHOROPLETH MAP (SVG INLINE) ────────────────────────────────────*/
+    .map-container {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      position: relative;
+    }
+    .map-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .map-header h2 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+    .map-legend {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-left: auto;
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+    .map-svg-wrap {
+      padding: 24px 48px 20px;
+      background: #f0f4f8;
+    }
+    /* States: highlighted (has auctions) */
+    .state-path {
+      stroke: #fff;
+      stroke-width: 1;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .state-path.no-auction { fill: #CBD5E0; }
+    .state-path.auction-low    { fill: #90BEE8; }
+    .state-path.auction-med    { fill: #3A82C3; }
+    .state-path.auction-high   { fill: #1E4E8C; }
+    .state-path:hover { opacity: 0.82; stroke-width: 1.5; stroke: #fff; }
+
+    .state-label {
+      font-family: var(--font-ui);
+      font-size: 9px;
+      font-weight: 700;
+      fill: #fff;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+    .state-count {
+      font-family: var(--font-numeric);
+      font-size: 8px;
+      fill: #fff;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+
+    /* State tooltip */
+    .map-tooltip {
+      position: absolute;
+      background: var(--color-primary);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: var(--radius-lg);
+      font-size: var(--text-xs);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+      z-index: 50;
+      min-width: 180px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .map-tooltip.visible { opacity: 1; }
+    .map-tooltip h4 {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .map-tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: rgba(255,255,255,0.8);
+      margin-top: 3px;
+    }
+    .map-tooltip-cta {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #90BEE8;
+      font-weight: 500;
+    }
+
+    /* ─── CALENDAR VIEW ───────────────────────────────────────────────────── */
+    .calendar-container {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--color-border);
+      gap: 12px;
+    }
+    .cal-nav-btn {
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-secondary);
+      transition: all var(--transition-fast);
+    }
+    .cal-nav-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .cal-today-btn {
+      padding: 4px 12px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      font-family: var(--font-ui);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .cal-today-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .cal-month-title {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+    .cal-legend {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-left: 24px;
+    }
+    .cal-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+    .cal-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .cal-view-toggle {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+    .cal-view-btn {
+      padding: 4px 10px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      font-family: var(--font-ui);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .cal-view-btn:hover { color: var(--color-accent); border-color: var(--color-accent); }
+    .cal-view-btn.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+    .cal-day-header {
+      padding: 8px 10px;
+      text-align: center;
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      border-bottom: 1px solid var(--color-border);
+      background: #FAFBFC;
+      border-right: 1px solid var(--color-border);
+    }
+    .cal-day-header:last-child { border-right: none; }
+    .cal-cell {
+      min-height: 110px;
+      border-right: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+      padding: 6px 8px;
+      vertical-align: top;
+      cursor: pointer;
+      transition: background var(--transition-fast);
+      position: relative;
+    }
+    .cal-cell:last-child { border-right: none; }
+    .cal-cell:nth-child(7n) { border-right: none; }
+    .cal-cell:hover { background: var(--color-accent-light); }
+    .cal-cell.today { background: #EBF5FB; }
+    .cal-cell.today .cal-day-num {
+      background: var(--color-accent);
+      color: #fff;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cal-cell.other-month { background: #FAFBFC; }
+    .cal-cell.other-month .cal-day-num { color: var(--color-text-muted); }
+    .cal-day-num {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      margin-bottom: 4px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cal-event {
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 500;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      transition: opacity var(--transition-fast);
+    }
+    .cal-event:hover { opacity: 0.85; }
+    .cal-event.type-lien { background: #DBEAFE; color: #1D4ED8; }
+    .cal-event.type-deed { background: #DCF5E3; color: #15803D; }
+    .cal-event.type-redeemable { background: #FEF3C7; color: #92400E; }
+    .cal-event-more {
+      font-size: 10px;
+      color: var(--color-accent);
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .cal-event-more:hover { text-decoration: underline; }
+
+    /* ─── DATA TABLE ──────────────────────────────────────────────────────── */
+    .table-container {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .table-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .table-count {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+    .table-count strong {
+      color: var(--color-text-primary);
+      font-weight: 600;
+    }
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead th {
+      padding: 10px 14px;
+      background: #F1F3F4;
+      text-align: left;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      color: var(--color-text-secondary);
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+      user-select: none;
+    }
+    thead th .th-inner {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    thead th .th-inner:hover { color: var(--color-text-primary); }
+    .sort-icon { color: var(--color-text-muted); }
+    .sort-icon.active { color: var(--color-accent); }
+    tbody tr {
+      border-bottom: 1px solid var(--color-border);
+      transition: background var(--transition-fast);
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--color-accent-light); cursor: pointer; }
+    tbody td {
+      padding: 12px 14px;
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .td-jurisdiction {
+      color: var(--color-accent);
+      font-weight: 500;
+    }
+    .td-jurisdiction:hover { text-decoration: underline; }
+    .td-state { font-size: var(--text-xs); color: var(--color-text-secondary); font-weight: 500; }
+    .td-date { font-family: var(--font-numeric); font-size: var(--text-xs); }
+    .td-amount {
+      font-family: var(--font-money);
+      font-size: var(--text-base);
+      color: var(--color-text-primary);
+    }
+    .td-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-lien { background: #DBEAFE; color: #1D4ED8; }
+    .badge-deed { background: #DCF5E3; color: #15803D; }
+    .badge-online { background: #E0F2FE; color: #0369A1; }
+    .badge-inperson { background: #F3E8FF; color: #7E22CE; }
+    
+    // ─── INITIALIZATION ─────────────────────────────────────────────────────
+    renderTableHeaders();
+    renderTable();
+    buildCalendarList();
+    renderCalendar();
+
+    .parcels-count {
+      font-family: var(--font-numeric);
+      font-weight: 700;
+      font-size: var(--text-sm);
+      color: var(--color-accent);
+    }
+    .agg-amount {
+      font-family: var(--font-money);
+      font-size: var(--text-base);
+    }
+    .sort-active { color: var(--color-accent); }
+
+    /* Row hover CTA */
+    .row-cta {
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+    }
+    tbody tr:hover .row-cta { opacity: 1; }
+    .btn-view-parcels {
+      padding: 4px 10px;
+      background: var(--color-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--font-ui);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background var(--transition-fast);
+      white-space: nowrap;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-view-parcels:hover { background: var(--color-primary-hover); }
+
+    /* ─── PAGINATION ──────────────────────────────────────────────────────── */
+    .pagination-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-top: 1px solid var(--color-border);
+    }
+    .pagination-info {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+    .pagination-btns {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .page-btn {
+      min-width: 32px;
+      height: 30px;
+      padding: 0 8px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      font-family: var(--font-ui);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all var(--transition-fast);
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+    .page-btn.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ─── TOOLTIP / HOVER POPUP (map state click) ─────────────────────────── */
+    .state-popup {
+      position: fixed;
+      background: var(--color-primary);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: var(--radius-lg);
+      font-size: var(--text-xs);
+      z-index: 999;
+      display: none;
+      pointer-events: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      min-width: 200px;
+    }
+    .state-popup h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .popup-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      color: rgba(255,255,255,0.8);
+    }
+    .popup-cta {
+      margin-top: 10px;
+      display: block;
+      text-align: center;
+      padding: 6px;
+      background: rgba(255,255,255,0.15);
+      border-radius: var(--radius-md);
+      color: #fff;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .popup-cta:hover { background: rgba(255,255,255,0.25); }
+
+    /* ─── SAVED FILTERS PRESET BADGE ─────────────────────────────────────── */
+    .preset-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px 3px 8px;
+      background: var(--color-accent-light);
+      border: 1px solid rgba(46,134,193,0.3);
+      border-radius: 20px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-accent);
+      cursor: pointer;
+    }
+    }
+    .preset-chip:hover { background: #D6EAF8; }
+    .preset-x { color: rgba(46,134,193,0.5); }
+    .preset-x:hover { color: var(--color-danger); }
+
+    /* ─── CUSTOM DROPDOSWN FILTERS ────────────────────────────────────────── */
+    .custom-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .custom-dropdown-btn {
+      appearance: none;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      font-family: var(--font-ui);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      transition: all var(--transition-fast);
+    }
+    .custom-dropdown-btn:hover { background: #f8f9fa; }
+    .custom-dropdown-btn.open { background: #e9ecef; }
+    
+    .custom-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: white;
+      min-width: 250px;
+      margin-top: 4px;
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border: 1px solid var(--color-border);
+      z-index: 1000;
+    }
+    .custom-dropdown-menu.show {
+      display: block;
+    }
+    .custom-dropdown-search {
+      padding: 10px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .custom-dropdown-search input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-xs);
+      font-family: var(--font-ui);
+      outline: none;
+      color: var(--color-text-primary);
+    }
+    .custom-dropdown-search input:focus { border-color: var(--color-accent); }
+    .custom-dropdown-list {
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .custom-dropdown-item {
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+    .custom-dropdown-item:hover { background: #f8f9fa; }
+    .custom-dropdown-item input[type="checkbox"] { cursor: pointer; width: 14px; height: 14px; }
+    .custom-dropdown-item .badge {
+      margin-left: auto;
+      background: var(--color-accent);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    /* ─── SETTINGS POPUP ──────────────────────────────────────────────────── */
+    .btn-active-red {
+      background: #D9534F !important;
+      color: #fff !important;
+    }
+    .settings-popup {
+      display: none;
+      position: absolute;
+      top: calc(100% + 5px);
+      right: 0; /* Align perfectly to the right side of the screen */
+      left: auto;
+      background: #fff;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 16px;
+      width: 380px;
+      z-index: 1000;
+      cursor: default;
+    }
+    .settings-popup.show { display: block; }
+    .settings-popup h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+    .settings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+    .settings-row .row-label {
+      flex: 1;
+    }
+    .settings-row label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .settings-row input[type="radio"], .settings-row input[type="checkbox"] {
+      cursor: pointer;
+    }
+    .settings-row .drag-icon {
+      color: var(--color-text-muted);
+      cursor: grab;
+      margin-left: 6px;
+    }
+    .btn-save-popup {
+      background: #3A82C3;
+      color: white;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    .btn-save-popup:hover { background: #1E4E8C; }
+
+    /* ─── SAVE SEARCH POPUP ───────────────────────────────────────────────── */
+    .btn-active-blue {
+      background: #3A82C3 !important;
+      color: #fff !important;
+    }
+    .save-popup {
+      display: none;
+      position: absolute;
+      top: calc(100% + 5px);
+      right: 0;
+      background: #fff;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 16px;
+      width: 350px;
+      z-index: 1000;
+      cursor: default;
+      text-align: left;
+    }
+    .save-popup.show { display: block; }
+    .save-popup h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+    .save-form-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .save-form-row input {
+      flex: 1;
+      padding: 6px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+    .save-form-row button {
+      background: #3A82C3;
+      color: white;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    .save-form-row button:hover { background: #1E4E8C; }
+    
+    .save-popup-divider {
+      border-top: 1px solid var(--color-border);
+      margin: 16px 0;
+    }
+    
+    .saved-search-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 8px 12px;
+      background: #fdfdfd;
+    }
+    .saved-search-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .saved-search-badge {
+      background: #777;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 12px;
+    }
+    .saved-search-actions {
+      display: flex;
+    }
+    .saved-search-actions button {
+      border: none;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+    }
+    .saved-search-actions button.btn-edit {
+      background: #5CB85C;
+      border-radius: 4px 0 0 4px;
+    }
+    .saved-search-actions button.btn-edit:hover { background: #4cae4c; }
+    .saved-search-actions button.btn-delete {
+      background: #D9534F;
+      border-radius: 0 4px 4px 0;
+    }
+    .saved-search-actions button.btn-delete:hover { background: #c9302c; }
+
+    /* ─── RESPONSIVE ──────────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .filter-bar { flex-wrap: wrap; padding: 8px 12px; }
+      .main-content { padding: 12px; }
+      .navbar-nav { display: none; }
+      .cal-cell { min-height: 70px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- EXPERIMENT NOTICE -->
+  <div class="experiment-banner">
+    ⚗️ UI EXPERIMENT — /active/ui-experiments/rama1-auctions-test.html — NOT PRODUCTION CODE
+  </div>
+
+  <!-- ─── NAVBAR ─────────────────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <a class="navbar-logo" href="#">
+      <div class="navbar-logo-icon">🦁</div>
+      <div class="navbar-brand">
+        TAXSALE
+        <span>resources</span>
+      </div>
+    </a>
+    <div class="navbar-nav">
+      <a href="#" class="nav-link active">Auctions</a>
+      <a href="#" class="nav-link">Search</a>
+      <a href="#" class="nav-link">Reports</a>
+    </div>
+    <div class="navbar-actions">
+      <button class="btn-icon" title="App grid">
+        <i data-lucide="grid" style="width:16px;height:16px;"></i>
+      </button>
+      <button class="btn-icon notif-badge" title="Notifications">
+        <i data-lucide="bell" style="width:16px;height:16px;"></i>
+      </button>
+      <div class="user-badge">
+        <div class="user-avatar">DL</div>
+        Daniel León ▾
+      </div>
+    </div>
+  </nav>
+
+  <!-- ─── SUB-NAVIGATION TABS ────────────────────────────────────────────── -->
+  <div class="sub-nav">
+    <a class="sub-tab active" id="tab-taxsale" onclick="switchSubTab('taxsale')">Tax Sale Auctions</a>
+    <a class="sub-tab" id="tab-prior" onclick="switchSubTab('prior')">Prior Sale Results</a>
+  </div>
+
+  <!-- ─── FILTER BAR ─────────────────────────────────────────────────────── -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <!-- Auction Status -->
+      <select class="filter-select has-value" id="filter-status" onchange="applyFilters()">
+        <option value="">Auction Status ▾</option>
+        <option value="upcoming" selected>Upcoming</option>
+        <option value="active">Active</option>
+        <option value="completed">Completed</option>
+      </select>
+
+      <!-- State Filter (Custom Dropdown) -->
+      <div class="custom-dropdown" id="dropdown-state">
+        <button class="custom-dropdown-btn" onclick="toggleDropdown('state')" id="btn-state">
+          Estado <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+        </button>
+        <div class="custom-dropdown-menu" id="menu-state">
+          <div class="custom-dropdown-search">
+            <input type="text" placeholder="Filtrar..." onkeyup="filterDropdown(this, 'list-state')" />
+          </div>
+          <div class="custom-dropdown-list" id="list-state">
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Alabama</span> <span class="badge">21</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>California</span> <span class="badge">3</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Colorado</span> <span class="badge">20</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Connecticut</span> <span class="badge">8</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Delaware</span> <span class="badge">2</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Florida</span> <span class="badge">47</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Georgia</span> <span class="badge">27</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Idaho</span> <span class="badge">1</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Indiana</span> <span class="badge">3</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Kansas</span> <span class="badge">2</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Michigan</span> <span class="badge">30</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Mississippi</span> <span class="badge">41</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Nevada</span> <span class="badge">2</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>New Jersey</span> <span class="badge">7</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Pennsylvania</span> <span class="badge">3</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Texas</span> <span class="badge">21</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Wisconsin</span> <span class="badge">20</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Jurisdiction Filter (Custom Dropdown) -->
+      <div class="custom-dropdown" id="dropdown-jurisdiction">
+        <button class="custom-dropdown-btn" onclick="toggleDropdown('jurisdiction')" id="btn-jurisdiction" style="min-width: 120px; justify-content: space-between;">
+          Jurisdicción <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+        </button>
+        <div class="custom-dropdown-menu" id="menu-jurisdiction" style="width: 320px;">
+          <div class="custom-dropdown-search">
+            <input type="text" placeholder="Filtrar..." onkeyup="filterDropdown(this, 'list-jurisdiction')" />
+          </div>
+          <div class="custom-dropdown-list" id="list-jurisdiction">
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Condado de Adams, Wisconsin</span> <span class="badge" style="background:#3A82C3;">1</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Condado de Alachua, Florida</span> <span class="badge" style="background:#3A82C3;">3</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Condado de Albany, Nueva York</span> <span class="badge" style="background:#3A82C3;">1</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Condado de Alexander, Carolina del Norte</span> <span class="badge" style="background:#3A82C3;">1</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Condado de Allegheny, Pensilvania</span> <span class="badge" style="background:#3A82C3;">1</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Condado de Allen, Ohio</span> <span class="badge" style="background:#3A82C3;">1</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Condado de Amite, Misisipi</span> <span class="badge" style="background:#3A82C3;">1</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Ciudad de Andover (Windsor), Vermont</span> <span class="badge" style="background:#3A82C3;">1</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Condado de Attala, Misisipi</span> <span class="badge" style="background:#3A82C3;">1</span></label>
+            <label class="custom-dropdown-item"><input type="checkbox" onchange="applyFilters()"> <span>Condado de Autauga, Alabama</span> <span class="badge" style="background:#3A82C3;">1</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sale Venue -->
+      <select class="filter-select" id="filter-venue" onchange="applyFilters()">
+        <option value="">Sale Venue ▾</option>
+        <option value="online">Online</option>
+        <option value="inperson">In-Person</option>
+        <option value="hybrid">Hybrid</option>
+      </select>
+
+
+      <!-- Min Sale Date -->
+      <div class="filter-date-wrap">
+        <input type="date" class="filter-date" id="filter-min-date" placeholder="Min Sale Date" style="width:135px;" />
+        <button class="filter-clear" title="Clear" onclick="clearDate('filter-min-date')">
+          <i data-lucide="x" style="width:11px;height:11px;"></i>
+        </button>
+      </div>
+
+      <!-- Max Sale Date -->
+      <div class="filter-date-wrap">
+        <input type="date" class="filter-date" id="filter-max-date" placeholder="Max Sale Date" style="width:135px;" />
+        <button class="filter-clear" title="Clear" onclick="clearDate('filter-max-date')">
+          <i data-lucide="x" style="width:11px;height:11px;"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="filter-spacer"></div>
+
+    <!-- Action Buttons (right side) -->
+    <div class="view-btn-group" style="position: relative;">
+      <button class="view-btn" id="btn-filter" title="Filter options" onclick="toggleSettingsPopup()">
+        <i data-lucide="filter" style="width:14px;height:14px;"></i>
+      </button>
+
+      <!-- Dropdown Popup Panel for Classification Fields -->
+      <div class="settings-popup" id="menu-settings-popup">
+        <h4>Campos de clasificación predeterminados</h4>
+        <div class="settings-list">
+          <div class="settings-row">
+            <input type="checkbox" checked />
+            <span class="row-label"># de Paquetes</span>
+            <label><input type="radio" name="rf1" /> Asc</label>
+            <label><input type="radio" name="rf1" checked /> Desc</label>
+            <i data-lucide="menu" class="drag-icon" style="width:14px;height:14px;"></i>
+          </div>
+          <div class="settings-row">
+            <input type="checkbox" />
+            <span class="row-label">Estado</span>
+            <label><input type="radio" name="rf2" checked /> Asc</label>
+            <label><input type="radio" name="rf2" /> Desc</label>
+            <i data-lucide="menu" class="drag-icon" style="width:14px;height:14px;"></i>
+          </div>
+          <div class="settings-row">
+            <input type="checkbox" />
+            <span class="row-label">Jurisdicción</span>
+            <label><input type="radio" name="rf3" checked /> Asc</label>
+            <label><input type="radio" name="rf3" /> Desc</label>
+            <i data-lucide="menu" class="drag-icon" style="width:14px;height:14px;"></i>
+          </div>
+          <div class="settings-row">
+            <input type="checkbox" />
+            <span class="row-label">Fecha de venta</span>
+            <label><input type="radio" name="rf4" checked /> Asc</label>
+            <label><input type="radio" name="rf4" /> Desc</label>
+            <i data-lucide="menu" class="drag-icon" style="width:14px;height:14px;"></i>
+          </div>
+          <div class="settings-row">
+            <input type="checkbox" />
+            <span class="row-label">Tipo de subasta</span>
+            <label><input type="radio" name="rf5" checked /> Asc</label>
+            <label><input type="radio" name="rf5" /> Desc</label>
+            <i data-lucide="menu" class="drag-icon" style="width:14px;height:14px;"></i>
+          </div>
+          <div class="settings-row">
+            <input type="checkbox" />
+            <span class="row-label">Lugar de venta</span>
+            <label><input type="radio" name="rf6" checked /> Asc</label>
+            <label><input type="radio" name="rf6" /> Desc</label>
+            <i data-lucide="menu" class="drag-icon" style="width:14px;height:14px;"></i>
+          </div>
+          <div class="settings-row">
+            <input type="checkbox" />
+            <span class="row-label">Procedimientos de licitación</span>
+            <label><input type="radio" name="rf7" checked /> Asc</label>
+            <label><input type="radio" name="rf7" /> Desc</label>
+            <i data-lucide="menu" class="drag-icon" style="width:14px;height:14px;"></i>
+          </div>
+          <div class="settings-row">
+            <input type="checkbox" />
+            <span class="row-label">Monto de venta agregado</span>
+            <label><input type="radio" name="rf8" checked /> Asc</label>
+            <label><input type="radio" name="rf8" /> Desc</label>
+            <i data-lucide="menu" class="drag-icon" style="width:14px;height:14px;"></i>
+          </div>
+          <div class="settings-row">
+            <input type="checkbox" />
+            <span class="row-label">Fecha de publicación</span>
+            <label><input type="radio" name="rf9" checked /> Asc</label>
+            <label><input type="radio" name="rf9" /> Desc</label>
+            <i data-lucide="menu" class="drag-icon" style="width:14px;height:14px;"></i>
+          </div>
+        </div>
+        <div style="text-align: right; margin-top: 14px;">
+          <button class="btn-save-popup" onclick="toggleSettingsPopup()">Guardar</button>
+        </div>
+      </div>
+      <button class="view-btn active" id="btn-map" title="Map view" onclick="switchView('map')">
+        <i data-lucide="map" style="width:14px;height:14px;"></i>
+      </button>
+      <button class="view-btn" id="btn-save" title="Save current filter" onclick="toggleSavePopup()">
+        <i data-lucide="bookmark" style="width:14px;height:14px;"></i>
+      </button>
+
+      <!-- Dropdown Popup Panel for Saving Searches -->
+      <div class="save-popup" id="menu-save-popup">
+        <h4>Guardar Búsqueda actual</h4>
+        <div class="save-form-row">
+          <input type="text" placeholder="Nombre" />
+          <button onclick="toggleSavePopup()">Guardar</button>
+        </div>
+        
+        <div class="save-popup-divider"></div>
+        
+        <h4>Búsquedas guardadas</h4>
+        <div class="saved-search-list">
+          <div class="saved-search-item">
+            <span class="saved-search-name">Prueba <span class="saved-search-badge">152</span></span>
+            <div class="saved-search-actions">
+              <button class="btn-edit">Editar</button><button class="btn-delete">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="view-btn" id="btn-calendar" title="Calendar view" onclick="switchView('calendar')">
+        <i data-lucide="calendar" style="width:14px;height:14px;"></i>
+      </button>
+      <button class="view-btn" id="btn-list" title="List view" onclick="switchView('list')">
+        <i data-lucide="list" style="width:14px;height:14px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── MAIN CONTENT ───────────────────────────────────────────────────── -->
+  <div class="main-content">
+
+    <!-- ══ VIEW: MAP (choropleth infogram) ══ -->
+    <div class="view-panel active" id="panel-map">
+      <div class="map-container">
+        <div class="map-header">
+          <h2>Auction Density by State</h2>
+          <div class="map-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#CBD5E0;"></div>
+              No auctions
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#90BEE8;"></div>
+              1–5
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#3A82C3;"></div>
+              6–20
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#1E4E8C;"></div>
+              21+
+            </div>
+          </div>
+        </div>
+
+        <div class="map-svg-wrap">
+          <!-- US SVG choropleth — simplified state paths, not GIS -->
+          <svg id="us-map" viewBox="0 0 959 593" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;display:block;margin:auto;">
+  <!-- AL --><path class="state-path no-auction" d="m 643,467.4 .4,-7.3 -.9,-1.2 -1.7,-.7 -2.5,-2.8 .5,-2.9 48.8,-5.1 -.7,-2.2 -1.5,-1.5 -.5,-1.4 .6,-6.3 -2.4,-5.7 .5,-2.6 .3,-3.7 2.2,-3.8 -.2,-1.1 -1.7,-1 v -3.2 l -1.8,-1.9 -2.9,-6.1 -12.9,-45.8 -45.7,4 1.3,2 -1.3,67 4.4,33.2 .9,-.5 1.3,.1 .6,.4 .8,-.1 2,-3.8 v -2.3 l 1.1,-1.1 1.4,.5 3.4,6.4 v .9 l -3.3,2.2 3.5,-.4 4.9,-1.6 z" data-state="AL" onclick="stateClick(event,'Alabama','0','0','$0')" />
+  <!-- AK --><path class="state-path auction-low" d="m 15.8,572 h 2.4 l .7,.7 -1,1.2 -1.9,.2 -2.5,1.3 -3.7,-.1 2.2,-.9 .3,-1.1 2.5,-.3 z m 8.3,-1.7 1.3,.5 h .9 l .5,1.2 .3,-.6 .9,.2 1.1,1.5 0,.5 -4.2,1.9 -2.4,-.1 -1,-.5 -1.1,.7 -2,0 -1.1,-1.4 4.7,-.5 z m 5.4,-.1 1,.1 .7,.7 v 1 l -1.3,.1 -.9,-1.1 z m 2.5,.3 1.3,-.1 -.1,1 -1.1,.6 z m .3,2.2 3.4,-.1 .2,1.1 -1.3,.1 -.3,-.5 -.8,.6 -.4,-.6 -.9,-.2 z m 166.3,7.6 2.1,.1 -1,1.9 -1.1,-.1 -.4,-.8 .5,-1.3 m -1.1,-2.9 .6,-1.3 -.2,-2.3 2.4,-.5 4.5,4.4 1.3,3.4 1.9,1.6 .3,5.1 -1.4,0 -1.3,-2.3 -3.1,-2.4 h -.6 l 1.1,2.8 1.7,.2 .2,2.1 -.9,.1 -4.1,-4.4 -.1,-.9 1.9,-1 0,-1 -.5,-.8 -1.6,-.6 -1.7,-1.3 1.4,.1 .5,-.4 -.6,-.9 -.6,.5 z m -3.6,-9.1 1.3,.1 2.4,2.5 -.2,.8 -.8,-.1 -.1,1.8 .5,.5 0,1.5 -.8,.3 -.4,1.2 -.8,-.4 -.4,-2.2 1.1,-1.4 -2.1,-2.2 .1,-1.2 z m 1.5,-1.5 1.9,.2 2.5,.1 3.4,3.2 -.2,.5 -1.1,.6 -1.1,-.2 -.1,-.7 -1.2,-1.6 -.3,.7 1,1.3 -.2,1.2 -.8,-.1 -1.3,.2 -.1,-1.7 -2.6,-2.8 z m -12.7,-8.9 .9,-.4 h 1.6 l .7,-.5 4.1,2.2 .1,1.5 -.5,.5 h -.8 l -1.4,-.7 1.1,1.3 1.8,0 .5,2 -.9,0 -2.2,-1.5 -1.1,-.2 .6,1.3 .1,.9 .8,-.6 1.7,1.2 1.3,-.1 -.2,.8 1.9,4.3 0,3.4 .4,2.1 -.8,.3 -1.2,-2 -.5,-1.5 -1.6,-1.6 -.2,-2.7 -.6,-1.7 h -.7 l .3,1.1 0,.5 -1.4,1 .1,-3.3 -1.6,-1.6 -1.3,-2.3 -1.2,-1.2 z m 7.2,-2.3 1.1,1.8 2.4,-.1 1,2.1 -.6,.6 2,3.2 v 1.3 l -1.2,.8 v .7 l -2,1.9 -.5,-1.4 -.1,-1.3 .6,-.7 v -1.1 l -1.5,-1.9 -.5,-3.7 -.9,-1.5 z m -56.7,-18.3 -4,4.1 v 1.6 l 2.1,-.8 .8,-1.9 2.2,-2.4 z m -31.6,16.6 0,.6 1.8,1.2 .2,-1.4 .6,.9 3.5,.1 .7,-.6 .2,-1.8 -.5,-.7 -1.4,0 0,-.8 .4,-.6 v -.4 l -1.5,-.3 -3.3,3.6 z m -8.1,6.2 1.5,5.8 h 2.1 l 2.4,-2.5 .3,1.2 6.3,-4 .7,-1 -1,-1.1 v -.7 l .5,-1.3 -.9,-.1 -2,1 0,-1.2 -2.7,-.6 -2.4,.3 -.2,3.4 -.8,-2 -1.5,-.1 -1,.6 z m -2.2,8.2 .1,-.7 2.1,-1.3 .6,.3 1.3,.2 1.3,1.2 -2.2,-.2 -.4,-.6 -1,.6 z m -5.2,3.3 -1.1,.8 1.5,1.4 .8,-.7 -.1,-1.3 z m -6.3,-7.9 1.4,.1 .4,.6 -1.8,.1 z m -13.9,11.9 v .5 l .7,.1 -.1,-.6 z m -.4,-3.2 -1,1 v .5 l .7,1.1 1,-1 -.7,-.1 z m -2,-.8 -.3,1 -1.3,.1 -.4,.2 0,1.3 -.5,.9 .6,0 .7,-.9 .8,-.1 .9,-1 .2,-1.3 z m -4.4,-2 -.2,1.8 1.4,.8 1.2,-.6 0,-1 1.7,-.3 -.1,-.6 -.9,-.2 -.7,.6 -.9,-.5 z m -4.9,-.1 1,.7 -.3,1.2 -1.4,-1.1 z m -4.2,1.3 1.4,.1 -.7,.8 z m -3.5,3 1.8,1.1 -1.7,.1 z m -25.4,-31.2 1.2,.6 -.8,.6 z m -.7,-6.3 .4,1.2 .8,-1.2 z m 24.3,-19.3 1.5,-.1 .9,.4 1.1,-.5 1.3,-.1 1.6,.8 .8,1.9 -.1,.9 -1.2,2 -2.4,-.2 -2.1,-1.8 -1,-.4 -1.1,-2 z m -21.1,-14.4 .1,1.9 2,2 v .5 l -.8,-.2 -1.7,-.8 -.3,-1.1 -.3,-1.6 z m 18.3,-23.3 v 1.2 l 1.9,1.8 h 2.3 l .6,1.1 v 1.6 l 2.1,1.9 1.8,1.2 -.1,.7 -.7,1.1 -1.4,-1.2 -2.1,.1 -.8,-.8 -.9,-2.1 -1.5,-2.2 -2.6,-.1 -1,-.7 1,-2.1 z m 16.8,-4.5 1,0 .1,1.1 h -1 z m 16.2,19.7 .9,.1 0,1.2 -1.7,-.5 z m 127.8,77.7 -1.2,.4 -.1,1.1 h 1.2 z m -157.6,-4.5 -1.3,-.4 -4.1,.6 -2.8,1.4 -.1,1.9 1.9,.7 1.5,-.9 1.7,-.1 4.7,1.4 .1,-1.3 -1.6,-1.1 z m 2.1,2.3 -.4,-1.4 1.2,.2 .1,1.4 1.8,0 .4,-2.5 .3,2.4 2.5,-.1 3.2,-3.3 .8,.1 -.7,1.3 1.4,.9 4.2,-.2 2.6,-1.2 1.4,-.1 .3,1.5 .6,-.5 .4,-1.4 5.9,.2 1.9,-1.6 -1.3,-1.1 .6,-1.2 2.6,.2 -.2,-1.2 2.5,.2 .7,-1.1 1.1,.2 4.6,-1.9 .2,-1.7 5.6,-2.4 2,-1.9 1.2,-.6 1.3,.8 2.3,-.9 1.1,-1.9 .5,-1.3 1.7,-.9 1.5,-.7 .4,-1.4 -1.1,-1.7 -2.2,-.2 -.2,-1.3 .8,-1.6 1.4,-.2 1.3,-1.5 1.9,-.1 3.4,-3.2 .4,-1.4 1.5,-2.3 3.8,-4.1 2.5,-.9 1.9,-.9 2.1,.8 1.4,2.6 -1.5,0 -1.4,-1.5 -3,2 -1.7,.1 -.2,3.1 -3.1,4.9 .6,2 2.3,0 -.6,1 -1.4,.1 -2.4,1.8 0,.9 1.9,1 3.4,-.6 1.4,-1.7 1.4,.1 3,-1.7 .5,-2.3 1.6,-.1 6.3,.8 1,-1.1 1,-4.5 -1.6,1.1 .6,-2.2 -1.6,-1.4 .8,-1.5 .1,1.5 3.4,0 .7,-1 1.6,-.1 -.3,1.7 1.9,.1 -1.9,1.3 4.1,1.1 -3.5,.4 -1.3,1.2 .9,1.4 4.6,-1.7 2.3,1.7 .7,-.9 .6,1.4 4,2.3 h 2.9 l 3.9,-.5 4.3,1.1 2,1.9 4.5,.4 1.8,-1.5 .8,2.4 -1.8,.7 1.2,1.2 7.4,3.8 1.4,2.5 5.4,4.1 3.3,-2 -.6,-2.2 -3.5,-2 3.1,1.2 .5,-.7 .9,1.3 0,2.7 2.1,-.6 2.1,1.8 -2.5,-9.8 1.2,1.3 1.4,6 2.2,2.5 2.4,-.4 1.8,3.5 h .9 l .6,5.6 3.4,.5 1.6,2.2 1.8,1.1 .4,2.8 -1.8,2.6 2.9,1.6 1.2,-2.4 -.2,3.1 -.8,.9 1.4,1.7 .7,-2.4 -.2,-1.2 .8,.2 .6,2.3 -1,1.4 .6,2.6 .5,.4 .3,-1.6 .7,.6 -.3,2 1.2,.2 -.4,.9 1.7,-.1 0,-1 h -1 l .1,-1.7 -.8,-.6 1.7,-.3 .5,-.8 0,-1.6 .5,1.3 -.6,1.8 1.2,3.9 1.8,.1 2.2,-4.2 .1,-1.9 -1.3,-4 -.1,-1.2 .5,-1.2 -.7,-.7 -1.7,.1 -2.5,-2 -1.7,0 -2,-1.4 -1.5,0 -.5,-1.6 -1.4,-.3 -.2,-1.5 -1,-.5 .1,-1.7 -5.1,-7.4 -1.8,-1.5 v -1.2 l -4.3,-3.5 -.7,-1.1 -1.6,-2 -1.9,-.6 0,-2.2 -1.2,-1.3 -1.7,-.7 -2.1,1.3 -1.6,2.1 -.4,2.4 -1.5,.1 -2.5,2.7 -.8,-.3 v -2.5 l -2.4,-2.2 -2.3,-2 -.5,-2 -2.5,-1.3 .2,-2.2 -2.8,-.1 -.7,1.1 -1.2,0 -.7,-.7 -1.2,.8 -1.8,-1.2 0,-85.8 -6.9,-4.1 -1.8,-.5 -2.2,1.1 -2.2,.1 -2.3,-1.6 -4.3,-.6 -5.8,-3.6 -5.7,-.4 -2,.5 -.2,-1.8 -1.8,-.7 1.1,-1 -.2,-.9 -3.2,-1.1 h -2.4 l -.4,.4 -.9,-.6 .1,-2.6 -.8,-.9 -2.5,2.9 -.8,-.1 v -.8 l 1.7,-.8 v -.8 l -1.9,-2.4 -1.1,-.1 -4.5,3.1 h -3.9 l .4,-.9 -1.8,-.1 -5.2,3.4 -1.8,0 -.6,-.8 -2.7,1.5 -3.6,3.7 -2.8,2.7 -1.5,1.2  -2.6,.1 -2.2,-.4 -2.3,-1.3 v 0 l -2.8,3.9 -.1,2.4 2.6,2.4 2.1,4.5 .2,5.3 2.9,2 3.4,.4 .7,.8 -1.5,2.3 .7,2.7 -1.7,-2.6 v -2.4 l -1.5,-.3 .1,1.2 .7,2.1 2.9,3.7 h -1.4 l -2.2,1.1 -6.2,-2.5 -.1,-2 1.4,-1.3 0,-1.4 -2.1,-.5 -2.3,.2 -4.8,.2 1.5,2.3 -1.9,-1.8 -8.4,1.2 -.8,1.5 4.9,4.7 -.8,1.4 -.3,2 -.7,.8 -.1,1.9 4.4,3.6 4.1,.2 4.6,1.9 h 2 l .8,-.6 3.8,.1 .1,-.8 1.2,1.1 .1,2 -2.5,-.1 .1,3.3 .5,3.2 -2.9,2.7 -1.9,-.1 -2,-.8 -1,.1 -3.1,2.1 -1.7,.2 -1.4,-2.8 -3.1,0 -2.2,2 -.5,1.8 -3.3,1.8 -5.3,4.3 -.3,3.1 .7,2.2 1,1.2 1,-.4 .9,1 -.8,.6 -1.5,.9 1.1,1.5 -2.6,1.1 .8,2.2 1.7,2.3 .8,4.1 4,1.5 2.6,-.8 1.7,-1.1 .5,2.1 .3,4.4 -1.9,1.4 0,4.4 -.6,.9 h -1.7 l 1.7,1.2 2.1,-.1 .4,-1 4.6,-.6 2,2.6 1.3,-.7 1.3,5.1 1,.5 1,-.7 .1,-2.4 .9,-1 .7,1.1 .2,1.6 1.6,.4 4.7,-1.2 .2,1.2 -2,1.1 -1.6,1.7 -2.8,7 -4.3,2 -1.4,1.5 -.3,1.4 -1,-.6 -9.3,3.3 -1.8,4.1 -1.3,-.4 .5,-1.1 -1.5,-1.4 -3.5,-.2 -5.3,3.2 -2.2,1.3 -2.3,0 -.5,2.4 z" data-state="AK" data-auctions="1" data-count="45" data-amount="$320,000" onclick="stateClick(event,'Alaska','1','45','$320,000')" />
+  <!-- AZ --><path class="state-path auction-med" d="m 139.6,387.6 3,-2.2 .8,-2.4 -1,-1.6 -1.8,-.2 -1.1,-1.6 1.1,-6.9 1.6,-.3 2.4,-3.2 1.6,-7 2.4,-3.6 4.8,-1.7 1.3,-1.3 -.4,-1.9 -2.3,-2.5 -1.2,-5.8 -1.4,-1.8 -1.3,-3.4 .9,-2.1 1.4,-3 .5,-2.9 -.5,-4.9 1,-13.6 3.5,-.6 3.7,1.4 1.2,2.7 h 2 l 2.4,-2.9 3.4,-17.5 46.2,8.2 40,6 -17.4,124.1 -37.3,-5.4 -64.2,-37.5 .5,-2.9 2,-1.8 z" data-state="AZ" data-auctions="9" data-count="2,100" data-amount="$12,400,000" onclick="stateClick(event,'Arizona','9','2,100','$12,400,000')" />
+  <!-- AR --><path class="state-path no-auction" d="m 584.2,367 .9,-2.2 1.2,.5 .7,-1 -.8,-.7 .3,-1.5 -1.1,-.9 .6,-1 -.1,-1.5 -1.1,-.1 .8,-.8 1.3,.8 .3,-1.4 -.4,-1.1 .1,-.7 2,.6 -.4,-1.5 1.6,-1.3 -.5,-.9 -1.1,.1 -.6,-.9 .9,-.9 1.6,-.2 .5,-.8 1.4,-.2 -.1,-.8 -.9,-.9 v -.5 h 1.5 l .4,-.7 -1.4,-1 -.1,-.6 -11.2,.8 2.8,-5.1 1.7,-1.5 v -2.2 l -1.6,-2.5 -39.8,2 -39.1,.7 4.1,24.4 -.7,39 2.6,2.3 2.8,-1.3 3.2,.8 .2,11.9 52.3,-1.3 1.2,-1.5 .5,-3 -1.5,-2.3 -.5,-2.2 .9,-.7 v -.8 l -1.7,-1.1 -.1,-.7 1.6,-.9 -1.2,-1.1 1.7,-7.1 3.4,-1.6 v -.8 l -1.1,-1.4 2.9,-5.4 h 1.9 l 1.5,-1.2 -.3,-5.2 3.1,-4.5 1.8,-.6 -.5,-3.1 z" data-state="AR" onclick="stateClick(event,'Arkansas','0','0','$0')" />
+  <!-- CA --><path class="state-path auction-high" d="m 69.4,365.6 3.4,5.2 -1.4,.1 -1.8,-1.9 z m 1.9,-9.8 1.8,4.1 2.6,1 .7,-.6 -1.3,-2.5 -2.6,-2.4 z m -19.9,-19 v 2.4 l 2,1.2 4.4,-.2 1,-1 -3.1,-.2 z m -5.9,.1 3.3,.5 1.4,2.2 h -3.8 z m 47.9,45.5 -1,-3 .2,-3 -.4,-7.9 -1.8,-4.8 -1.2,-1.4 -.6,-1.5 -7,-8.6 -3.6,.1 -2,-1.9 1.1,-1.8 -.7,-3.7 -2.2,-1.2 -3.9,-.6 -2.8,-1.3 -1.5,-1.9 -4.5,-6.6 -2.7,-2.2 -3.7,-.5 -3.1,-2.3 -4.7,-1.5 -2.8,-.3 -2.5,-2.5 .2,-2.8 .8,-4.8 1.8,-5.1 -1.4,-1.6 -4,-9.4 -2.7,-3.7 -.4,-3 -1.6,-2.3 .2,-2.5 -2,-5 -2.9,-2.7 .6,-7.1 2.4,-.8 1.8,-3.1 -.4,-3.2 -1,-.9 h -2.5 l -2.5,-3.3 -1.5,-3.5 v -7.5 l 1.2,-4.2 .2,-2.1 2.5,.2 -.1,1.6 -.8,.7 v 2.5 l 3.7,3.2 v -4.7 l -1.4,-3.4 .5,-1.1 -1,-1.7 2.8,-1.5 -1.9,-3 -1.4,.5 -1.5,3.8 .5,1.3 -.8,1 -.9,-.1 -5.4,-6.1 .7,-5.6 -1.1,-3.9 -6.5,-12.8 .8,-10.7 2.3,-3.6 .2,-6.4 -5.5,-11.1 .3,-5.2 6.9,-7.5 1.7,-2.4 -.1,-1.4 4,-9.2 .1,-8.4 .9,-2.5 66.1,18.6 -16.4,63.1 1.1,3.5 70.4,105 -.9,2.1 1.3,3.4 1.4,1.8 1.2,5.8 2.3,2.5 .4,1.9 -1.3,1.3 -4.8,1.7 -2.4,3.6 -1.6,7 -2.4,3.2 -1.6,.3 -1.1,6.9 1.1,1.6 1.8,.2 1,1.6 -.8,2.4 -3,2.2 -2.2,-.1 z" data-state="CA" data-auctions="28" data-count="5,841" data-amount="$48,300,000" onclick="stateClick(event,'California','28','5,841','$48,300,000')" />
+  <!-- CO --><path class="state-path auction-low" d="m 374.6,323.3 -16.5,-1 -51.7,-4.8 -52.6,-6.5 11.5,-88.3 44.9,5.7 37.5,3.4 33.1,2.4 -1.4,22.1 z" data-state="CO" data-auctions="3" data-count="340" data-amount="$1,950,000" onclick="stateClick(event,'Colorado','3','340','$1,950,000')" />
+  <!-- CT --><path class="state-path no-auction" d="m 873.5,178.9 .4,-1.1 -3.2,-12.3 -.1,-.3 -14.9,3.4 v .7 l -.9,.3 -.5,-.7 -10.5,2.4 2.8,16.3 1.8,1.5 -3.5,3.4 1.7,2.2 5.4,-4.5 1.7,-1.3 h .8 l 2.4,-3.1 1.4,.1 2.9,-1.1 h 2.1 l 5.3,-2.7 2.8,-.9 1,-1 1.5,.5 z" data-state="CT" onclick="stateClick(event,'Connecticut','0','0','$0')" />
+  <!-- DE --><path class="state-path no-auction" d="m 822.2,226.6 -1.6,.3 -1.5,1.1 -1.2,2.1 7.6,27.1 10.9,-2.3 -2.2,-7.6 -1.1,.5 -3.3,-2.6 -.5,-1.7 -1.8,-1 -.2,-3.7 -2.1,-2.2 -1.1,-.8 -1.2,-1.1 -.4,-3.2 .3,-2.1 1,-2.2 z" data-state="DE" onclick="stateClick(event,'Delaware','0','0','$0')" />
+  <!-- FL --><path class="state-path auction-high" d="m 751.7,445.1 -4,-.7 -1.7,-.9 -2.2,1.4 v 2.5 l 1.4,2.1 -.5,4.3 -2.1,.6 -1,-1.1 -.6,-3.2 -50.1,3.3 -3.3,-6 -48.8,5.1 -.5,2.9 2.5,2.8 1.7,.7 .9,1.2 -.4,7.3 -1.1,.6 .5,.4 1,-.3 .7,-.8 10.5,-2.7 9.2,-.5 8.1,1.9 8.5,5 2.4,.8 2.2,2 -.1,2.7 h 2.4 l 1.9,-1 2.5,.1 2,-.8 2.9,-2 3.1,-2.9 1.1,-.4 .6,.5 h 1.4 l .5,-.8 -.5,-1.2 -.6,-.6 .2,-.8 2,-1.1 5,-.4 .8,1 1,.1 2.3,1 3,1.8 1.2,1.7 1.1,1.2 2.8,1.4 v 2.4 l 2.8,1.9 1,.1 1.6,1.4 .7,1.6 1,.2 .8,2.1 .7,.6 1,-1.1 2.9,.1 .5,1.4 1.1,.9 v 1.3 l 2.9,2.2 .2,9.6 -1.8,5.8 1,1.2 -.2,3.4 -.8,1.4 .7,1.2 2.3,2.3 .3,1.5 .8,1 -.4,-1.9 1.3,-.6 .8,-3.6 -3,-1.2 .1,-.6 2.6,-.4 .9,2.6 1.1,.6 .1,-2 1.1,.3 .6,.8 -.1,.7 -2.9,4.2 -.2,1.1 -1.7,1.9 v 1.1 l 3.7,3.8 5.3,7.9 1.8,2.1 v 1.8 l 2.8,4.6 2.3,.6 .7,-1.2 -2.1,.3 -3,-4.5 .2,-1.4 1.5,-.8 v -1.5 l -.6,-1.3 .9,-.9 .4,.9 .7,.5 v 4 l -1.2,-.6 -.8,.9 1.4,1.6 1,2.6 1.2,-.6 2.3,1.2 2.1,2.2 1.6,5.1 3.1,4.8 .8,-1.3 2.8,-.5 3.2,1.3 .3,1.7 3.3,3.8 .1,1.1 2.2,2.7 -.7,.5 v 2.7 l 2.7,1.4 h 1.5 l 2.7,-1.8 1.5,.3 1.1,.4 2.3,-1.7 .2,-.7 1.2,.3 2.4,-1.7 1.3,-2.3 -.7,-3.2 -.2,-1.3 1.1,-4 .6,-.2 .6,1.6 .8,-1.8 -.8,-7.2 -.4,-10.5 -1,-6.8 -.7,-1.7 -6.6,-11.1 -5.2,-9.1 -2.2,-3.3 -1.3,-3.6 -.2,-3.4 .9,-.3 v -.9 l -1.1,-2.2 -4,-4 -7.6,-9.7 -5.7,-10.4 -4.3,-10.7 -.6,-3.7 -1.2,-1 -.5,-3.8 z m 9.2,134.5 1.7,-.1 -.7,-1 z m 7.3,-1.1 v -.7 l 1.6,-.2 3.7,-3.3 1.5,-.6 2.4,-.9 .3,1.3 1.7,.8 -2.6,1.2 h -2.4 l -3.9,2.5 z m 17.2,-7.6 -3,1.4 -1,1.3 1.1,.1 z m 3.8,-2.9 -1.1,.3 -1.4,2 1.1,-.2 1.5,-1.6 z m 8.3,-15.7 -1.7,5.6 -.8,1 -1,2.6 -1.2,1.6 -.7,1.7 -1.9,2.2 v .9 l 2.7,-2.8 2.4,-3.5 .6,-2 2.1,-4.9 z" data-state="FL" data-auctions="81" data-count="14,220" data-amount="$127,800,000" onclick="stateClick(event,'Florida','81','14,220','$127,800,000')" />
+  <!-- GA --><path class="state-path auction-med" d="m 761.8,414.1 v 1.4 l -4.2,6.2 -1.2,.2 1.5,.5 v 2 l -.9,1.1 -.6,6 -2.3,6.2 .5,2 .7,5.1 -3.6,.3 -4,-.7 -1.7,-.9 -2.2,1.4 v 2.5 l 1.4,2.1 -.5,4.3 -2.1,.6 -1,-1.1 -.6,-3.2 -50.1,3.3 -3.3,-6 -.7,-2.2 -1.5,-1.5 -.5,-1.4 .6,-6.3 -2.4,-5.7 .5,-2.6 .3,-3.7 2.2,-3.8 -.2,-1.1 -1.7,-1 v -3.2 l -1.8,-1.9 -2.9,-6.1 -12.9,-45.8 22.9,-2.9 21.4,-3 -.1,1.9 -1.9,1 -1.4,3.2 .2,1.3 6.1,3.8 2.6,-.3 3.1,4 .4,1.7 4.2,5.1 2.6,1.7 1.4,.2 2.2,1.6 1.1,2.2 2,1.6 1.8,.5 2.7,2.7 .1,1.4 2.6,2.8 5,2.3 3.6,6.7 .3,2.7 3.9,2.1 2.5,4.8 .8,3.1 4.2,.4 z" data-state="GA" data-auctions="13" data-count="1,802" data-amount="$14,200,000" onclick="stateClick(event,'Georgia','13','1,802','$14,200,000')" />
+  <!-- HI --><path class="state-path no-auction" d="m 317,553.7 -.2,3.2 1.7,1.9 .1,1.2 -4.8,4.5 -.1,1.2 1.9,3.2 1.7,4.2 v 2.6 l -.5,1.2 .1,3.4 4.1,2.1 1.1,1.1 1.2,-1.1 2.1,-3.6 4.5,-2.9 3.3,-.5 2.5,-1 1.7,-1.2 3.2,-3.5 -2.8,-1.1 -1.4,-1.4 .1,-1.7 -.5,-.6 h -2 l .2,-2.5 -.7,-1.2 -2.6,-2.3 -4.5,-1.9 -2.8,-.2 -3.3,-2.7 -1.2,-.6 z m -15.3,-17 -1.1,1.5 -.1,1.7 2.7,2.4 1.9,.5 .6,1 .4,3 3.6,.2 5.3,-2.6 -.1,-2.5 -1.4,-.5 -3.5,-2.6 -1.8,-.3 -2.9,1.3 -1.5,-2.7 z m -1.5,11.5 .9,-1.4 2.5,-.3 .6,1.8 z m -7,-8.7 1.7,4 3.1,-.6 .3,-2 -1.4,-1.5 z m -4.1,-6.7 -1.1,2.4 h 5 l 4.8,1.6 2.5,-1.6 .2,-1.5 -4.8,.2 z m -16,-10.6 -1.9,2.1 -2.9,.6 .8,2.2 2.2,2.8 .1,1 2.1,-.3 2.3,.1 1.7,1.2 3.5,-.8 v -.7 l -1,-.8 -.5,-2.1 -.8,-.3 -.5,1 -1.2,-1.3 .2,-1.4 -1.8,-3.3 -1.1,-.7 z m -31.8,-12.4 -4.2,2.9 .2,2.3 2.4,1.2 1.9,1.3 2.7,.4 2.6,-2.2 -.2,-1.9 .8,-1.7 v -1.4 l -1,-.9 z m -10.8,4.8 -.3,1.2 -1.9,.9 -.6,1.8 1,.8 1.1,-1.5 1.9,-.6 .4,-2.6 z" data-state="HI" onclick="stateClick(event,'Hawaii','0','0','$0')" />
+  <!-- ID --><path class="state-path auction-low" d="m 165.3,183.1 -24.4,-5.4 8.5,-37.3 2.9,-5.8 .4,-2.1 .8,-.9 -.9,-2 -2.9,-1.2 .2,-4.2 4,-5.8 2.5,-.8 1.6,-2.3 -.1,-1.6 1.8,-1.6 3.2,-5.5 4.2,-4.8 -.5,-3.2 -3.5,-3.1 -1.6,-3.6 1.1,-4.3 -.7,-4 12.7,-56.1 14.2,3 -4.8,22 3.7,7.4 -1.6,4.8 3.6,4.8 1.9,.7 3.9,8.3 v 2.1 l 2.3,3 h .9 l 1.4,2.1 h 3.2 v 1.6 l -7.1,17 -.5,4.1 1.4,.5 1.6,2.6 2.8,-1.4 3.6,-2.4 1.9,1.9 .5,2.5 -.5,3.2 2.5,9.7 2.6,3.5 2.3,1.4 .4,3 v 4.1 l 2.3,2.3 1.6,-2.3 6.9,1.6 2.1,-1.2 9,1.7 2.8,-3.3 1.8,-.6 1.2,1.8 1.6,4.1 .9,.1 -8.5,54.8 -47.9,-8.2 z" data-state="ID" data-auctions="1" data-count="88" data-amount="$450,000" onclick="stateClick(event,'Idaho','1','88','$450,000')" />
+  <!-- IL --><path class="state-path auction-med" d="m 623.5,265.9 -1,5.2 v 2 l 2.4,3.5 v .7 l -.3,.9 .9,1.9 -.3,2.4 -1.6,1.8 -1.3,4.2 -3.8,5.3 -.1,7 h -1 l .9,1.9 v .9 l -2.2,2.7 .1,1.1 1.5,2.2 -.1,.9 -3.7,.6 -.6,1.2 -1.2,-.6 -1,.5 -.4,3.3 1.7,1.8 -.4,2.4 -1.5,.3 -6.9,-3 -4,3.7 .3,1.8 h -2.8 l -1.4,-1.5 -1.8,-3.8 v -1.9 l .8,-.6 .1,-1.3 -1.7,-1.9 -.9,-2.5 -2.7,-4.1 -4.8,-1.3 -7.4,-7.1 -.4,-2.4 2.8,-7.6 -.4,-1.9 1.2,-1.1 v -1.3 l -2.8,-1.5 -3,-.7 -3.4,1.2 -1.3,-2.3 .6,-1.9 -.7,-2.4 -8.6,-8.4 -2.2,-1.5 -2.5,-5.9 -1.2,-5.4 1.4,-3.7 .7,-.7 .1,-2.3 -.7,-.9 1,-1.5 1.8,-.6 .9,-.3 1,-1.2 v -2.4 l 1.7,-2.4 .5,-.5 .1,-3.5 -.9,-1.4 -1,-.3 -1.1,-1.6 1,-4 3,-.8 h 2.4 l 4.2,-1.8 1.7,-2.2 .1,-2.4 1.1,-1.3 1.3,-3.2 -.1,-2.6 -2.8,-3.5 h -1.2 l -.9,-1.1 .2,-1.6 -1.7,-1.7 -2.5,-1.3 .5,-.6 45.9,-2.8 .1,4.6 3.4,4.6 1.2,4.1 1.6,3.2 z" data-state="IL" data-auctions="11" data-count="1,540" data-amount="$11,800,000" onclick="stateClick(event,'Illinois','11','1,540','$11,800,000')" />
+  <!-- IN --><path class="state-path auction-low" d="m 629.2,214.8 -5.1,2.3 -4.7,-1.4 4.1,50.2 -1,5.2 v 2 l 2.4,3.5 v .7 l -.3,.9 .9,1.9 -.3,2.4 -1.6,1.8 -1.3,4.2 -3.8,5.3 -.1,7 h -1 l .9,1.9 1.1,.8 .6,-1 -.7,-1.7 4.6,-.5 .2,1.2 1.1,.2 .4,-.9 -.6,-1.3 .3,-.8 1.3,.8 1.7,-.4 1.7,.6 3.4,2.1 1.8,-2.8 3.5,-2.2 3,3.3 1.6,-2.1 .3,-2.7 3.8,-2.3 .2,1.3 1.9,1.2 3,-.2 1.2,-.7 .1,-3.4 2.5,-3.7 4.6,-4.4 -.1,-1.7 1.2,-3.8 2.2,1 6.7,-4.5 -.4,-1.7 -1.5,-2.1 1,-1.9 -6.6,-57.2 -.1,-1.4 -32.4,3.4 z" data-state="IN" data-auctions="3" data-count="380" data-amount="$2,900,000" onclick="stateClick(event,'Indiana','3','380','$2,900,000')" />
+  <!-- IA --><path class="state-path no-auction" d="m 556.9,183 2.1,1.6 .6,1.1 -1.6,3.3 -.1,2.5 2,5.5 2.7,1.5 3.3,.7 1.3,2.8 -.5,.6 2.5,1.3 1.7,1.7 -.2,1.6 .9,1.1 h 1.2 l 2.8,3.5 .1,2.6 -1.3,3.2 -1.1,1.3 -.1,2.4 -1.7,2.2 -4.2,1.8 h -2.4 l -3,.8 -1,4 1.1,1.6 1,.3 .9,1.4 -.1,3.5 -.5,.5 -1.7,2.4 v 2.4 l -1,1.2 -.9,.3 -1.8,.6 -1,1.5 .7,.9 -.1,2.3 -.7,.7 -1.5,-.8 -1.1,-1.1 -.6,-1.6 -1.7,-1.3 -14.3,.8 -27.2,1.2 -25.9,-.1 -1.8,-4.4 .7,-2.2 -.8,-3.3 .2,-2.9 -1.3,-.7 -.4,-6.1 -2.8,-5 -.2,-3.7 -2.2,-4.3 -1.3,-3.7 v -1.4 l -.6,-1.7 v -2.3 l -.5,-.9 -.7,-1.7 -.3,-1.3 -1.3,-1.2 1,-4.3 1.7,-5.1 -.7,-2 -1.3,-.4 -.4,-1.6 1,-.5 .1,-1.1 -1.3,-1.5 .1,-1.6 2.2,.1 h 28.2 l 36.3,-.9 18.6,-.7 z" data-state="IA" onclick="stateClick(event,'Iowa','0','0','$0')" />
+  <!-- KS --><path class="state-path no-auction" d="m 459.1,259.5 -43.7,-1.2 -36,-2 -4.8,67 67.7,2.9 62,.1 -.5,-48.1 -3.2,-.7 -2.6,-4.7 -2.5,-2.5 .5,-2.3 2.7,-2.6 .1,-1.2 -1.5,-2.1 -.9,1 -2,-.6 -2.9,-3 z" data-state="KS" onclick="stateClick(event,'Kansas','0','0','$0')" />
+  <!-- KY --><path class="state-path auction-low" d="m 692.1,322.5 -20.5,1.4 -5.2,.8 -17.4,1 -2.6,.8 -22.6,2 -.7,-.6 h -3.7 l 1.2,3.2 -.6,.9 -23.3,1.5 1,-2.7 1.4,.9 .7,-.4 1.2,-4.1 -1,-1 1,-2 .2,-.9 -1.3,-.8 -.3,-1.8 4,-3.7 6.9,3 1.5,-.3 .4,-2.4 -1.7,-1.8 .4,-3.3 1,-.5 1.2,.6 .6,-1.2 3.7,-.6 .1,-.9 -1.5,-2.2 -.1,-1.1 2.2,-2.7 0,-.9 1.1,.8 .6,-1 -.7,-1.7 4.6,-.5 .2,1.2 1.1,.2 .4,-.9 -.6,-1.3 .3,-.8 1.3,.8 1.7,-.4 1.7,.6 3.4,2.1 1.8,-2.8 3.5,-2.2 3,3.3 1.6,-2.1 .3,-2.7 3.8,-2.3 .2,1.3 1.9,1.2 3,-.2 1.2,-.7 .1,-3.4 2.5,-3.7 4.6,-4.4 -.1,-1.7 1.2,-3.8 2.2,1 6.7,-4.5 -.4,-1.7 -1.5,-2.1 1,-1.9 1.3,.5 2.2,.1 1.9,-.8 2.9,1.2 2.2,3.4 v 1 l 4.1,.7 2.3,-.2 1.9,2.1 2.2,.2 v -1 l 1.9,-.8 3,.8 1.2,.8 1.3,-.7 h .9 l .6,-1.7 3.4,-1.8 .5,.8 .8,2.9 3.5,1.4 1.2,2.1 -.1,1.1 .6,1 -.6,3.6 1.9,1.6 .8,1.1 1,.6 -.1,.9 4.4,5.6 h 1.4 l 1.5,1.8 1.2,.3 1.4,-.1 -4.9,6.6 -2.9,1 -3,3 -.4,2.2 -2.1,1.3 -.1,1.7 -1.4,1.4 -1.8,.5 -.5,1.9 -1,.4 -6.9,4.2 z m -98,11.3 -.7,-.7 .2,-1 h 1.1 l .7,.7 -.3,1 z" data-state="KY" data-auctions="1" data-count="95" data-amount="$820,000" onclick="stateClick(event,'Kentucky','1','95','$820,000')" />
+  <!-- LA --><path class="state-path no-auction" d="m 602.5,472.8 -1.2,-1.8 .3,-1.3 -4.8,-6.8 .9,-4.6 1,-1.4 .1,-1.4 -36,2 1.7,-11.9 2.4,-4.8 6,-8.4 -1.8,-2.5 h 2 v -3.3 l -2.4,-2.5 .5,-1.7 -1.2,-1 -1.6,-7.1 .6,-1.4 -52.3,1.3 .5,19.9 .7,3.4 2.6,2.8 .7,5.4 3.8,4.6 .8,4.3 h 1 l -.1,7.3 -3.3,6.4 1.3,2.3 -1.3,1.5 .7,3 -.1,4.3 -2.2,3.5 -.1,.8 -1.7,1.2 1,1.8 1.2,1.1 1.6,-1.3 5.3,-.9 6.1,-.1 9.6,3.8 8,1 1.5,-1.4 1.8,-.2 4.8,2.2 1.6,-.4 1.1,-1.5 -4.2,-1.8 -2.2,1 -1.1,-.2 -1.4,-2 3.3,-2.2 1.6,-.1 v 1.7 l 1.5,-.1 3.4,-.3 .4,2.3 1.1,.4 .6,1.9 4.8,1 1.7,1.6 v .7 h -1.2 l -1.5,1.7 1.7,1.2 5.4,1 2.7,2.8 4.4,-1 -3.7,.2 -.1,-.6 2.8,-.7 .2,-1.8 1.2,-.3 v -1.4 l 1.1,.1 v 1.6 l 2.5,.1 .8,-1.9 .9,.3 .2,2.5 1.2,.2 -1.8,2 2.6,-.9 2,-1.1 2.9,-3.3 h -.7 l -1.3,1.2 -.4,-.1 -.5,-.8 .9,-1.2 v -2.3 l 1.1,-.8 .7,.7 1,-.8 1,-.1 .6,1.3 -.6,1.9 h 2.4 l 5.1,1.7 .5,1.3 1.6,1.4 2.8,.1 1.3,.7 1.8,-1 .9,-1.7 v -1.7 h -1.4 l -1.2,-1.4 -1.1,-1.1 -3.2,-.9 -2.6,.2 -4.2,-2.4 v -2.3 l 1.3,-1 2.4,.6 -3.1,-1.6 .2,-.8 h 3.6 l 2.6,-3.5 -2.6,-1.8 .8,-1.5 -1.2,-.8 h -.8 l -2,2.1 v 2.1 l -.6,.7 -1.1,-.1 -1.6,-1.4 h -1.3 v -1.5 l .6,-.7 .8,.7 1.7,-1.6 .7,-1.6 .8,-.3 z m -10.3,-2.7 1.9,1 .8,1.1 2.5,.1 1.5,.8 .2,1.4 -.4,.6 -.9,-1.5 -1.4,1.2 -.9,1.4 -2.8,.8 -1.6,.1 -3.7,-1 .1,-1.7 2,-2 1.1,-2.4 z m -4.7,1.2 v 1.1 l -1.8,2 h -1.2 v -2.2 l 1.6,-1.5 z" data-state="LA" onclick="stateClick(event,'Louisiana','0','0','$0')" />
+  <!-- ME --><path class="state-path no-auction" d="m 875,128.7 .6,4 3.2,2 .8,2.2 2.3,1.4 1.4,-.3 1,-3 -.8,-2.9 1.6,-.9 .5,-2.8 -.6,-1.3 3.3,-1.9 -2.2,-2.3 .9,-2.4 1.4,-2.2 .5,3.2 1.6,-2 1.3,.9 1.2,-.8 v -1.7 l 3.2,-1.3 .3,-2.9 2.5,-.2 2.7,-3.7 v -.7 l -.9,-.5 -.1,-3.3 .6,-1.1 .2,1.6 1,-.5 -.2,-3.2 -.9,.3 -.1,1.2 -1.2,-1.4 .9,-1.4 .6,.1 1.1,-.4 .5,2.8 2,-.3 2.9,.7 v -1 l -1.1,-1.2 1.3,.1 .1,-2.3 .6,.8 .3,1.9 2.1,1.5 .2,-1 .9,-.2 -.3,-.8 .8,-.6 -.1,-1.6 -1.6,-.2 -2,.7 1.4,-1.6 .7,-.8 1.3,-.2 .4,1.3 1.7,1.6 .4,-2.1 2.3,-1.2 -.9,-1.3 .1,-1.7 1.1,.5 h .7 l 1.7,-1.4 .4,-2.3 2.2,.3 .1,-.7 .2,-1.6 .5,1.4 1.5,-1 2.3,-4.1 -.1,-2.2 -1.4,-2 -3,-3.2 h -1.9 l -.8,2.2 -2.9,-3 .3,-.8 v -1.5 l -1.6,-4.5 -.8,-.2 -.7,.4 h -4.8 l -.3,-3.6 -8.1,-26 -7.3,-3.7 -2.9,-.1 -6.7,6.6 -2.7,-1 -1,-3.9 h -2.7 l -6.9,19.5 .7,6.2 -1.7,2.4 -.4,4.6 1.3,3.7 .8,.2 v 1.6 l -1.6,4.5 -1.5,1.4 -1.3,2.2 -.4,7.8 -2.4,-1 -1.5,.4 z m 34.6,-24.7 -1,.8 v 1.3 l .7,-.8 .9,.8 .4,-.5 1.1,.2 -1,-.8 .4,-.8 z m -1.7,2.6 -1,1.1 .5,.4 -.1,1 h 1.1 v -1.8 z m -3,-1.6 .9,1.3 1,.5 .3,-1 v -1.8 l -1.3,-.7 -.4,1.2 z m -1,5 -1.7,-1.7 1.6,-2.4 .8,.3 .2,1.1 1,.8 v 1.1 l -1,1 z" data-state="ME" onclick="stateClick(event,'Maine','0','0','$0')" />
+  <!-- MD --><path class="state-path no-auction" d="m 822.9,269.3 0,-1.7 h -.8 l 0,1.8 z m 11.8,-3.9 1.2,-2.2 .1,-2.5 -.6,-.6 -.7,.9 -.2,2.1 -.8,1.4 -.3,1.1 -4.6,1.6 -.7,.8 -1.3,.2 -.4,.9 -1.3,.6 -.3,-2.5 .4,-.7 -.8,-.5 .2,-1.5 -1.6,1 v -2 l 1.2,-.3 -1.9,-.4 -.7,-.8 .4,-1.3 -.8,-.6 -.7,1.6 .5,.8 -.7,.6 -1.1,.5 -2,-1 -.2,-1.2 -1,-1.1 -1.4,-1.7 1.5,-.8 -1,-.6 v -.9 l .6,-1 1.7,-.3 -1.4,-.6 -.1,-.7 -1.3,-.1 -.4,1.1 -.6,.3 .1,-3.4 1,-1 .8,.7 .1,-1.6 -1,-.9 -.9,1.1 -1,1.4 -.6,-1 .2,-2.4 .9,-1 .9,.9 1.2,-.7 -.4,-1.7 -1,1 -.9,-2.1 -.2,-1.7 1.1,-2.4 1.1,-1.4 1.4,-.2 -.5,-.8 .5,-.6 -.3,-.7 .2,-2.1 -1.5,.4 -.8,1.1 1,1.3 -2.6,3.6 -.9,-.4 -.7,.9 -.6,2.2 -1.8,.5 1.3,.6 1.3,1.3 -.2,.7 .9,1.2 -1.1,1 .5,.3 -.5,1.3 v 2.1 l -.5,1.3 .9,1.1 .7,3.4 1.3,1.4 1.6,1.4 .4,2.8 1.6,2 .4,1.4 v 1 h -.7 l -1.5,-1.2 -.4,.2 -1.2,-.2 -1.7,-1.4 -1.4,-.3 -1,.5 -1.2,-.3 -.4,.2 -1.7,-.8 -1,-1 -1,-1.3 -.6,-.2 -.8,.7 -1.6,1.3 -1.1,-.8 -.4,-2.3 .8,-2.1 -.3,-.5 .3,-.4 -.7,-1 1,-.1 1,-.9 .4,-1.8 1.7,-2.6 -2.6,-1.8 -1,1.7 -.6,-.6 h -1 l -.6,-.1 -.4,-.4 .1,-.5 -1.7,-.6 -.8,.3 -1.2,-.1 -.7,-.7 -.5,-.2 -.2,-.7 .6,-.8 v -.9 l -1.2,-.2 -1,-.9 -.9,.1 -1.6,-.3 -.9,-.4 .2,-1.6 -1,-.5 -.2,-.7 h -.7 l -.8,-1.2 .2,-1 -2.6,.4 -2.2,-1.6 -1.4,.3 -.9,1.4 h -1.3 l -1.7,2.9 -3.3,.4 -1.9,-1 -2.6,3.8 -2.2,-.3 -3.1,3.9 -.9,1.6 -1.8,1.6 -1.7,-11.4 60.5,-11.8 7.6,27.1 10.9,-2.3 0,5.3 -.1,3.1 -1,1.8 z m -13.4,-1.8 -1.3,.9 .8,1.8 1.7,.8 -.4,-1.6 z" data-state="MD" onclick="stateClick(event,'Maryland','0','0','$0')" />
+  <!-- MA --><path class="state-path no-auction" d="m 899.9,174.2 h 3.4 l .9,-.6 .1,-1.3 -1.9,-1.8 .4,1 -1.5,1.5 h -2.3 l .1,.8 z m -9,1.8 -1.2,-.6 1,-.8 .6,-2.1 1.2,-1 .8,-.2 .6,.9 1.1,.2 .6,-.6 .5,1.9 -1.3,.3 -2.8,.7 z m -34.9,-23.4 18.4,-3.8 1,-1.5 .3,-1.7 1.9,-.6 .5,-1.1 1.7,-1.1 1.3,.3 1.7,3.3 1,.4 1.1,-1.3 .8,1.3 v 1.1 l -3,2.4 .2,.8 -.9,1 .4,.8 -1.3,.3 .9,1.2 -.8,.7 .6,1 .9,-.2 .3,-.8 1.1,.6 h 1.8 l 2.5,2.6 .2,2.6 1.8,.1 .8,1.1 .6,2 1,.7 h 1.9 l 1.9,-.1 .8,-.9 1.6,-1.2 1.1,-.3 -1.2,-2.1 -.3,.9 -1.5,-3.6 h -.8 l -.4,.9 -1.2,-1 1.3,-1.1 1.8,.4 2.3,2.1 1.3,2.7 1.2,3.3 -1,2.8 v -1.8 l -.7,-1 -3.5,2.3 -.9,-.3 -1.6,1 -.1,1.2 -2.2,1.2 -2,2.1 -2,1.9 h -1.2 l 3.3,-3.3 .5,-1.9 -.5,-.6 -.3,-1.3 -.9,-.1 -.1,1.3 -1,1.2 h -1.2 l -.3,1.1 .4,1.2 -1.2,1.1 -1.1,-.2 -.4,1 -1.4,-3 -1.3,-1.1 -2.6,-1.3 -.6,-2.2 h -.8 l -.7,-2.6 -6.5,2 -.1,-.3 -14.9,3.4 v .7 l -.9,.3 -.5,-.7 -10.5,2.4 -.7,-1 .5,-15 z" data-state="MA" onclick="stateClick(event,'Massachusetts','0','0','$0')" />
+  <!-- MI --><path class="state-path auction-high" d="m 663.3,209.8 .1,1.4 21.4,-3.5 .5,-1.2 3.9,-5.9 v -4.3 l .8,-2.1 2.2,-.8 2,-7.8 1,-.5 1,.6 -.2,.6 -1.1,.8 .3,.9 .8,.4 1.9,-1.4 .4,-9.8 -1.6,-2.3 -1.2,-3.7 v -2.5 l -2.3,-4.4 v -1.8 l -1.2,-3.3 -2.3,-3 -2.9,-1 -4.8,3 -2.5,4.6 -.2,.9 -3,3.5 -1.5,-.2 -2.9,-2.8 -.1,-3.4 1.5,-1.9 2,-.2 1.2,-1.7 .2,-4 .8,-.8 1.1,-.1 .9,-1.7 -.2,-9.6 -.3,-1.3 -1.2,-1.2 -1.7,-1 -.1,-1.8 .7,-.6 1.8,.8 -.3,-1.7 -1.9,-2.7 -.7,-1.6 -1.1,-1.1 h -2.2 l -8.1,-2.9 -1.4,-1.7 -3.1,-.3 -1.2,.3 -4.4,-2.3 h -1.4 l .5,1 -2.7,-.1 .1,.6 .6,.6 -2.5,2.1 .1,1.8 1.5,2.3 1.5,.2 v .6 l -1.5,.5 -2.1,-.1 -2.8,2.5 .1,2.5 .4,5.8 -2.2,3.4 .8,-4.5 -.8,-.6 -.9,5.3 -1,-2.3 .5,-2.3 -.5,-1 .6,-1.3 -.6,-1.1 1,-1 v -1.2 l -1.3,.6 -1.3,3.1 -.7,.7 -1.3,2.4 -1.7,-.2 -.1,1.2 h -1.6 l .2,1.5 .2,2 -3,1.2 .1,1.3 1,1.7 -.1,5.2 -1.3,4.4 -1.7,2.5 1.2,1.4 .8,3.5 -1,2.5 -.2,2.1 1.7,3.4 2.5,4.9 1.2,1.9 1.6,6.9 -.1,8.8 -.9,3.9 -2,3.2 -.9,3.7 -2,3 -1.2,1 z m -95.8,-96.8 3,3.8 17,3.8 1.4,1 4,.8 .7,.5 2.8,-.2 4.9,.8 1.4,1.5 -1,1 .8,.8 3.8,.7 1.2,1.2 .1,4.4 -1.3,2.8 2,.1 1,-.8 .9,.8 -1.1,3.1 1,1.6 1.2,.3 .8,-1.8 2.9,-4.6 1.6,-6 2.3,-2 -.5,-1.6 .5,-.9 1,1.6 -.3,2.2 2.9,-2.2 .2,-2.3 2.1,.6 .8,-1.6 .7,.6 -.7,1.5 -1,.5 -1,2 1.4,1.8 1.1,-.5 -.5,-.7 1,-1.5 1.9,-1.7 h .8 l .2,-2.6 2,-1.8 7.9,-.5 1.9,-3.1 3.8,-.3 3.8,1.2 4.2,2.7 .7,-.2 -.2,-3.5 .7,-.2 4.5,1.1 1.5,-.2 2.9,-.7 1.7,.4 1.8,.1 v -1.1 l -.7,-.9 -1.5,-.2 -1.1,-.8 .5,-1.4 -.8,-.3 -2.6,.1 -.1,-1 1.1,-.8 .6,.8 .5,-1.8 -.7,-.7 .7,-.2 -1.4,-1.3 .3,-1.3 .1,-1.9 h -1.3 l -1.5,1 -1.9,.1 -.5,1.8 -1.9,.2 -.3,-1.2 -2.2,.1 -1,1.2 -.7,-.1 -.2,-.8 -2.6,.4 -.1,-4.8 1,-2 -.7,-.1 -1.8,1.1 h -2.2 l -3.8,2.7 -6.2,.3 -4.1,.8 -1.9,1.5 -1.4,1.3 -2.5,1.7 -.3,.8 -.6,-1.7 -1.3,-.6 v .6 l .7,.7 v 1.3 l -1.5,-.6 h -.6 l -.3,1.2 -2,-1.9 -1.3,-.2 -1.3,1.5 -3.2,-.1 -.5,-1.4 -2,-1.9 -1.3,-1.6 v -.7 l -1.1,-1.4 -2.6,-1.2 -3.3,-.1 -1.1,-.9 h -1.4 l -.7,.4 -2.2,2.2 -.7,1.1 -1,-.7 .2,-1 .8,-2.1 3.2,-5 .8,-.2 1.7,-1.9 .7,-1.6 3,-.6 .8,-.6 -.1,-1 -.5,-.5 -4.5,.2 -2,.5 -2.6,1.2 -1.2,1.2 -1.7,2.2 -1.8,1 -3.3,3.4 -.4,1.6 -7.4,4.6 -4,.5 -1.8,.4 -2.3,3 -1.8,.7 -4.4,2.3 z m 100.7,3.8 3.8,.1 .6,-.5 -.2,-2 -1.7,-1.8 -1.9,.1 -.1,.5 1.1,.4 -1.6,.8 -.3,1 -.6,-.6 -.4,.8 z m -75.1,-41.9 -2.3,.2 -2.7,1.9 -7.1,5.3 .8,1 1.8,.3 2.8,-2 -1.1,-.5 2.3,-1.6 h 1 l 3,-1.9 -.1,-.9 z m 41.1,62.8 v 1 l 2.1,1.6 -.2,-2.4 z m -.7,2.8 1.1,.1 v .9 h -1 z m 21.4,-21.3 v .9 l .8,-.2 v -.5 z m 4.7,3.1 -.1,-1.1 -1.6,-.2 -.6,-.4 h -.9 l -.4,.3 .9,.4 1.1,1.1 z m -18,1.2 -.1,1.1 -.3,.7 .2,2.2 .4,.3 .7,.1 .5,-.9 .1,-1.6 -.3,-.6 -.1,-1.1 z" data-state="MI" data-auctions="30" data-count="4,210" data-amount="$32,100,000" onclick="stateClick(event,'Michigan','30','4,210','$32,100,000')" />
+  <!-- MN --><path class="state-path auction-med" d="m 464.7,68.6 -1.1,2.8 .8,1.4 -.3,5.1 -.5,1.1 2.7,9.1 1.3,2.5 .7,14 1,2.7 -.4,5.8 2.9,7.4 .3,5.8 -.1,2.1 -.1,2.2 -.9,2 -3.1,1.9 -.3,1.2 1.7,2.5 .4,1.8 2.6,.6 1.5,1.9 -.2,39.5 h 28.2 l 36.3,-.9 18.6,-.7 -1.1,-4.5 -.2,-3 -2.2,-3 -2.8,-.7 -5.2,-3.6 -.6,-3.3 -6.3,-3.1 -.2,-1.3 h -3.3 l -2.2,-2.6 -2,-1.3 .7,-5.1 -.9,-1.6 .5,-5.4 1,-1.8 -.3,-2.7 -1.2,-1.3 -1.8,-.3 v -1.7 l 2.8,-5.8 5.9,-3.9 -.4,-13 .9,.4 .6,-.5 .1,-1.1 .9,-.6 1.4,1.2 .7,-.1 v 0 l -1.2,-2.2 4.3,-3.1 3.1,-3.7 1.6,-.8 4.7,-5.9 6.3,-5.8 3.9,-2.1 6.3,-2.7 7.6,-4.5 -.6,-.4 -3.7,.7 -2.8,.1 -1,-1.6 -1.4,-.9 -9.8,1.2 -1,-2.8 -1.6,-.1 -1.7,.8 -3.7,3.1 h -4.1 l -2.1,-1 -.3,-1.7 -3.9,-.8 -.6,-1.6 -.7,-1.3 -1,.9 -2.6,.1 -9.9,-5.5 h -2.9 l -.8,-.7 -3.1,1.3 -.8,1.3 -3.3,.8 -1.3,-.2 v -1.7 l -.7,-.9 h -5.9 l -.4,-1.4 h -2.6 l -1.1,.4 -2.4,-1.7 .3,-1.4 -.6,-2.4 -.7,-1.1 -.2,-3 -1,-3.1 -2.1,-1.6 h -2.9 l .1,8 -30.9,-.4 z" data-state="MN" data-auctions="14" data-count="2,048" data-amount="$15,200,000" onclick="stateClick(event,'Minnesota','14','2,048','$15,200,000')" />
+  <!-- MS --><path class="state-path auction-high" d="m 623.8,468.6 -5,.1 -2.4,-1.5 -7.9,2.5 -.9,-.7 -.5,.2 -.1,1.6 -.6,.1 -2.6,2.7 -.7,-.1 -.6,-.7 -1.2,-1.8 .3,-1.3 -4.8,-6.8 .9,-4.6 1,-1.4 .1,-1.4 -36,2 1.7,-11.9 2.4,-4.8 6,-8.4 -1.8,-2.5 h 2 v -3.3 l -2.4,-2.5 .5,-1.7 -1.2,-1 -1.6,-7.1 .6,-1.4 1.2,-1.5 .5,-3 -1.5,-2.3 -.5,-2.2 .9,-.7 v -.8 l -1.7,-1.1 -.1,-.7 1.6,-.9 -1.2,-1.1 1.7,-7.1 3.4,-1.6 v -.8 l -1.1,-1.4 2.9,-5.4 h 1.9 l 1.5,-1.2 -.3,-5.2 3.1,-4.5 1.8,-.6 -.5,-3.1 38.3,-2.6 1.3,2 -1.3,67 4.4,33.2 z" data-state="MS" data-auctions="41" data-count="7,308" data-amount="$58,200,000" onclick="stateClick(event,'Mississippi','41','7,308','$58,200,000')" />
+  <!-- MO --><path class="state-path auction-low" d="m 555.3,248.9 -1.1,-1.1 -.6,-1.6 -1.7,-1.3 -14.3,.8 -27.2,1.2 -25.9,-.1 1.3,1.3 -.3,1.4 2.1,3.7 3.9,6.3 2.9,3 2,.6 .9,-1 1.5,2.1 -.1,1.2 -2.7,2.6 -.5,2.3 2.5,2.5 2.6,4.7 3.2,.7 .5,48.1 .2,10.8 39.1,-.7 39.8,-2 1.6,2.5 v 2.2 l -1.7,1.5 -2.8,5.1 11.2,-.8 1,-2 1.2,-.5 v -.7 l -1.2,-1.1 -.6,-1 1.7,.2 .8,-.7 -1.4,-1.5 1.4,-.5 .1,-1 -.6,-1 v -1.3 l -.7,-.7 .2,-1 h 1.1 l .7,.7 -.3,1 .8,.7 .8,-1 1,-2.7 1.4,.9 .7,-.4 1.2,-4.1 -1,-1 1,-2 .2,-.9 -1.3,-.8 h -2.8 l -1.4,-1.5 -1.8,-3.8 v -1.9 l .8,-.6 .1,-1.3 -1.7,-1.9 -.9,-2.5 -2.7,-4.1 -4.8,-1.3 -7.4,-7.1 -.4,-2.4 2.8,-7.6 -.4,-1.9 1.2,-1.1 v -1.3 l -2.8,-1.5 -3,-.7 -3.4,1.2 -1.3,-2.3 .6,-1.9 -.7,-2.4 -8.6,-8.4 -2.2,-1.5 -2.5,-5.9 -1.2,-5.4 1.4,-3.7 z" data-state="MO" data-auctions="2" data-count="185" data-amount="$1,300,000" onclick="stateClick(event,'Missouri','2','185','$1,300,000')" />
+  <!-- MT --><path class="state-path no-auction" d="m 247,130.5 57.3,7.9 51,5.3 2,-20.7 5.2,-66.7 -53.5,-5.6 -54.3,-7.7 -65.9,-12.5 -4.8,22 3.7,7.4 -1.6,4.8 3.6,4.8 1.9,.7 3.9,8.3 v 2.1 l 2.3,3 h .9 l 1.4,2.1 h 3.2 v 1.6 l -7.1,17 -.5,4.1 1.4,.5 1.6,2.6 2.8,-1.4 3.6,-2.4 1.9,1.9 .5,2.5 -.5,3.2 2.5,9.7 2.6,3.5 2.3,1.4 .4,3 v 4.1 l 2.3,2.3 1.6,-2.3 6.9,1.6 2.1,-1.2 9,1.7 2.8,-3.3 1.8,-.6 1.2,1.8 1.6,4.1 .9,.1 z" data-state="MT" onclick="stateClick(event,'Montana','0','0','$0')" />
+  <!-- NE --><path class="state-path no-auction" d="m 402.5,191.1 38,1.6 3.4,3.2 1.7,.2 2.1,2 1.8,-.1 1.8,-2 1.5,.6 1,-.7 .7,.5 .9,-.4 .7,.4 .9,-.4 1,.5 1.4,-.6 2,.6 .6,1.1 6.1,2.2 1.2,1.3 .9,2.6 1.8,.7 1.5,-.2 .5,.9 v 2.3 l .6,1.7 v 1.4 l 1.3,3.7 2.2,4.3 .2,3.7 2.8,5 .4,6.1 1.3,.7 -.2,2.9 .8,3.3 -.7,2.2 1.8,4.4 1.3,1.3 -.3,1.4 2.1,3.7 3.9,6.3 h -32.4 l -43.7,-1.2 -36,-2 1.4,-22.1 -33.1,-2.4 3.7,-44.2 z" data-state="NE" onclick="stateClick(event,'Nebraska','0','0','$0')" />
+  <!-- NV --><path class="state-path auction-low" d="m 167.6,296.8 -3.4,17.5 -2.4,2.9 h -2 l -1.2,-2.7 -3.7,-1.4 -3.5,.6 -1,13.6 .5,4.9 -.5,2.9 -1.4,3 -70.4,-105 -1.1,-3.5 16.4,-63.1 47,11.2 24.4,5.4 23.3,4.7 z" data-state="NV" data-auctions="2" data-count="230" data-amount="$1,800,000" onclick="stateClick(event,'Nevada','2','230','$1,800,000')" />
+  <!-- NH --><path class="state-path no-auction" d="m 862.6,93.6 -1.3,.1 -1,-1.1 -1.9,1.4 -.5,6.1 1.2,2.3 -1.1,3.5 2.1,2.8 -.4,1.7 .1,1.3 -1.1,2.1 -1.4,.4 -.6,1.3 -2.1,1 -.7,1.5 1.4,3.4 -.5,2.5 .5,1.5 -1,1.9 .4,1.9 -1.3,1.9 .2,2.2 -.7,1.1 .7,4.5 .7,1.5 -.5,2.6 .9,1.8 -.2,2.5 -.5,1.3 -.1,1.4 2.1,2.6 18.4,-3.8 1,-1.5 .3,-1.7 1.9,-.6 .5,-1.1 1.7,-1.1 1.3,.3 .8,-4.8 -2.3,-1.4 -.8,-2.2 -3.2,-2 -.6,-4 -11.9,-36.8 z" data-state="NH" onclick="stateClick(event,'New Hampshire','0','0','$0')" />
+  <!-- NJ --><path class="state-path auction-med" d="m 842.5,195.4 -14.6,-4.9 -1.8,2.5 .1,2.2 -3,5.4 1.5,1.8 -.7,2 -1,1 .5,3.6 2.7,.9 1,2.8 2.1,1.1 4.2,3.2 -3.3,2.6 -1.6,2.3 -1.8,3 -1.6,.6 -1.4,1.7 -1,2.2 -.3,2.1 .8,.9 .4,2.3 1.2,.6 2.4,1.5 1.8,.8 1.6,.8 .1,1.1 .8,.1 1.1,-1.2 .8,.4 2.1,.2 -.2,2.9 .2,2.5 1.8,-.7 1.5,-3.9 1.6,-4.8 2.9,-2.8 .6,-3.5 -.6,-1.2 1.7,-2.9 v -1.2 l -.7,-1.1 1.2,-2.7 -.3,-3.6 -.6,-8.2 -1.2,-1.4 v 1.4 l .5,.6 h -1.1 l -.6,-.4 -1.3,-.2 -.9,.6 -1.2,-1.6 .7,-1.7 v -1 l 1.7,-.7 .8,-2.1 z" data-state="NJ" data-auctions="7" data-count="1,102" data-amount="$9,400,000" onclick="stateClick(event,'New Jersey','7','1,102','$9,400,000')" />
+  <!-- NM --><path class="state-path no-auction" d="m 357.5,332.9 h -.8 l -7.9,99.3 -31.8,-2.6 -34.4,-3.6 -.3,3 2,2.2 -30.8,-4.1 -1.4,10.2 -15.7,-2.2 17.4,-124.1 52.6,6.5 51.7,4.8 z" data-state="NM" onclick="stateClick(event,'New Mexico','0','0','$0')" />
+  <!-- NY --><path class="state-path auction-low" d="m 872.9,181.6 -1.3,.1 -.5,1 z m -30.6,22.7 .7,.6 1.3,-.3 1.1,.3 .9,-1.3 h 1.9 l 2.4,-.9 5.1,-2.1 -.5,-.5 -1.9,.8 -2,.9 .2,-.8 2.6,-1.1 .8,-1 1.2,.1 4.1,-2.3 v .7 l -4.2,3 4.5,-2.8 1.7,-2.2 1.5,-.1 4.5,-3.1 3.2,-3.1 3,-2.3 1,-1.2 -1.7,-.1 -1,1.2 -.2,.7 -.9,.7 -.8,-1.1 -1.7,1 -.1,.9 -.9,-.2 .5,-.9 -1.2,-.7 -.6,.9 .9,.3 .2,.5 -.3,.5 -1.4,2.6 h -1.9 l .9,-1.8 .9,-.6 .3,-1.7 1.4,-1.6 .9,-.8 1.5,-.7 -1.2,-.2 -.7,.9 h -.7 l -1.1,.8 -.2,1 -2.2,2.1 -.4,.9 -1.4,.9 -7.7,1.9 .2,.9 -.9,.7 -2,.3 -1,-.6 -.2,1.1 -1.1,-.4 .1,1 -1.2,-.1 -1.2,.5 -.2,1.1 h -1 l .2,1 h -.7 l .2,1 -1.8,.4 -1.5,2.3 z m -.8,-.4 -1.6,.4 v 1 l -.7,1.6 .6,.7 2.4,-2.3 -.1,-.9 z m -10.1,-95.2 -.6,1.9 1.4,.9 -.4,1.5 .5,3.2 2.2,2.3 -.4,2.2 .6,2 -.4,1 -.3,3.8 3.1,6.7 -.8,1.8 .9,2.2 .9,-1.6 1.9,1.5 3,14.2 -.5,2 1.1,1 -.5,15 .7,1 2.8,16.3 1.8,1.5 -3.5,3.4 1.7,2.2 -1.3,3.3 -1.5,1.7 -1.5,2.3 -.2,-.7 .4,-5.9 -14.6,-4.9 -1.6,-1.1 -1.9,.3 -3,-2.2 -3,-5.8 h -2 l -.4,-1.5 -1.7,-1.1 -70.5,13.9 -.8,-6 4.3,-3.9 .6,-1.7 3.9,-2.5 .6,-2.4 2.3,-2 .8,-1.1 -1.7,-3.3 -1.7,-.5 -1.8,-3 -.2,-3.2 7.6,-3.9 8.2,-1.6 h 4.4 l 3.2,1.6 .9,-.1 1.8,-1.6 3.4,-.7 h 3 l 2.6,-1.3 2.5,-2.6 2.4,-3.1 1.9,-.4 1.1,-.5 .4,-3.2 -1.4,-2.7 -1.2,-.7 2,-1.3 -.1,-1.8 h -1.5 l -2.3,-1.4 -.1,-3.1 6.2,-6.1 .7,-2.4 3.7,-6.3 5.9,-6.4 2.1,-1.7 2.5,.1 20.6,-5.2 z" data-state="NY" data-auctions="2" data-count="310" data-amount="$3,200,000" onclick="stateClick(event,'New York','2','310','$3,200,000')" />
+  <!-- NC --><path class="state-path auction-low" d="m 829,300.1 -29.1,6.1 -39.4,7.3 -29.4,3.5 v 5.2 l -1.5,-.1 -1.4,1.2 -2.4,5.2 -2.6,-1.1 -3.5,2.5 -.7,2.1 -1.5,1.2 -.8,-.8 -.1,-1.5 -.8,-.2 -4,3.3 -.6,3.4 -4.7,2.4 -.5,1.2 -3.2,2.6 -3.6,.5 -4.6,3 -.8,4.1 -1.3,.9 -1.5,-.1 -1.4,1.3 -.1,4.9 21.4,-3 4.4,-1.9 1.3,-.1 7.3,-4.3 23.2,-2.2 .4,.5 -.2,1.4 .7,.3 1.2,-1.5 3.3,3 .1,2.6 19.7,-2.8 24.5,17.1 4,-2.2 3,-.7 h 1.7 l 1.1,1.1 .8,-2 .6,-5 1.7,-3.9 5.4,-6.1 4.1,-3.5 5.4,-2.3 2.5,-.4 1.3,.4 .7,1.1 3.3,-6.6 3.3,-5.3 -.7,-.3 -4.4,6.8 -.5,-.8 2,-2.2 -.4,-1.5 -2,-.5 1,1.3 -1.2,.1 -1.2,-1.8 -1.2,2 -1.6,.2 1,-2.7 .7,-1.7 -.2,-2.9 -2.2,-.1 .9,-.9 1.1,.3 2.7,.1 .8,-.5 h 2.3 l 2,-1.9 .2,-3.2 1.3,-1.4 1.2,-.2 1.3,-1 -.5,-3.7 -2.2,-3.8 -2.7,-.2 -.9,1.6 -.5,-1 -2.7,.2 -1.2,.4 -1.9,1.2 -.3,-.4 h -.9 l -1.8,1.2 -2.6,.5 v -1.3 l .8,-1 1,.7 h 1 l 1.7,-2.1 3.7,-1.7 2,-2.2 h 2.4 l .8,1.3 1.7,.8 -.5,-1.5 -.3,-1.6 -2.8,-3.1 -.3,-1.4 -.4,1 -.9,-1.3 z m 7,31 2.7,-2.5 4.6,-3.3 v -3.7 l -.4,-3.1 -1.7,-4.2 1.5,1.4 1,3.2 .4,7.6 -1.7,.4 -3.1,2.4 -3.2,3.2 z m 1.9,-19.3 -.9,-.2 v 1 l 2.5,2.2 -.2,-1.4 z m 2.9,2.1 -1.4,-2.8 -2.2,-3.4 -2.4,-3 -2.2,-4.3 -.8,-.7 2.2,4.3 .3,1.3 3.4,5.5 1.8,2.1 z" data-state="NC" data-auctions="3" data-count="280" data-amount="$1,700,000" onclick="stateClick(event,'North Carolina','3','280','$1,700,000')" />
+  <!-- ND --><path class="state-path no-auction" d="m 464.7,68.6 -1.1,2.8 .8,1.4 -.3,5.1 -.5,1.1 2.7,9.1 1.3,2.5 .7,14 1,2.7 -.4,5.8 2.9,7.4 .3,5.8 -.1,2.1 -29.5,-.4 -46,-2.1 -39.2,-2.9 5.2,-66.7 44.5,3.4 55.3,1.6 z" data-state="ND" onclick="stateClick(event,'North Dakota','0','0','$0')" />
+  <!-- OH --><path class="state-path auction-med" d="m 685.7,208.8 1.9,-.4 3,1.3 2.1,.6 .7,.9 h 1 l 1,-1.5 1.3,.8 h 1.5 l -.1,1 -3.1,.5 -2,1.1 1.9,.8 1.6,-1.5 2.4,-.4 2.2,1.5 1.5,-.1 2.5,-1.7 3.6,-2.1 5.2,-.3 4.9,-5.9 3.8,-3.1 9.3,-5.1 4.9,29.9 -2.2,1.2 1.4,2.1 -.1,2.2 .6,2 -1.1,3.4 -.1,5.4 -1,3.6 .5,1.1 -.4,2.2 -1.1,.5 -2,3.3 -1.8,2 h -.6 l -1.8,1.7 -1.3,-1.2 -1.5,1.8 -.3,1.2 h -1.3 l -1.3,2.2 .1,2.1 -1,.5 1.4,1.1 v 1.9 l -1,.2 -.7,.8 -1,.5 -.6,-2.1 -1.6,-.5 -1,2.3 -.3,2.2 -1.1,1.3 1.3,3.6 -1.5,.8 -.4,3.5 h -1.5 l -3.2,1.4 -1.2,-2.1 -3.5,-1.4 -.8,-2.9 -.5,-.8 -3.4,1.8 -.6,1.7 h -.9 l -1.3,.7 -1.2,-.8 -3,-.8 -1.9,.8 v 1 l -2.2,-.2 -1.9,-2.1 -2.3,.2 -4.1,-.7 v -1 l -2.2,-3.4 -2.9,-1.2 -1.9,.8 -2.2,-.1 -1.3,-.5 -6.6,-57.2 21.4,-3.5 z" data-state="OH" data-auctions="20" data-count="2,890" data-amount="$22,400,000" onclick="stateClick(event,'Ohio','20','2,890','$22,400,000')" />
+  <!-- OK --><path class="state-path no-auction" d="m 501.5,398.6 -4.6,-3.8 -2.2,-.9 -.5,1.6 -5.1,.3 -.6,-1.5 -5,2.5 -1.6,-.7 -3.7,.3 -.6,1.7 -3.6,.9 -1.3,-1.2 -1.2,.1 -2,-1.8 -2.1,.7 -2,-.5 -1.8,-2 -2.5,4.2 -1.2,.8 -1,-1.8 .3,-2 -1.2,-.7 -2.3,2.5 -1.7,-1.2 -.1,-1.5 -1.3,.5 -2.6,-1.7 -3,2.6 -2.3,-1.1 .7,-2.1 -2.3,.1 -1.9,-3 -3.5,-1.1 -2,2.3 -2.3,-2.2 -1.4,.4 -2,.1 -3.5,-1.9 -2.3,.1 -1.2,-.7 -.5,-2.9 -2.3,-1.7 -1.1,1.5 -1.4,-1 -1.2,-.4 -1.1,1 -1.5,-.3 -2.5,-3 -2.7,-1.3 1.4,-42.7 -52.6,-3.2 .6,-10.6 16.5,1 67.7,2.9 62,.1 .2,10.8 4.1,24.4 -.7,39 z" data-state="OK" onclick="stateClick(event,'Oklahoma','0','0','$0')" />
+  <!-- OR --><path class="state-path auction-low" d="m 93.9,166.5 47,11.2 8.5,-37.3 2.9,-5.8 .4,-2.1 .8,-.9 -.9,-2 -2.9,-1.2 .2,-4.2 4,-5.8 2.5,-.8 1.6,-2.3 -.1,-1.6 1.8,-1.6 3.2,-5.5 4.2,-4.8 -.5,-3.2 -3.5,-3.1 -1.6,-3.6 -30.3,-7.3 -2.8,1 -5.4,-.9 -1.8,-.9 -1.5,1.2 -3.3,-.4 -4.5,.5 -.9,.7 -4.2,-.4 -.8,-1.6 -1.2,-.2 -4.4,1.3 -1.6,-1.1 -2.2,.8 -.2,-1.8 -2.3,-1.2 -1.5,-.2 -1,-1.1 -3,.3 -1.2,-.8 h -1.2 l -1.2,.9 -5.5,.7 -6.6,-4.2 1.1,-5.6 -.4,-4.1 -3.2,-3.7 -3.7,.1 -.4,-1.1 .4,-1.2 -.7,-.8 -1,.1 -1.1,1.3 -1.5,-.2 -.5,-1.1 -1,-.1 -.7,.6 -2,-1.9 v 4.3 l -1.3,1.3 -1.1,3.5 -.1,2.3 -4.5,12.3 -13.2,31.3 -3.2,4.6 -1.6,-.1 .1,2.1 -5.2,7.1 -.3,3.3 1,1.3 .1,2.4 -1.2,1.1 -1.2,3 .1,5.7 1.2,2.9 z" data-state="OR" data-auctions="3" data-count="412" data-amount="$2,100,000" onclick="stateClick(event,'Oregon','3','412','$2,100,000')" />
+  <!-- PA --><path class="state-path auction-low" d="m 826.3,189.4 -1.9,.3 -3,-2.2 -3,-5.8 h -2 l -.4,-1.5 -1.7,-1.1 -70.5,13.9 -.8,-6 -4.2,3.4 -.9,.1 -2.7,3 -3.3,1.7 4.9,29.9 3.2,19.7 17.4,-2.9 60.5,-11.8 1.2,-2.1 1.5,-1.1 1.6,-.3 1.6,.6 1.4,-1.7 1.6,-.6 1.8,-3 1.6,-2.3 3.3,-2.6 -4.2,-3.2 -2.1,-1.1 -1,-2.8 -2.7,-.9 -.5,-3.6 1,-1 .7,-2 -1.5,-1.8 3,-5.4 -.1,-2.2 1.8,-2.5 z" data-state="PA" data-auctions="5" data-count="690" data-amount="$5,100,000" onclick="stateClick(event,'Pennsylvania','5','690','$5,100,000')" />
+  <!-- RI --><path class="state-path no-auction" d="m 883.2,170.7 -1.3,-1.1 -2.6,-1.3 -.6,-2.2 h -.8 l -.7,-2.6 -6.5,2 3.2,12.3 -.4,1.1 .4,1.8 5.6,-3.6 .1,-3 -.8,-.8 .4,-.6 -.1,-1.3 -.9,-.7 1.2,-.4 -.9,-1.6 1.8,.7 .3,1.4 .7,1.2 -1.4,-.8 1.1,1.7 -.3,1.2 -.6,-1.1 v 2.5 l .6,-.9 .4,.9 1.3,-1.5 -.2,-2.5 1.4,3.1 1,-.9 z m -4.7,12.2 h .9 l .5,-.6 -.8,-1.3 -.7,.7 z" data-state="RI" onclick="stateClick(event,'Rhode Island','0','0','$0')" />
+  <!-- SC --><path class="state-path no-auction" d="m 772.3,350.2 -19.7,2.8 -.1,-2.6 -3.3,-3 -1.2,1.5 -.7,-.3 .2,-1.4 -.4,-.5 -23.2,2.2 -7.3,4.3 -1.3,.1 -4.4,1.9 -.1,1.9 -1.9,1 -1.4,3.2 .2,1.3 6.1,3.8 2.6,-.3 3.1,4 .4,1.7 4.2,5.1 2.6,1.7 1.4,.2 2.2,1.6 1.1,2.2 2,1.6 1.8,.5 2.7,2.7 .1,1.4 2.6,2.8 5,2.3 3.6,6.7 .3,2.7 3.9,2.1 2.5,4.8 .8,3.1 4.2,.4 .8,-1.5 h .6 l 1.8,-1.5 .5,-2 3.2,-2.1 .3,-2.4 -1.2,-.9 .8,-.7 .8,.4 1.3,-.4 1.8,-2.1 3.8,-1.8 1.6,-2.4 .1,-.7 4.8,-4.4 -.1,-.5 -.9,-.8 1.1,-1.5 h .8 l .4,.5 .7,-.8 h 1.3 l .6,-1.5 2.3,-2.1 -.3,-5.4 .8,-2.3 3.6,-6.2 2.4,-2.2 2.2,-1.1 z" data-state="SC" onclick="stateClick(event,'South Carolina','0','0','$0')" />
+  <!-- SD --><path class="state-path no-auction" d="m 396.5,125.9 46,2.1 29.5,.4 -.1,2.2 -.9,2 -3.1,1.9 -.3,1.2 1.7,2.5 .4,1.8 2.6,.6 1.5,1.9 -.2,39.5 -2.2,-.1 -.1,1.6 1.3,1.5 -.1,1.1 -1,.5 .4,1.6 1.3,.4 .7,2 -1.7,5.1 -1,4.3 1.3,1.2 .3,1.3 .7,1.7 -1.5,.2 -1.8,-.7 -.9,-2.6 -1.2,-1.3 -6.1,-2.2 -.6,-1.1 -2,-.6 -1.4,.6 -1,-.5 -.9,.4 -.7,-.4 -.9,.4 -.7,-.5 -1,.7 -1.5,-.6 -1.8,2 -1.8,.1 -2.1,-2 -1.7,-.2 -3.4,-3.2 -38,-1.6 -51.1,-3.5 3.9,-43.9 2,-20.7 z" data-state="SD" onclick="stateClick(event,'South Dakota','0','0','$0')" />
+  <!-- TN --><path class="state-path auction-low" d="m 620.9,365.1 45.7,-4 22.9,-2.9 .1,-4.9 1.4,-1.3 1.5,.1 1.3,-.9 .8,-4.1 4.6,-3 3.6,-.5 3.2,-2.6 .5,-1.2 4.7,-2.4 .6,-3.4 4,-3.3 .8,.2 .1,1.5 .8,.8 1.5,-1.2 .7,-2.1 3.5,-2.5 2.6,1.1 2.4,-5.2 1.4,-1.2 1.5,.1 0,-5.2 .3,-.7 -4.6,.5 -.2,1 -28.9,3.3 -5.6,1.4 -20.5,1.4 -5.2,.8 -17.4,1 -2.6,.8 -22.6,2 -.7,-.6 h -3.7 l 1.2,3.2 -.6,.9 -23.3,1.5 -.8,1 -.8,-.7 h -1 v 1.3 l .6,1 -.1,1 -1.4,.5 1.4,1.5 -.8,.7 -1.7,-.2 .6,1 1.2,1.1 v .7 l -1.2,.5 -1,2 .1,.6 1.4,1 -.4,.7 h -1.5 v .5 l .9,.9 .1,.8 -1.4,.2 -.5,.8 -1.6,.2 -.9,.9 .6,.9 1.1,-.1 .5,.9 -1.6,1.3 .4,1.5 -2,-.6 -.1,.7 .4,1.1 -.3,1.4 -1.3,-.8 -.8,.8 1.1,.1 .1,1.5 -.6,1 1.1,.9 -.3,1.5 .8,.7 -.7,1 -1.2,-.5 -.9,2.2 -1.6,.7 z" data-state="TN" data-auctions="3" data-count="290" data-amount="$2,100,000" onclick="stateClick(event,'Tennessee','3','290','$2,100,000')" />
+  <!-- TX --><path class="state-path auction-high" d="m 282.3,429 .3,-3 34.4,3.6 31.8,2.6 7.9,-99.3 .8,0 52.6,3.2 -1.4,42.7 2.7,1.3 2.5,3 1.5,.3 1.1,-1 1.2,.4 1.4,1 1.1,-1.5 2.3,1.7 .5,2.9 1.2,.7 2.3,-.1 3.5,1.9 2,-.1 1.4,-.4 2.3,2.2 2,-2.3 3.5,1.1 1.9,3 2.3,-.1 -.7,2.1 2.3,1.1 3,-2.6 2.6,1.7 1.3,-.5 .1,1.5 1.7,1.2 2.3,-2.5 1.2,.7 -.3,2 1,1.8 1.2,-.8 2.5,-4.2 1.8,2 2,.5 2.1,-.7 2,1.8 1.2,-.1 1.3,1.2 3.6,-.9 .6,-1.7 3.7,-.3 1.6,.7 5,-2.5 .6,1.5 5.1,-.3 .5,-1.6 2.2,.9 4.6,3.8 6.4,1.9 2.6,2.3 2.8,-1.3 3.2,.8 .2,11.9 .5,19.9 .7,3.4 2.6,2.8 .7,5.4 3.8,4.6 .8,4.3 h 1 l -.1,7.3 -3.3,6.4 1.3,2.3 -1.3,1.5 .7,3 -.1,4.3 -2.2,3.5 -.1,.8 -1.7,1.2 1,1.8 1.2,1.1 -3.5,.3 -8.4,3.9 -3.5,1.4 -1.8,1.8 -.7,-.5 2.1,-2.3 1.8,-.7 .5,-.9 -2.9,-.1 -.7,-.8 .8,-2 -.9,-1.8 h -.6 l -2.4,1.3 -1.9,2.6 .3,1.7 3.3,3.4 1.3,.3 v .8 l -2.3,1.6 -4.9,4 -4,3.9 -3.2,1.4 -5,3 -3.7,2 -4.5,1.9 -4.1,2.5 3.2,-3 v -1.1 l .6,-.8 -.2,-1.8 -1.5,-.1 -1.1,1.5 -2.6,1.3 -1.8,-1.2 -.3,-1.7 h -1.5 l .8,2.2 1.4,.7 1.2,.9 1.8,1.6 -.7,.8 -3.9,1.7 -1.7,.1 -1.2,-1.2 -.5,2.1 .5,1.1 -2.7,2 -1.5,.2 -.8,.7 -.4,1.7 -1.8,3.3 -1.6,.7 -1.6,-.6 -1.8,1.1 .3,1.4 1.3,.8 1,.8 -1.8,3.5 -.3,2.8 -1,1.7 -1.4,1 -2.9,.4 1.8,.6 1.9,-.6 -.4,3.2 -1.1,-.1 .2,1.2 .3,1.4 -1.3,.9 v 3.1 l 1.6,1.4 .6,3.1 -.4,2.2 -1,.4 .4,1.5 1.1,.4 .8,1.7 v 2.6 l 1.1,2.1 2.2,2.6 -.1,.7 -2.2,-.2 -1.6,1.4 .2,1.4 -.9,-.3 -1.4,-.2 -3.4,-3.7 -2.3,-.6 h -7.1 l -2.8,-.8 -3.6,-3 -1.7,-1 -2.1,.1 -3.2,-2.6 -5.4,-1.6 v -1.3 l -1.4,-1.8 -.9,-4.7 -1.1,-1.7 -1.7,-1.4 v -1.6 l -1.4,-.6 .6,-2.6 -.3,-2.2 -1.3,-1.4 .7,-3 -.8,-3.2 -1.7,-1.4 h -1.1 l -4,-3.5 .1,-1.9 -.8,-1.7 -.8,-.2 -.9,-2.4 -2,-1.6 -2.9,-2.5 -.2,-2.1 -1,-.7 .2,-1.6 .5,-.7 -1.4,-1.5 .1,-.7 -2,-2.2 .1,-2.1 -2.7,-4.9 -.1,-1.7 -1.8,-3.1 -5.1,-4.8 v -1.1 l -3.3,-1.7 -.1,-1.8 -1.2,-.4 v -.7 l -.8,-.2 -2.1,-2.8 h -.8 l -.7,-.6 -1.3,1.1 h -2.2 l -2.6,-1.1 h -4.6 l -4.2,-2.1 -1.3,1.9 -2.2,-.6 -3.3,1.2 -1.7,2.8 -2,3.2 -1.1,4.4 -1.4,1.2 -1.1,.1 -.9,1.6 -1.3,.6 -.1,1.8 -2.9,.1 -1.8,-1.5 h -1 l -2,-2.9 -3.6,-.5 -1.7,-2.3 -1.3,-.2 -2.1,-.8 -3.4,-3.4 .2,-.8 -1.6,-1.2 -1,-.1 -3.4,-3.1 -.1,-2 -2.3,-4 .2,-1.6 -.7,-1.3 .8,-1.5 -.1,-2.4 -2.6,-4.1 -.6,-4.2 -1.6,-1.6 v -1 l -1.2,-.2 -.7,-1.1 -2.4,-1.7 -.9,-.1 -1.9,-1.6 v -1.1 l -2.9,-1.8 -.6,-2.1 -2.6,-2.3 -3.2,-4.4 -3,-1.3 -2.1,-1.8 .2,-1.2 -1.3,-1.4 -1.7,-3.7 -2.4,-1 z m 174.9,138.3 .8,.1 -.6,-4.8 -3.5,-12.3 -.2,-8.1 4.9,-10.5 6.1,-8.2 7.2,-5.1 v -.7 h -.8 l -2.6,1 -3.6,2.3 -.7,1.5 -8.2,11.6 -2.8,7.9 v 8.8 l 3.6,12 z" data-state="TX" data-auctions="21" data-count="3,890" data-amount="$28,500,000" onclick="stateClick(event,'Texas','21','3,890','$28,500,000')" />
+  <!-- UT --><path class="state-path auction-low" d="m 233.2,217.9 3.3,-21.9 -47.9,-8.2 -21,109 46.2,8.2 40,6 11.5,-88.3 z" data-state="UT" data-auctions="2" data-count="180" data-amount="$1,200,000" onclick="stateClick(event,'Utah','2','180','$1,200,000')" />
+  <!-- VT --><path class="state-path no-auction" d="m 859.1,102.4 -1.1,3.5 2.1,2.8 -.4,1.7 .1,1.3 -1.1,2.1 -1.4,.4 -.6,1.3 -2.1,1 -.7,1.5 1.4,3.4 -.5,2.5 .5,1.5 -1,1.9 .4,1.9 -1.3,1.9 .2,2.2 -.7,1.1 .7,4.5 .7,1.5 -.5,2.6 .9,1.8 -.2,2.5 -.5,1.3 -.1,1.4 2.1,2.6 -12.4,2.7 -1.1,-1 .5,-2 -3,-14.2 -1.9,-1.5 -.9,1.6 -.9,-2.2 .8,-1.8 -3.1,-6.7 .3,-3.8 .4,-1 -.6,-2 .4,-2.2 -2.2,-2.3 -.5,-3.2 .4,-1.5 -1.4,-.9 .6,-1.9 -.8,-1.7 27.3,-6.9 z" data-state="VT" onclick="stateClick(event,'Vermont','0','0','$0')" />
+  <!-- VA --><path class="state-path auction-low" d="m 834.7,265.4 -1.1,2.8 .5,1.1 .4,-1.1 .8,-3.1 z m -34.6,-7 -.7,-1 1,-.1 1,-.9 .4,-1.8 -.2,-.5 .1,-.5 -.3,-.7 -.6,-.5 -.4,-.1 -.5,-.4 -.6,-.6 h -1 l -.6,-.1 -.4,-.4 .1,-.5 -1.7,-.6 -.8,.3 -1.2,-.1 -.7,-.7 -.5,-.2 -.2,-.7 .6,-.8 v -.9 l -1.2,-.2 -1,-.9 -.9,.1 -1.6,-.3 -.4,.7 -.4,1.6 -.5,2.3 -10,-5.2 -.2,.9 .9,1.6 -.8,2.3 .1,2.9 -1.2,.8 -.5,2.1 -.9,.8 -1.4,1.8 -.9,.8 -1,2.5 -2.4,-1.1 -2.3,8.5 -1.3,1.6 -2.8,-.5 -1.3,-1.9 -2.3,-.7 -.1,4.7 -1.4,1.7 .4,1.5 -2.1,2.2 .4,1.9 -3.7,6.3 -1,3.3 1.5,1.2 -1.5,1.9 .1,1.4 -2.3,2 -.7,-1.1 -4.3,3.1 -1.5,-1 -.6,1.4 .8,.5 -.5,.9 -5.5,2.4 -3,-1.8 -.8,1.7 -1.9,1.8 -2.3,.1 -4.4,-2.3 -.1,-1.5 -1.5,-.7 .8,-1.2 -.7,-.6 -4.9,6.6 -2.9,1 -3,3 -.4,2.2 -2.1,1.3 -.1,1.7 -1.4,1.4 -1.8,.5 -.5,1.9 -1,.4 -6.9,4.2 28.9,-3.3 .2,-1 4.6,-.5 -.3,.7 29.4,-3.5 39.4,-7.3 29.1,-6.1 -.6,-1.2 .4,-.1 .9,.9 -.1,-1.4 -.3,-1.9 1.6,1.2 .9,2.1 v -1.3 l -3.4,-5.5 v -1.2 l -.7,-.8 -1.3,.7 .5,1.4 h -.8 l -.4,-1 -.6,.9 -.9,-1.1 -2.1,-.1 -.2,.7 1.5,2.1 -1.4,-.7 -.5,-1 -.4,.8 -.8,.1 -1.5,1.7 .3,-1.6 v -1.4 l -1.5,-.7 -1.8,-.5 -.2,-1.7 -.6,-1.3 -.6,1.1 -1.7,-1 -2,.3 .2,-.9 1.5,-.2 .9,.5 1.7,-.8 .9,.4 .5,1 v .7 l 1.9,.4 .3,.9 .9,.4 .9,1.2 1.4,-1.6 h .6 l -.1,-2.1 -1.3,1 -.6,-.9 1.5,-.2 -1.2,-.9 -1.2,.6 -.1,-1.7 -1.7,.2 -2.2,-1.1 -1.8,-2.2 3.6,2.2 .9,.3 1.7,-.8 -1.7,-.9 .6,-.6 -1,-.5 .8,-.2 -.3,-.9 1.1,.9 .4,-.8 .4,1.3 1.2,.8 .6,-.5 -.5,-.6 -.1,-2.5 -1.1,-.1 -1.6,-.8 .9,-1.1 -2,-.1 -.4,-.5 -1.4,.6 -1.4,-.8 -.5,-1.2 -2.1,-1.2 -2.1,-1.8 -2.2,-1.9 3,1.3 .9,1.2 2.1,.7 2.3,2.5 .2,-1.7 .6,1.3 2.3,.5 v -4 l -.8,-1.1 1.1,.4 .1,-1.6 -3.1,-1.4 -1.6,-.2 -1.3,-.2 .3,-1.2 -1.5,-.3 -.1,-.6 h -1.8 l -.2,.8 -.7,-1 h -2.7 l -1,-.4 -.2,-1 -1.2,-.6 -.4,-1.5 -.6,-.4 -.7,1.1 -.9,.2 -.9,.7 h -1.5 l -.9,-1.3 .4,-3.1 .5,-2.4 .6,.5 z m 21.9,11.6 .9,-.1 0,-.6 -.8,.1 z m 7.5,14.2 -1,2.7 1.2,-1.3 z m -1.8,-15.3 .7,.3 -.2,1.9 -.5,-.5 -1.3,1 1,.4 -1.8,4.4 .1,8.1 1.9,3.1 .5,-1.5 .4,-2.7 -.3,-2.3 .7,-.9 -.2,-1.4 1.2,-.6 -.6,-.5 .5,-.7 .8,1.1 -.2,1.1 -.4,3.9 1.1,-2.2 .4,-3.1 .1,-3 -.3,-2 .6,-2.3 1.1,-1.8 .1,-2.2 .3,-.9 -4.6,1.6 -.7,.8 z" data-state="VA" data-auctions="5" data-count="560" data-amount="$3,800,000" onclick="stateClick(event,'Virginia','5','560','$3,800,000')" />
+  <!-- WA --><path class="state-path auction-med" d="m 161.9,83.6 .7,4 -1.1,4.3 -30.3,-7.3 -2.8,1 -5.4,-.9 -1.8,-.9 -1.5,1.2 -3.3,-.4 -4.5,.5 -.9,.7 -4.2,-.4 -.8,-1.6 -1.2,-.2 -4.4,1.3 -1.6,-1.1 -2.2,.8 -.2,-1.8 -2.3,-1.2 -1.5,-.2 -1,-1.1 -3,.3 -1.2,-.8 h -1.2 l -1.2,.9 -5.5,.7 -6.6,-4.2 1.1,-5.6 -.4,-4.1 -3.2,-3.7 -3.7,.1 -.4,-1.1 .4,-1.2 -.7,-.8 -1,.1 -2.1,-1.5 -1.2,.4 -2,-.1 -.7,-1.5 -1.6,-.3 2.5,-7.5 -.7,6 .5,.5 v -2 l .8,-.2 1.1,2.3 -.5,-2.2 1.2,-4.2 1.8,.4 -1.1,-2 -1,.3 -1.5,-.4 .2,-4.2 .2,1.5 .9,.5 .6,-1.6 h 3.2 l -2.2,-1.2 -1.7,-1.9 -1.4,1.6 1.2,-3.1 -.3,-4.6 -.2,-3.6 .9,-6.1 -.5,-2 -1.4,-2.1 .1,-4 .4,-2.7 2,-2.3 -.7,-1.4 .2,-.6 .9,.1 7.8,7.6 4.7,1.9 5.1,2.5 3.2,-.1 .2,3 1,-1.6 h .7 l .6,2.7 .5,-2.6 1.4,-.2 .5,.7 -1.1,.6 .1,1.6 .7,-1.5 h 1.1 l -.4,2.6 -1.1,-.8 .4,1.4 -.1,1.5 -.8,.7 -2.5,2.9 1.2,-3.4 -1.6,.4 -.4,2.1 -3.8,2.8 -.4,1 -2.1,2.2 -.1,1 h 2.2 l 2.4,-.2 .5,-.9 -3.9,.5 v -.6 l 2.6,-2.8 1.8,-.8 1.9,-.2 1,-1.6 3,-2.3 v -1.4 h 1.1 l .1,4 h -1.5 l -.6,.8 -1.1,-.9 .3,1.1 v 1.7 l -.7,.7 -.3,-1.6 -.8,.8 .7,.6 -.9,1.1 h 1.3 l .7,-.5 .1,2 -1,1.9 -.9,1 -.1,1.8 -1,-.2 -.2,-1.4 .9,-1.1 -.8,-.5 -.8,.7 -.7,2.2 -.8,.9 -.1,-2 .8,-1.1 -.2,-1.1 -1.2,1.2 .1,2.2 -.6,.4 -2.1,-.4 -1.3,1.2 2.2,-.6 -.2,2.2 1,-1.8 .4,1.4 .5,-1 .7,1.8 h .7 l .7,-.8 .6,-.1 2,-1.9 .2,-1.2 .8,.6 .3,.9 .7,-.3 .1,-1.2 h 1.3 l .2,-2.9 -.1,-2.7 .9,.3 -.7,-2.1 1.4,-.8 .2,-2.4 2.3,-2.2 1,.1 .3,-1.4 -1.2,-1.4 -.1,-3.5 -.8,.9 .7,2.9 -.6,.1 -.6,-1.9 -.6,-.5 .3,-2.3 1.8,-.1 .3,.7 .3,-1.6 -1.6,-1.7 -.6,-1.6 -.2,2 .9,1.1 -.7,.4 -1,-.8 -1.8,1.3 1.5,.5 .2,2.4 -.3,1.8 .9,-1.3 1.4,2.3 -.4,1.9 h -1.5 v -1.2 l -1.5,-1.2 .5,-3 -1.9,-2.6 2.7,-3 .6,-4.1 h .9 l 1.4,3.2 v -2.6 l 1.2,.3 v -3.3 l -.9,-.8 -1.2,2.5 -1,-3 1.3,-.1 -1.5,-4.9 1.9,-.6 25.4,7.5 31.7,8 23.6,5.5 z m -78.7,-39.4 h .5 l .1,.8 -.5,.3 .1,.6 -.7,.4 -.2,-.9 .5,-.4 z m 5,-4.3 -1.2,1.9 -.1,.8 .4,.2 .5,-.6 1.1,.1 z m -.4,-21.6 .5,.6 1.3,-.3 .2,-1 1.2,-1.8 -1,-.4 -.7,1.6 -.1,-1.6 -1.1,.2 -.7,1.4 z m 3.2,-5.5 .7,1.5 -.9,.2 -.8,.4 -.2,-2.4 z m -2.7,-1.6 -1.1,-.2 .5,1.4 z m -1,2.5 .8,.4 -.4,1.1 1.7,-.5 -.2,-2.2 -.9,-.2 z m -2.7,-.4 .3,2.7 1.6,1.3 .6,-1.9 -1.1,-2.2 z m 1.9,-1.1 -1.1,-1 -.9,.1 1.8,1.5 z m 3.2,-7 h -1.2 v .8 l 1.2,.6 z m -.9,32.5 .4,-2.7 h -1.1 l -.2,1.9 z" data-state="WA" data-auctions="8" data-count="1,204" data-amount="$8,240,000" onclick="stateClick(event,'Washington','8','1,204','$8,240,000')" />
+  <!-- WV --><path class="state-path no-auction" d="m 723.4,297.5 -.8,1.2 1.5,.7 .1,1.5 4.4,2.3 2.3,-.1 1.9,-1.8 .8,-1.7 3,1.8 5.5,-2.4 .5,-.9 -.8,-.5 .6,-1.4 1.5,1 4.3,-3.1 .7,1.1 2.3,-2 -.1,-1.4 1.5,-1.9 -1.5,-1.2 1,-3.3 3.7,-6.3 -.4,-1.9 2.1,-2.2 -.4,-1.5 1.4,-1.7 .1,-4.7 2.3,.7 1.3,1.9 2.8,.5 1.3,-1.6 2.3,-8.5 2.4,1.1 1,-2.5 .9,-.8 1.4,-1.8 .9,-.8 .5,-2.1 1.2,-.8 -.1,-2.9 .8,-2.3 -.9,-1.6 .2,-.9 10,5.2 .5,-2.3 .4,-1.6 .4,-.7 -.9,-.4 .2,-1.6 -1,-.5 -.2,-.7 h -.7 l -.8,-1.2 .2,-1 -2.6,.4 -2.2,-1.6 -1.4,.3 -.9,1.4 h -1.3 l -1.7,2.9 -3.3,.4 -1.9,-1 -2.6,3.8 -2.2,-.3 -3.1,3.9 -.9,1.6 -1.8,1.6 -1.7,-11.4 -17.4,2.9 -3.2,-19.7 -2.2,1.2 1.4,2.1 -.1,2.2 .6,2 -1.1,3.4 -.1,5.4 -1,3.6 .5,1.1 -.4,2.2 -1.1,.5 -2,3.3 -1.8,2 h -.6 l -1.8,1.7 -1.3,-1.2 -1.5,1.8 -.3,1.2 h -1.3 l -1.3,2.2 .1,2.1 -1,.5 1.4,1.1 v 1.9 l -1,.2 -.7,.8 -1,.5 -.6,-2.1 -1.6,-.5 -1,2.3 -.3,2.2 -1.1,1.3 1.3,3.6 -1.5,.8 -.4,3.5 h -1.5 l -3.2,1.4 -.1,1.1 .6,1 -.6,3.6 1.9,1.6 .8,1.1 1,.6 -.1,.9 4.4,5.6 h 1.4 l 1.5,1.8 1.2,.3 1.4,-.1 z" data-state="WV" onclick="stateClick(event,'West Virginia','0','0','$0')" />
+  <!-- WI --><path class="state-path auction-med" d="m 611,144 -2.9,.8 .2,2.3 -2.4,3.4 -.2,3.1 .6,.7 .8,-.7 .5,-1.6 2,-1.1 1.6,-4.2 3.5,-1.1 .8,-3.3 .7,-.9 .4,-2.1 1.8,-1.1 v -1.5 l 1,-.9 1.4,.1 v 2 l -1,.1 .5,1.2 -.7,2.2 -.6,.1 -1.2,4.5 -.7,.5 -2.8,7.2 -.3,4.2 .6,2 .1,1.3 -2.4,1.9 .3,1.9 -.9,3.1 .3,1.6 .4,3.7 -1.1,4.1 -1.5,5 1,1.5 -.3,.3 .8,1.7 -.5,1.1 1.1,.9 v 2.7 l 1.3,1.5 -.4,3 .3,4 -45.9,2.8 -1.3,-2.8 -3.3,-.7 -2.7,-1.5 -2,-5.5 .1,-2.5 1.6,-3.3 -.6,-1.1 -2.1,-1.6 -.2,-2.6 -1.1,-4.5 -.2,-3 -2.2,-3 -2.8,-.7 -5.2,-3.6 -.6,-3.3 -6.3,-3.1 -.2,-1.3 h -3.3 l -2.2,-2.6 -2,-1.3 .7,-5.1 -.9,-1.6 .5,-5.4 1,-1.8 -.3,-2.7 -1.2,-1.3 -1.8,-.3 v -1.7 l 2.8,-5.8 5.9,-3.9 -.4,-13 .9,.4 .6,-.5 .1,-1.1 .9,-.6 1.4,1.2 .7,-.1 h 2.6 l 6.8,-2.6 .3,-1 h 1.2 l .7,-1.2 .4,.8 1.8,-.9 1.8,-1.7 .3,.5 1,-1 2.2,1.6 -.8,1.6 -1.2,1.4 .5,1.5 -1.4,1.6 .4,.9 2.3,-1.1 v -1.4 l 3.3,1.9 1.9,.7 1.9,.7 3,3.8 17,3.8 1.4,1 4,.8 .7,.5 2.8,-.2 4.9,.8 1.4,1.5 -1,1 .8,.8 3.8,.7 1.2,1.2 .1,4.4 -1.3,2.8 2,.1 1,-.8 .9,.8 -1.1,3.1 1,1.6 1.2,.3 z m -49.5,-37.3 -.5,.1 -1.5,1.6 .2,.5 1.5,-.6 v -.6 l .9,-.3 z m 1.6,-1.1 -1,.3 -.2,.7 .9,-.1 z m -1.3,-1.6 -.2,.9 h 1.7 l .6,-.4 .1,-1 z m 2.8,-3 -.3,1.9 1.2,-.5 .1,-1.4 z m 58.3,31.9 -2,.3 -.4,1.3 1.3,1.7 z" data-state="WI" data-auctions="7" data-count="920" data-amount="$5,800,000" onclick="stateClick(event,'Wisconsin','7','920','$5,800,000')" />
+  <!-- WY --><path class="state-path no-auction" d="m 355.3,143.7 -51,-5.3 -57.3,-7.9 -2,10.7 -8.5,54.8 -3.3,21.9 32.1,4.8 44.9,5.7 37.5,3.4 3.7,-44.2 z" data-state="WY" onclick="stateClick(event,'Wyoming','0','0','$0')" />
+  <!-- DC --><path class="state-path no-auction" d="m 803.5,252 -2.6,-1.8 -1,1.7 .5,.4 .4,.1 .6,.5 .3,.7 -.1,.5 .2,.5 z" data-state="DC" onclick="stateClick(event,'District of Columbia','0','0','$0')" />
+  <text class="state-label" x="130" y="55" font-size="11" font-weight="500">8</text>
+  <text class="state-label" x="95" y="110" font-size="9" font-weight="500">3</text>
+  <text class="state-label" x="75" y="265" font-size="12" font-weight="900">28</text>
+  <text class="state-label" x="135" y="215" font-size="9" font-weight="500">2</text>
+  <text class="state-label" x="215" y="245" font-size="9" font-weight="500">2</text>
+  <text class="state-label" x="195" y="350" font-size="11" font-weight="500">9</text>
+  <text class="state-label" x="300" y="275" font-size="9" font-weight="500">3</text>
+  <text class="state-label" x="500" y="120" font-size="11" font-weight="900">14</text>
+  <text class="state-label" x="570" y="160" font-size="11" font-weight="500">7</text>
+  <text class="state-label" x="670" y="155" font-size="12" font-weight="900">30</text>
+  <text class="state-label" x="590" y="260" font-size="11" font-weight="500">11</text>
+  <text class="state-label" x="640" y="260" font-size="9" font-weight="500">3</text>
+  <text class="state-label" x="520" y="300" font-size="9" font-weight="500">2</text>
+  <text class="state-label" x="585" y="440" font-size="12" font-weight="900">41</text>
+  <text class="state-label" x="700" y="250" font-size="11" font-weight="900">20</text>
+  <text class="state-label" x="790" y="215" font-size="9" font-weight="500">5</text>
+  <text class="state-label" x="810" y="150" font-size="9" font-weight="500">2</text>
+  <text class="state-label" x="840" y="230" font-size="11" font-weight="500">7</text>
+  <text class="state-label" x="760" y="290" font-size="9" font-weight="500">5</text>
+  <text class="state-label" x="760" y="340" font-size="9" font-weight="500">3</text>
+  <text class="state-label" x="710" y="420" font-size="11" font-weight="900">13</text>
+  <text class="state-label" x="770" y="510" font-size="12" font-weight="900">81</text>
+  <text class="state-label" x="420" y="440" font-size="12" font-weight="900">21</text>
+  <text class="state-label" x="660" y="300" font-size="9" font-weight="500">1</text>
+  <text class="state-label" x="640" y="340" font-size="9" font-weight="500">3</text>
+
+  <!-- Borders snippet -->
+  <g class="borders" fill="none" stroke="#FFFFFF" stroke-width="1">
+    <path d="m 687.6,447.4 -48.8,5.1 -.5,2.9 2.5,2.8 1.7,.7 .9,1.2 -.4,7.3 -1.1,.6" />
+    <path d="m 666.6,361.1 12.9,45.8 2.9,6.1 1.8,1.9 v 3.2 l 1.7,1 .2,1.1 -2.2,3.8 -.3,3.7 -.5,2.6 2.4,5.7 -.6,6.3 .5,1.4 1.5,1.5 .7,2.2" />
+    <path d="m 620.9,365.1 1.3,2 -1.3,67 4.4,33.2" />
+    <path d="m 620.9,365.1 45.7,-4" />
+    <path d="m 516.7,414.2 52.3,-1.3" />
+    <path d="m 591.7,344.9 -11.2,.8 2.8,-5.1 1.7,-1.5 v -2.2 l -1.6,-2.5 -39.8,2 -39.1,.7" />
+    <path d="m 569,412.9 1.2,-1.5 .5,-3 -1.5,-2.3 -.5,-2.2 .9,-.7 v -.8 l -1.7,-1.1 -.1,-.7 1.6,-.9 -1.2,-1.1 1.7,-7.1 3.4,-1.6 0,-.8 -1.1,-1.4 2.9,-5.4 h 1.9 l 1.5,-1.2 -.3,-5.2 3.1,-4.5 1.8,-.6 -.5,-3.1" />
+    <path d="m 507.9,400.5 .7,-39 -4.1,-24.4" />
+    <path d="m 582.6,367.7 1.6,-.7 .9,-2.2 1.2,.5 .7,-1 -.8,-.7 .3,-1.5 -1.1,-.9 .6,-1 -.1,-1.5 -1.1,-.1 .8,-.8 1.3,.8 .3,-1.4 -.4,-1.1 .1,-.7 2,.6 -.4,-1.5 1.6,-1.3 -.5,-.9 -1.1,.1 -.6,-.9 .9,-.9 1.6,-.2 .5,-.8 1.4,-.2 -.1,-.8 -.9,-.9 0,-.5 h 1.5 l .4,-.7 -1.4,-1 -.1,-.6" />
+    <path d="m 507.9,400.5 2.6,2.3 2.8,-1.3 3.2,.8 .2,11.9" />
+    <path d="m 149,338.1 -.9,2.1 1.3,3.4 1.4,1.8 1.2,5.8 2.3,2.5 .4,1.9 -1.3,1.3 -4.8,1.7 -2.4,3.6 -1.6,7 -2.4,3.2 -1.6,.3 -1.1,6.9 1.1,1.6 1.8,.2 1,1.6 -.8,2.4 -3,2.2 -2.2,-.1" />
+    <path d="m 253.8,311 -17.4,124.1" />
+    <path d="m 167.6,296.8 -3.4,17.5 -2.4,2.9 h -2 l -1.2,-2.7 -3.7,-1.4 -3.5,.6 -1,13.6 .5,4.9 -.5,2.9 -1.4,3" />
+    <path d="m 167.6,296.8 46.2,8.2 40,6" />
+    <path d="m 93.9,166.5 -16.4,63.1 1.1,3.5 70.4,105" />
+    <path d="m 27.8,147.9 66.1,18.6" />
+    <path d="m 379.4,256.3 -4.8,67" />
+    <path d="m 347.7,231.8 33.1,2.4 -1.4,22.1" />
+    <path d="m 253.8,311 52.6,6.5 51.7,4.8" />
+    <path d="m 358.1,322.3 16.5,1" />
+    <path d="m 265.3,222.7 -11.5,88.3" />
+    <path d="m 265.3,222.7 44.9,5.7 37.5,3.4" />
+    <path d="m 843.8,171.3 10.5,-2.4 .5,.7 .9,-.3 0,-.7 14.9,-3.4 .1,.3" />
+    <path d="m 846.6,194.7 -1.7,-2.2 3.5,-3.4 -1.8,-1.5 -2.8,-16.3" />
+    <path d="m 870.7,165.5 3.2,12.3 -.4,1.1 .4,1.8" />
+    <path d="m 801.8,254.6 1.7,-2.6 -2.6,-1.8 -1,1.7" />
+    <path d="m 799.9,251.9 .5,.4 .4,.1 .6,.5 .3,.7 -.1,.5 .2,.5" />
+    <path d="m 817.9,230.1 7.6,27.1 10.9,-2.3" />
+    <path d="m 823.8,227.2 -1,2.2 -.3,2.1" />
+    <path d="m 817.9,230.1 1.2,-2.1 1.5,-1.1 1.6,-.3 1.6,.6" />
+    <path d="m 687.6,447.4 3.3,6 50.1,-3.3 .6,3.2 1,1.1 2.1,-.6 .5,-4.3 -1.4,-2.1 v -2.5 l 2.2,-1.4 1.7,.9 4,.7 3.6,-.3" />
+    <path d="m 689.5,358.2 21.4,-3" />
+    <path d="m 710.9,355.2 -.1,1.9 -1.9,1 -1.4,3.2 .2,1.3 6.1,3.8 2.6,-.3 3.1,4 .4,1.7 4.2,5.1 2.6,1.7 1.4,.2 2.2,1.6 1.1,2.2 2,1.6 1.8,.5 2.7,2.7 .1,1.4 2.6,2.8 5,2.3 3.6,6.7 .3,2.7 3.9,2.1 2.5,4.8 .8,3.1 4.2,.4" />
+    <path d="m 666.6,361.1 22.9,-2.9" />
+    <path d="m 556.8,249.7 .7,-.7 .1,-2.3 -.7,-.9 1,-1.5 1.8,-.6 .9,-.3 1,-1.2 0,-2.4 1.7,-2.4 .5,-.5 .1,-3.5 -.9,-1.4 -1,-.3 -1.1,-1.6 1,-4 3,-.8 h 2.4 l 4.2,-1.8 1.7,-2.2 .1,-2.4 1.1,-1.3 1.3,-3.2 -.1,-2.6 -2.8,-3.5 -1.2,0 -.9,-1.1 .2,-1.6 -1.7,-1.7 -2.5,-1.3 .5,-.6" />
+    <path d="m 473.6,182 28.2,0 36.3,-.9 18.6,-.7" />
+    <path d="m 484.5,246.8 25.9,.1 27.2,-1.2 14.3,-.8 1.7,1.3 .6,1.6 1.1,1.1 1.5,.8" />
+    <path d="m 484.5,246.8 -1.8,-4.4 .7,-2.2 -.8,-3.3 .2,-2.9 -1.3,-.7 -.4,-6.1 -2.8,-5 -.2,-3.7 -2.2,-4.3 -1.3,-3.7 v -1.4 l -.6,-1.7 v -2.3 l -.5,-.9" />
+    <path d="m 473.5,204.2 -.7,-1.7 -.3,-1.3 -1.3,-1.2 1,-4.3 1.7,-5.1 -.7,-2 -1.3,-.4 -.4,-1.6 1,-.5 .1,-1.1 -1.3,-1.5 .1,-1.6 2.2,.1" />
+    <path d="m 567.2,202 -1.3,-2.8 -3.3,-.7 -2.7,-1.5 -2,-5.5 .1,-2.5 1.6,-3.3 -.6,-1.1 -2.1,-1.6 -.2,-2.6" />
+    <path d="m 188.8,30.5 -4.8,22 3.7,7.4 -1.6,4.8 3.6,4.8 1.9,.7 3.9,8.3 v 2.1 l 2.3,3 h .9 l 1.4,2.1 h 3.2 v 1.6 l -7.1,17 -.5,4.1 1.4,.5 1.6,2.6 2.8,-1.4 3.6,-2.4 1.9,1.9 .5,2.5 -.5,3.2 2.5,9.7 2.6,3.5 2.3,1.4 .4,3 v 4.1 l 2.3,2.3 1.6,-2.3 6.9,1.6 2.1,-1.2 9,1.7 2.8,-3.3 1.8,-.6 1.2,1.8 1.6,4.1 .9,.1" />
+    <path d="m 140.9,177.7 24.4,5.4 23.3,4.7" />
+    <path d="m 140.9,177.7 8.5,-37.3 2.9,-5.8 .4,-2.1 .8,-.9 -.9,-2 -2.9,-1.2 .2,-4.2 4,-5.8 2.5,-.8 1.6,-2.3 -.1,-1.6 1.8,-1.6 3.2,-5.5 4.2,-4.8 -.5,-3.2 -3.5,-3.1 -1.6,-3.6" />
+    <path d="m 236.5,196 -47.9,-8.2" />
+    <path d="m 174.6,27.5 -12.7,56.1 .7,4 -1.1,4.3" />
+    <path d="m 245,141.2 -8.5,54.8" />
+    <path d="m 619.4,215.7 4.1,50.2 -1,5.2 v 2 l 2.4,3.5 v .7 l -.3,.9 .9,1.9 -.3,2.4 -1.6,1.8 -1.3,4.2 -3.8,5.3 -.1,7 h -1 l .9,1.9" />
+    <path d="m 599.9,322.5 -.3,-1.8 4,-3.7 6.9,3 1.5,-.3 .4,-2.4 -1.7,-1.8 .4,-3.3 1,-.5 1.2,.6 .6,-1.2 3.7,-.6 .1,-.9 -1.5,-2.2 -.1,-1.1 2.2,-2.7 v -.9" />
+    <path d="m 599.9,322.5 -2.8,0 -1.4,-1.5 -1.8,-3.8 v -1.9 l .8,-.6 .1,-1.3 -1.7,-1.9 -.9,-2.5 -2.7,-4.1 -4.8,-1.3 -7.4,-7.1 -.4,-2.4 2.8,-7.6 -.4,-1.9 1.2,-1.1 v -1.3 l -2.8,-1.5 -3,-.7 -3.4,1.2 -1.3,-2.3 .6,-1.9 -.7,-2.4 -8.6,-8.4 -2.2,-1.5 -2.5,-5.9 -1.2,-5.4 1.4,-3.7" />
+    <path d="m 567.2,202 45.9,-2.8" />
+    <path d="m 618.3,302.7 1.1,.8 .6,-1 -.7,-1.7 4.6,-.5 .2,1.2 1.1,.2 .4,-.9 -.6,-1.3 .3,-.8 1.3,.8 1.7,-.4 1.7,.6 3.4,2.1 1.8,-2.8 3.5,-2.2 3,3.3 1.6,-2.1 .3,-2.7 3.8,-2.3 .2,1.3 1.9,1.2 3,-.2 1.2,-.7 .1,-3.4 2.5,-3.7 4.6,-4.4 -.1,-1.7 1.2,-3.8 2.2,1 6.7,-4.5 -.4,-1.7 -1.5,-2.1 1,-1.9" />
+    <path d="m 630.9,213.2 32.4,-3.4 .1,1.4" />
+    <path d="m 670,268.4 -6.6,-57.2" />
+    <path d="m 504.3,326.3 -.5,-48.1 -3.2,-.7 -2.6,-4.7 -2.5,-2.5 .5,-2.3 2.7,-2.6 .1,-1.2 -1.5,-2.1 -.9,1 -2,-.6 -2.9,-3" />
+    <path d="m 379.4,256.3 36,2 43.7,1.2 h 32.4" />
+    <path d="m 374.6,323.3 67.7,2.9 62,.1" />
+    <path d="m 596.7,333.5 1,-2.7 1.4,.9 .7,-.4 1.2,-4.1 -1,-1 1,-2 .2,-.9 -1.3,-.8 m -5.8,11.3 -.7,-.7 .2,-1 h 1.1 l .7,.7 -.3,1" />
+    <path d="m 670,268.4 1.3,.5 2.2,.1 1.9,-.8 2.9,1.2 2.2,3.4 v 1 l 4.1,.7 2.3,-.2 1.9,2.1 2.2,.2 v -1 l 1.9,-.8 3,.8 1.2,.8 1.3,-.7 h .9 l .6,-1.7 3.4,-1.8 .5,.8 .8,2.9 3.5,1.4 1.2,2.1" />
+    <path d="m 596.7,333.5 23.3,-1.5 .6,-.9 -1.2,-3.2 h 3.7 l .7,.6 22.6,-2 2.6,-.8 17.4,-1 5.2,-.8 20.5,-1.4 5.6,-1.4 m -103.6,12.7 h 1" />
+    <path d="m 697.7,321.1 6.9,-4.2 1,-.4 .5,-1.9 1.8,-.5 1.4,-1.4 .1,-1.7 2.1,-1.3 .4,-2.2 3,-3 2.9,-1 4.9,-6.6" />
+    <path d="m 709.3,279.4 -.1,1.1 .6,1 -.6,3.6 1.9,1.6 .8,1.1 1,.6 -.1,.9 4.4,5.6 h 1.4 l 1.5,1.8 1.2,.3 1.4,-.1" />
+    <path d="m 569,412.9 -.6,1.4 1.6,7.1 1.2,1 -.5,1.7 2.4,2.5 v 3.3 l -2,0 1.8,2.5 -6,8.4 -2.4,4.8 -1.7,11.9 36,-2 -.1,1.4 -1,1.4 -.9,4.6 4.8,6.8 -.3,1.3 1.2,1.8 .6,.7" />
+    <path d="m 516.7,414.2 .5,19.9 .7,3.4 2.6,2.8 .7,5.4 3.8,4.6 .8,4.3 h 1 l -.1,7.3 -3.3,6.4 1.3,2.3 -1.3,1.5 .7,3 -.1,4.3 -2.2,3.5 -.1,.8 -1.7,1.2 1,1.8 1.2,1.1" />
+    <path d="m 856,152.6 18.4,-3.8 1,-1.5 .3,-1.7 1.9,-.6 .5,-1.1 1.7,-1.1 1.3,.3" />
+    <path d="m 843.8,171.3 -.7,-1 .5,-15" />
+    <path d="m 870.7,165.5 6.5,-2 .7,2.6 h .8 l .6,2.2 2.6,1.3 1.3,1.1 1.4,3" />
+    <path d="m 843.6,155.3 12.4,-2.7" />
+    <path d="m 757.4,241.9 60.5,-11.8" />
+    <path d="m 822.9,269.3 -.8,.1 m 13.2,-4.3 -.6,.3 m -1.3,.2 -4.6,1.6 -.7,.8 m -28.2,-16.1 -.6,-.6 h -1 l -.6,-.1 -.4,-.4 .1,-.5 -1.7,-.6 -.8,.3 -1.2,-.1 -.7,-.7 -.5,-.2 -.2,-.7 .6,-.8 v -.9 l -1.2,-.2 -1,-.9 -.9,.1 -1.6,-.3 m 11.6,13.5 .3,-.4 -.7,-1 1,-.1 1,-.9 .4,-1.8" />
+    <path d="m 757.4,241.9 1.7,11.4 1.8,-1.6 .9,-1.6 3.1,-3.9 2.2,.3 2.6,-3.8 1.9,1 3.3,-.4 1.7,-2.9 h 1.3 l .9,-1.4 1.4,-.3 2.2,1.6 2.6,-.4 -.2,1 .8,1.2 h .7 l .2,.7 1,.5 -.2,1.6 .9,.4" />
+    <path d="m 881.9,138.3 -2.3,-1.4 -.8,-2.2 -3.2,-2 -.6,-4 -11.9,-36.8" />
+    <path d="m 663.4,211.2 21.4,-3.5" />
+    <path d="m 565.6,112.3 1.9,.7 3,3.8 17,3.8 1.4,1 4,.8 .7,.5 2.8,-.2 4.9,.8 1.4,1.5 -1,1 .8,.8 3.8,.7 1.2,1.2 .1,4.4 -1.3,2.8 2,.1 1,-.8 .9,.8 -1.1,3.1 1,1.6 1.2,.3" />
+    <path d="m 462.3,61.3 2.4,7.3 -1.1,2.8 .8,1.4 -.3,5.1 -.5,1.1 2.7,9.1 1.3,2.5 .7,14 1,2.7 -.4,5.8 2.9,7.4 .3,5.8 -.1,2.1" />
+    <path d="m 473.6,182 .2,-39.5 -1.5,-1.9 -2.6,-.6 -.4,-1.8 -1.7,-2.5 .3,-1.2 3.1,-1.9 .9,-2 .1,-2.2" />
+    <path d="m 556.7,180.4 -1.1,-4.5 -.2,-3 -2.2,-3 -2.8,-.7 -5.2,-3.6 -.6,-3.3 -6.3,-3.1 -.2,-1.3 -3.3,0 -2.2,-2.6 -2,-1.3 .7,-5.1 -.9,-1.6 .5,-5.4 1,-1.8 -.3,-2.7 -1.2,-1.3 -1.8,-.3 v -1.7 l 2.8,-5.8 5.9,-3.9 -.4,-13 .9,.4 .6,-.5 .1,-1.1 .9,-.6 1.4,1.2 .7,-.1" />
+    <path d="m 491.5,259.5 -3.9,-6.3 -2.1,-3.7 .3,-1.4 -1.3,-1.3" />
+    <path d="m 504.3,326.3 .2,10.8" />
+    <path d="m 591.7,344.9 1,-2 1.2,-.5 v -.7 l -1.2,-1.1 -.6,-1 1.7,.2 .8,-.7 -1.4,-1.5 1.4,-.5 .1,-1 -.6,-1 0,-1.3 m 1,0 .8,.7 .8,-1" />
+    <path d="m 582.6,367.7 38.3,-2.6" />
+    <path d="m 362.5,56.3 -5.2,66.7" />
+    <path d="m 357.3,123 -2,20.7" />
+    <path d="m 355.3,143.7 -51,-5.3 -57.3,-7.9 -2,10.7" />
+    <path d="m 710.9,355.2 4.4,-1.9 1.3,-.1 7.3,-4.3 23.2,-2.2 .4,.5 -.2,1.4 .7,.3 1.2,-1.5 3.3,3 .1,2.6 19.7,-2.8 24.5,17.1" />
+    <path d="m 731.1,317 0,5.2 -1.5,-.1 -1.4,1.2 -2.4,5.2 -2.6,-1.1 -3.5,2.5 -.7,2.1 -1.5,1.2 -.8,-.8 -.1,-1.5 -.8,-.2 -4,3.3 -.6,3.4 -4.7,2.4 -.5,1.2 -3.2,2.6 -3.6,.5 -4.6,3 -.8,4.1 -1.3,.9 -1.5,-.1 -1.4,1.3 -.1,4.9" />
+    <path d="m 731.1,317 29.4,-3.5 39.4,-7.3 29.1,-6.1" />
+    <path d="m 357.3,123 39.2,2.9 46,2.1 29.5,.4" />
+    <path d="m 351.4,187.6 51.1,3.5 38,1.6 3.4,3.2 1.7,.2 2.1,2 1.8,-.1 1.8,-2 1.5,.6 1,-.7 .7,.5 .9,-.4 .7,.4 .9,-.4 1,.5 1.4,-.6 2,.6 .6,1.1 6.1,2.2 1.2,1.3 .9,2.6 1.8,.7 1.5,-.2" />
+    <path d="m 347.7,231.8 3.7,-44.2" />
+    <path d="m 857.9,100.1 1.2,2.3 -1.1,3.5 2.1,2.8 -.4,1.7 .1,1.3 -1.1,2.1 -1.4,.4 -.6,1.3 -2.1,1 -.7,1.5 1.4,3.4 -.5,2.5 .5,1.5 -1,1.9 .4,1.9 -1.3,1.9 .2,2.2 -.7,1.1 .7,4.5 .7,1.5 -.5,2.6 .9,1.8 -.2,2.5 -.5,1.3 -.1,1.4 2.1,2.6" />
+    <path d="m 827.9,190.5 14.6,4.9 -.4,5.9" />
+    <path d="m 823.8,227.2 1.4,-1.7 1.6,-.6 1.8,-3 1.6,-2.3 3.3,-2.6 -4.2,-3.2 -2.1,-1.1 -1,-2.8 -2.7,-.9 -.5,-3.6 1,-1 .7,-2 -1.5,-1.8 3,-5.4 -.1,-2.2 1.8,-2.5" />
+    <path d="m 358.1,322.3 -.6,10.6" />
+    <path d="m 284.3,431.2 -2,-2.2 .3,-3 34.4,3.6 31.8,2.6 7.9,-99.3 .8,0" />
+    <path d="m 93.9,166.5 47,11.2" />
+    <path d="m 188.6,187.8 -21,109" />
+    <path d="m 827.9,190.5 -1.6,-1.1 -1.9,.3 -3,-2.2 -3,-5.8 h -2 l -.4,-1.5 -1.7,-1.1 -70.5,13.9 -.8,-6" />
+    <path d="m 843.6,155.3 -1.1,-1 .5,-2 -3,-14.2 -1.9,-1.5 -.9,1.6 -.9,-2.2 .8,-1.8 -3.1,-6.7 .3,-3.8 .4,-1 -.6,-2 .4,-2.2 -2.2,-2.3 -.5,-3.2 .4,-1.5 -1.4,-.9 .6,-1.9 -.8,-1.7" />
+    <path d="m 736.8,225.1 -4.9,-29.9" />
+    <path d="m 709.3,279.4 3.2,-1.4 h 1.5 l .4,-3.5 1.5,-.8 -1.3,-3.6 1.1,-1.3 .3,-2.2 1,-2.3 1.6,.5 .6,2.1 1,-.5 .7,-.8 1,-.2 v -1.9 l -1.4,-1.1 1,-.5 -.1,-2.1 1.3,-2.2 h 1.3 l .3,-1.2 1.5,-1.8 1.3,1.2 1.8,-1.7 h .6 l 1.8,-2 2,-3.3 1.1,-.5 .4,-2.2 -.5,-1.1 1,-3.6 .1,-5.4 1.1,-3.4 -.6,-2 .1,-2.2 -1.4,-2.1 2.2,-1.2" />
+    <path d="m 357.5,332.9 52.6,3.2 -1.4,42.7 2.7,1.3 2.5,3 1.5,.3 1.1,-1 1.2,.4 1.4,1 1.1,-1.5 2.3,1.7 .5,2.9 1.2,.7 2.3,-.1 3.5,1.9 2,-.1 1.4,-.4 2.3,2.2 2,-2.3 3.5,1.1 1.9,3 2.3,-.1 -.7,2.1 2.3,1.1 3,-2.6 2.6,1.7 1.3,-.5 .1,1.5 1.7,1.2 2.3,-2.5 1.2,.7 -.3,2 1,1.8 1.2,-.8 2.5,-4.2 1.8,2 2,.5 2.1,-.7 2,1.8 1.2,-.1 1.3,1.2 3.6,-.9 .6,-1.7 3.7,-.3 1.6,.7 5,-2.5 .6,1.5 5.1,-.3 .5,-1.6 2.2,.9 4.6,3.8 6.4,1.9" />
+    <path d="m 161.5,91.9 -30.3,-7.3 -2.8,1 -5.4,-.9 -1.8,-.9 -1.5,1.2 -3.3,-.4 -4.5,.5 -.9,.7 -4.2,-.4 -.8,-1.6 -1.2,-.2 -4.4,1.3 -1.6,-1.1 -2.2,.8 -.2,-1.8 -2.3,-1.2 -1.5,-.2 -1,-1.1 -3,.3 -1.2,-.8 h -1.2 l -1.2,.9 -5.5,.7 -6.6,-4.2 1.1,-5.6 -.4,-4.1 -3.2,-3.7 -3.7,.1 -.4,-1.1 .4,-1.2 -.7,-.8 -1,.1" />
+    <path d="m 736.8,225.1 3.2,19.7 17.4,-2.9" />
+    <path d="m 351.4,187.6 3.9,-43.9" />
+    <path d="m 697.7,321.1 28.9,-3.3 .2,-1 4.6,-.5 -.3,.7" />
+    <path d="m 236.5,196 -3.3,21.9 32.1,4.8" />
+    <path d="m 722.7,296.9 .7,.6 -.8,1.2 1.5,.7 .1,1.5 4.4,2.3 2.3,-.1 1.9,-1.8 .8,-1.7 3,1.8 5.5,-2.4 .5,-.9 -.8,-.5 .6,-1.4 1.5,1 4.3,-3.1 .7,1.1 2.3,-2 -.1,-1.4 1.5,-1.9 -1.5,-1.2 1,-3.3 3.7,-6.3 -.4,-1.9 2.1,-2.2 -.4,-1.5 1.4,-1.7 .1,-4.7 2.3,.7 1.3,1.9 2.8,.5 1.3,-1.6 2.3,-8.5 2.4,1.1 1,-2.5 .9,-.8 1.4,-1.8 .9,-.8 .5,-2.1 1.2,-.8 -.1,-2.9 .8,-2.3 -.9,-1.6 .2,-.9 10,5.2 .5,-2.3 .4,-1.6 .4,-.7" />
+  </g>
+</svg>
+        </div>
+      </div>
+
+      <!-- Summary stats row -->
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <div style="flex:1;background:#fff;border:1px solid var(--color-border);border-radius:8px;padding:14px 18px;">
+          <div style="font-size:11px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Active Auctions</div>
+          <div style="font-size:28px;font-family:var(--font-money);color:var(--color-primary);">328</div>
+        </div>
+        <div style="flex:1;background:#fff;border:1px solid var(--color-border);border-radius:8px;padding:14px 18px;">
+          <div style="font-size:11px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">States Active</div>
+          <div style="font-size:28px;font-family:var(--font-money);color:var(--color-primary);">18</div>
+        </div>
+        <div style="flex:1;background:#fff;border:1px solid var(--color-border);border-radius:8px;padding:14px 18px;">
+          <div style="font-size:11px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Total Parcels</div>
+          <div style="font-size:28px;font-family:var(--font-money);color:var(--color-primary);">52,841</div>
+        </div>
+        <div style="flex:1;background:#fff;border:1px solid var(--color-border);border-radius:8px;padding:14px 18px;">
+          <div style="font-size:11px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Aggregate Amount</div>
+          <div style="font-size:28px;font-family:var(--font-money);color:var(--color-primary);">$402M</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: CALENDAR ══ -->
+    <div class="view-panel" id="panel-calendar">
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <button class="cal-nav-btn" title="Previous month" onclick="changeMonth(-1)">
+            <i data-lucide="chevron-left" style="width:14px;height:14px;"></i>
+          </button>
+          <button class="cal-today-btn" onclick="goToday()">Today</button>
+          <button class="cal-nav-btn" title="Next month" onclick="changeMonth(1)">
+            <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
+          </button>
+          <span class="cal-month-title" id="cal-title">April 2026</span>
+          <div class="cal-legend">
+            <div class="cal-legend-item">
+              <div class="cal-legend-dot" style="background:#15803D;"></div>
+              Deed
+            </div>
+          </div>
+          <div class="cal-view-toggle">
+            <button class="cal-view-btn" onclick="calViewMode('day')">Day</button>
+            <button class="cal-view-btn" onclick="calViewMode('week')">Week</button>
+            <button class="cal-view-btn active" onclick="calViewMode('month')">Month</button>
+          </div>
+        </div>
+
+        <div id="cal-grid" class="calendar-grid">
+          <!-- Generated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: LIST (Table) ══ -->
+    <div class="view-panel" id="panel-list">
+      <div class="table-container">
+        <div class="table-toolbar">
+          <span class="table-count">Displaying auctions <strong>1</strong> – <strong>100</strong> of <strong>328</strong> in list</span>
+        </div>
+        <div class="table-wrap">
+          <table id="auction-table">
+            <thead id="auction-thead">
+              <!-- Dynamically populated by JS renderTableHeaders() -->
+            </thead>
+            <tbody id="auction-tbody">
+              <!-- Rows generated by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination-wrap">
+          <div class="pagination-info">Displaying auctions 1 – 100 of 328 in list</div>
+          <div class="pagination-btns">
+            <button class="page-btn" disabled>
+              <i data-lucide="chevron-left" style="width:12px;height:12px;"></i>
+            </button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn" onclick="changePage(2)">2</button>
+            <button class="page-btn" onclick="changePage(3)">3</button>
+            <button class="page-btn" onclick="changePage(4)">4</button>
+            <button class="page-btn" onclick="changePage(2)">
+              Next <i data-lucide="chevron-right" style="width:12px;height:12px;"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+
+  <!-- State popup -->
+  <div class="state-popup" id="state-popup">
+    <h4 id="popup-state-name">Florida</h4>
+    <div class="popup-row"><span>Active Auctions</span><strong id="popup-auctions">81</strong></div>
+    <div class="popup-row"><span>Total Parcels</span><strong id="popup-parcels">14,220</strong></div>
+    <div class="popup-row"><span>Aggregate Amount</span><strong id="popup-amount">$127.8M</strong></div>
+    <!--
+      ARCHITECTURE NOTE (Rule 16):
+      This link goes to /research/parcels?state=X (Rama 2 list view)
+      NEVER to Parcel#show — Rama 1 cannot access individual parcels.
+    -->
+    <a class="popup-cta" id="popup-cta-link" href="/research/parcels?state=FL">
+      View All Auctions in State →
+    </a>
+  </div>
+
+  <script>
+    // ─── Initialize Lucide Icons ───────────────────────────────────────────
+    lucide.createIcons();
+
+    // ─── MOCK DATA ─────────────────────────────────────────────────────────
+    const AUCTIONS = [
+      { id:1,  jurisdiction:'Washington County',    state:'Mississippi',  sale_date:'04/06/2026', post_date:'01/23/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Bid Up or Premium', parcels:5316, amount:53707113.65 },
+      { id:2,  jurisdiction:'Camden City (Camden)', state:'New Jersey',    sale_date:'04/06/2026', post_date:'01/10/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Bid Down',           parcels:4800, amount:51738500.00 },
+      { id:3,  jurisdiction:'Calhoun County',       state:'Mississippi',  sale_date:'04/06/2026', post_date:'01/24/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Bid Up or Premium', parcels:2838, amount:27289037.96 },
+      { id:4,  jurisdiction:'Sunflower County',     state:'Mississippi',  sale_date:'04/06/2026', post_date:'01/24/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Bid Up or Premium', parcels:2441, amount:22301248.38 },
+      { id:5,  jurisdiction:'Bolivar County',       state:'Mississippi',  sale_date:'04/06/2026', post_date:'01/24/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Bid Up or Premium', parcels:2054, amount:18247668.05 },
+      { id:6,  jurisdiction:'Orange County',        state:'Florida',      sale_date:'04/08/2026', post_date:'02/01/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Highest Bidder',   parcels:1892, amount:24100000.00 },
+      { id:7,  jurisdiction:'Miami-Dade County',    state:'Florida',      sale_date:'04/10/2026', post_date:'02/15/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Highest Bidder',   parcels:3412, amount:48300000.00 },
+      { id:8,  jurisdiction:'Broward County',       state:'Florida',      sale_date:'04/12/2026', post_date:'02/20/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Highest Bidder',   parcels:2108, amount:31200000.00 },
+      { id:9,  jurisdiction:'Palm Beach County',    state:'Florida',      sale_date:'04/14/2026', post_date:'02/22/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Highest Bidder',   parcels:1650, amount:21500000.00 },
+      { id:10, jurisdiction:'Hillsborough County',  state:'Florida',      sale_date:'04/15/2026', post_date:'02/24/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Highest Bidder',   parcels:2290, amount:29800000.00 },
+      { id:11, jurisdiction:'Cook County',          state:'Illinois',     sale_date:'04/18/2026', post_date:'02/28/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Bid Down',          parcels:8900, amount:142000000.00 },
+      { id:12, jurisdiction:'Wayne County',         state:'Michigan',     sale_date:'04/20/2026', post_date:'03/01/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Highest Bidder',   parcels:1850, amount:12400000.00 },
+      { id:13, jurisdiction:'Cuyahoga County',      state:'Ohio',         sale_date:'04/22/2026', post_date:'03/05/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Highest Bidder',   parcels:1240, amount:9800000.00 },
+      { id:14, jurisdiction:'Fulton County',        state:'Georgia',      sale_date:'04/24/2026', post_date:'03/08/2026', auction_type:'Deed', sale_venue:'In-Person','bidding':'Highest Bidder',parcels:580,  amount:5200000.00 },
+      { id:15, jurisdiction:'Maricopa County',      state:'Arizona',      sale_date:'04/25/2026', post_date:'03/10/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Bid Down',          parcels:4200, amount:38000000.00 },
+      { id:16, jurisdiction:'Harris County',        state:'Texas',        sale_date:'04/28/2026', post_date:'03/14/2026', auction_type:'Deed', sale_venue:'In-Person','bidding':'Highest Bidder',parcels:920,  amount:7800000.00 },
+      { id:17, jurisdiction:'Hennepin County',      state:'Minnesota',    sale_date:'05/02/2026', post_date:'03/15/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Bid Down',          parcels:1380, amount:14200000.00 },
+      { id:18, jurisdiction:'Milwaukee County',     state:'Wisconsin',    sale_date:'05/05/2026', post_date:'03/20/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Bid Down',          parcels:720,  amount:6800000.00 },
+      { id:19, jurisdiction:'Clark County',         state:'Nevada',       sale_date:'05/06/2026', post_date:'03/22/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Highest Bidder',   parcels:390,  amount:4100000.00 },
+      { id:20, jurisdiction:'Allegheny County',     state:'Pennsylvania', sale_date:'05/08/2026', post_date:'03/25/2026', auction_type:'Deed', sale_venue:'Online', bidding:'Bid Down',          parcels:680,  amount:7300000.00 },
+    ];
+
+    // ─── CALENDAR DATA ──────────────────────────────────────────────────────
+    const CAL_EVENTS = {
+      '2026-04-01': [
+        { name:'Louisiana - Ciudad de Nueva Orleans (Orleans)', type:'deed' },
+        { name:'Ohio - Condado de Cuyahoga', type:'deed' },
+        { name:'Colorado - Condado de Custer', type:'deed' },
+        { name:'+8 más', type:'deed', isMore:true }
+      ],
+      '2026-04-02': [
+        { name:'Florida - Condado de Orange', type:'deed' },
+        { name:'Ohio - Condado de Harcourt', type:'deed' },
+        { name:'Ohio - Condado de Montgomery', type:'deed' },
+        { name:'+1 más', type:'deed', isMore:true }
+      ],
+      '2026-04-03': [
+        { name:'Ohio - Condado de Pike', type:'deed' },
+        { name:'Ohio - Condado de Richland', type:'deed' },
+      ],
+      '2026-04-06': [
+        { name:'Washington County, MS', type:'deed' },
+        { name:'Camden City, NJ', type:'deed' },
+        { name:'Calhoun County, MS', type:'deed' },
+        { name:'Sunflower County, MS', type:'deed' },
+      ],
+      '2026-04-07': [
+        { name:'Wisconsin - Condado de Portage', type:'deed' },
+        { name:'Ohio - Condado de Stark', type:'deed' },
+        { name:'Colorado - Condado de Gilpin', type:'deed' },
+        { name:'+6 más', type:'deed', isMore:true }
+      ],
+      '2026-04-08': [
+        { name:'Nevada - Condado de Eureka', type:'deed' },
+        { name:'Ohio - Condado de Montgomery', type:'deed' },
+        { name:'Minnesota - Condado de Chicago', type:'deed' },
+        { name:'+15 más', type:'deed', isMore:true }
+      ],
+      '2026-04-09': [
+        { name:'Ohio - Condado de Butler', type:'deed' },
+        { name:'Colorado - Condado de Logan', type:'deed' },
+        { name:'Florida - Condado de Calhoun', type:'deed' },
+        { name:'+3 más', type:'deed', isMore:true }
+      ],
+      '2026-04-10': [
+        { name:'Minnesota - Condado de Waseca', type:'deed' },
+        { name:'Carolina del Norte - Condado de Carteret', type:'deed' },
+        { name:'Ohio - Condado de Eschmecon', type:'deed' },
+        { name:'+2 más', type:'deed', isMore:true }
+      ],
+      '2026-04-13': [
+        { name:'Minnesota - Condado de Wadena', type:'deed' },
+        { name:'Florida - Condado de Levy', type:'deed' },
+        { name:'Florida - Condado de Santa Rosa', type:'deed' },
+      ],
+      '2026-04-14': [
+        { name:'Pennsylvania - Condado de Bradford', type:'deed' },
+        { name:'Florida - Condado de Alachua', type:'deed' },
+        { name:'Florida - Condado de Okaloosa', type:'deed' },
+        { name:'+6 más', type:'deed', isMore:true }
+      ],
+      '2026-04-15': [
+        { name:'Virginia - Condado de King William', type:'deed' },
+        { name:'Florida - Condado de King William Blue', type:'deed' },
+        { name:'Wisconsin - Condado de Vilas', type:'deed' },
+        { name:'+10 más', type:'deed', isMore:true }
+      ],
+      '2026-04-16': [
+        { name:'Florida - Condado de Polk', type:'deed' },
+        { name:'Colorado - Condado de Logan', type:'deed' },
+        { name:'Carolina del Norte - Condado de Mellonborough', type:'deed' },
+        { name:'+3 más', type:'deed', isMore:true }
+      ],
+      '2026-04-17': [
+        { name:'Wisconsin - Condado de Outagamie', type:'deed' },
+        { name:'Nevada - Condado of Humboldt', type:'deed' },
+        { name:'Carolina del Norte - Condado de Sampson', type:'deed' },
+      ],
+      '2026-04-20': [
+        { name:'Florida - Condado de Volusia', type:'deed' },
+        { name:'Colorado - Condado de Elbert', type:'deed' },
+        { name:'Florida - Condado de Alachua', type:'deed' },
+        { name:'+7 más', type:'deed', isMore:true }
+      ],
+      '2026-04-22': [
+        { name:'Nevada - Carson City', type:'deed' },
+        { name:'Colorado - Condado de Teller', type:'deed' },
+        { name:'Minnesota - Condado de Hennepin', type:'deed' },
+      ],
+      '2026-04-23': [
+        { name:'California - Ciudad-Condado de San Francisco', type:'deed' },
+        { name:'Ohio - Condado de Medina', type:'deed' },
+        { name:'Florida - Condado de Hillsborough', type:'deed' },
+        { name:'+1 más', type:'deed', isMore:true }
+      ],
+      '2026-04-24': [
+        { name:'Nevada - Condado de Elko', type:'deed' },
+        { name:'Carolina del Norte - Condado de Sampson', type:'deed' },
+        { name:'+1 más', type:'deed', isMore:true }
+      ],
+      '2026-04-27': [
+        { name:'California - Condado de Ghrendón', type:'deed' },
+        { name:'Florida - Condado de Alachua', type:'deed' },
+        { name:'Florida - Condado de Washington', type:'deed' },
+        { name:'+2 más', type:'deed', isMore:true }
+      ],
+      '2026-04-28': [
+        { name:'Virginia - Condado de Halifax', type:'deed' },
+        { name:'Virginia - Condado de Spotsylvania', type:'deed' },
+        { name:'Florida - Condado de Spotsylvania', type:'deed' },
+        { name:'+2 más', type:'deed', isMore:true }
+      ],
+      '2026-04-29': [
+        { name:'Minnesota - Condado de Annannia', type:'deed' },
+        { name:'Florida - Condado de Hillsborough', type:'deed' },
+        { name:'Florida - Condado de Orange', type:'deed' },
+        { name:'+3 más', type:'deed', isMore:true }
+      ],
+    };
+
+    // ─── VIEW SWITCHING ─────────────────────────────────────────────────────
+    let currentView = 'map';
+    function switchView(view) {
+      // Hide all panels
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      // Remove active from all view buttons
+      ['btn-map','btn-calendar','btn-list'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.remove('active');
+      });
+      currentView = view;
+      if(view === 'map') {
+        document.getElementById('panel-map').classList.add('active');
+        document.getElementById('btn-map').classList.add('active');
+      } else if(view === 'calendar') {
+        document.getElementById('panel-calendar').classList.add('active');
+        document.getElementById('btn-calendar').classList.add('active');
+        renderCalendar();
+      } else if(view === 'list') {
+        document.getElementById('panel-list').classList.add('active');
+        document.getElementById('btn-list').classList.add('active');
+        renderTableHeaders();
+        renderTable();
+      }
+      // Re-init icons
+      lucide.createIcons();
+    }
+
+    // ─── SUB-TAB SWITCHING ──────────────────────────────────────────────────
+    let currentSubTab = 'taxsale';
+
+    function switchSubTab(tab) {
+      document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      currentSubTab = tab;
+
+      if (tab === 'prior') {
+        // Enforce List View for Historical Data
+        document.getElementById('btn-map').style.display = 'none';
+        document.getElementById('btn-calendar').style.display = 'none';
+        document.getElementById('filter-status').style.display = 'none';
+        
+        switchView('list'); // switchView will run renderTableHeaders and renderTable
+      } else {
+        // Restore controls for Tax Sale Auctions
+        document.getElementById('btn-map').style.display = 'flex';
+        document.getElementById('btn-calendar').style.display = 'flex';
+        document.getElementById('filter-status').style.display = 'block';
+        
+        if(currentView === 'list') {
+          renderTableHeaders();
+          renderTable();
+        }
+      }
+    }
+
+    // ─── FILTER FUNCTIONS ───────────────────────────────────────────────────
+    function applyFilters() {
+      // In production this calls the Rails backend.
+      // For the prototype, just re-render the table with mock data.
+      if(currentView === 'list') renderTable();
+    }
+    function clearDate(id) {
+      document.getElementById(id).value = '';
+      applyFilters();
+    }
+
+    // ─── MAP TOOLTIP ────────────────────────────────────────────────────────
+    let tooltipTimeout;
+    function stateClick(event, stateName, auctions, parcels, amount) {
+      event.stopPropagation();
+      const popup = document.getElementById('state-popup');
+      popup.style.display = 'block';
+      popup.style.left = (event.clientX + 12) + 'px';
+      popup.style.top  = (event.clientY - 30) + 'px';
+      document.getElementById('popup-state-name').textContent = stateName;
+      document.getElementById('popup-auctions').textContent   = auctions;
+      document.getElementById('popup-parcels').textContent    = parcels;
+      document.getElementById('popup-amount').textContent     = amount;
+
+      // ⚠️ ARCHITECTURE RULE 16: Link goes to Rama 2 (parcels list by state)
+      // NEVER to Parcel#show or individual parcel.
+      const stateCode = stateName.replace(/\s+/g,'').toUpperCase().slice(0,2);
+      const link = document.getElementById('popup-cta-link');
+      if(parseInt(auctions) > 0) {
+        link.href = `/research/parcels?state=${stateCode}`;
+        link.style.display = 'block';
+      } else {
+        link.style.display = 'none';
+      }
+    }
+    document.addEventListener('click', () => {
+      document.getElementById('state-popup').style.display = 'none';
+    });
+
+    // ─── CALENDAR ───────────────────────────────────────────────────────────
+    let calYear  = 2026;
+    let calMonth = 3; // April = index 3
+
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    function renderCalendar() {
+      document.getElementById('cal-title').textContent = MONTH_NAMES[calMonth] + ' ' + calYear;
+      const grid = document.getElementById('cal-grid');
+      grid.innerHTML = '';
+
+      // Day headers
+      DAY_NAMES.forEach(d => {
+        const hdr = document.createElement('div');
+        hdr.className = 'cal-day-header';
+        hdr.textContent = d;
+        grid.appendChild(hdr);
+      });
+
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      const daysInPrevMonth = new Date(calYear, calMonth, 0).getDate();
+      const today = new Date();
+
+      let dayCount = 1;
+      let nextCount = 1;
+      const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+
+      for(let i = 0; i < totalCells; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell';
+
+        let dayNum, isOther = false, dateKey = '';
+
+        if(i < firstDay) {
+          dayNum = daysInPrevMonth - firstDay + i + 1;
+          isOther = true;
+          const prevMonth = calMonth === 0 ? 11 : calMonth - 1;
+          const prevYear  = calMonth === 0 ? calYear - 1 : calYear;
+          dateKey = `${prevYear}-${String(prevMonth+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+        } else if(dayCount <= daysInMonth) {
+          dayNum  = dayCount++;
+          dateKey = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+          const isToday = (calYear === today.getFullYear() && calMonth === today.getMonth() && dayNum === today.getDate());
+          if(isToday) cell.classList.add('today');
+        } else {
+          dayNum  = nextCount++;
+          isOther = true;
+          const nextMonth = calMonth === 11 ? 0 : calMonth + 1;
+          const nextYear  = calMonth === 11 ? calYear + 1 : calYear;
+          dateKey = `${nextYear}-${String(nextMonth+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+        }
+
+        if(isOther) cell.classList.add('other-month');
+
+        const numWrap = document.createElement('div');
+        numWrap.className = 'cal-day-num';
+        numWrap.textContent = dayNum;
+        cell.appendChild(numWrap);
+
+        // Add events
+        const events = CAL_EVENTS[dateKey] || [];
+        const maxShow = 3;
+        events.slice(0, maxShow).forEach(ev => {
+          const evEl = document.createElement('div');
+          if(ev.isMore) {
+            evEl.className = 'cal-event-more';
+            evEl.textContent = ev.name;
+          } else {
+            evEl.className = `cal-event type-${ev.type}`;
+            evEl.textContent = ev.name;
+            // ⚠️ RULE 16: Click goes to Rama 2 parcels list, NOT individual parcel
+            evEl.title = 'Click to view parcels for this auction in Rama 2';
+            evEl.onclick = (e) => {
+              e.stopPropagation();
+              // In production: navigate to /research/parcels?auction_id=X
+              // For prototype: show alert with navigation intent
+              alert(`[Rama 2 Navigation]\nWould navigate to:\n/research/parcels?auction_id=<id>\n\nThis is a Rama 2 (Parcels) entry point.\nParcel#show is NOT accessible from Rama 1.`);
+            };
+          }
+          cell.appendChild(evEl);
+        });
+
+        grid.appendChild(cell);
+      }
+    }
+
+    function changeMonth(delta) {
+      calMonth += delta;
+      if(calMonth > 11) { calMonth = 0; calYear++; }
+      if(calMonth < 0)  { calMonth = 11; calYear--; }
+      renderCalendar();
+    }
+    function goToday() {
+      const now = new Date();
+      calYear  = now.getFullYear();
+      calMonth = now.getMonth();
+      renderCalendar();
+    }
+    function calViewMode(mode) {
+      document.querySelectorAll('.cal-view-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      // For prototype daily/weekly views are placeholders
+      if(mode !== 'month') {
+        alert(`[Prototype] ${mode.charAt(0).toUpperCase()+mode.slice(1)} view would render here.\nOnly Month view is implemented in this experiment.`);
+      }
+    }
+
+    // ─── TABLE ──────────────────────────────────────────────────────────────
+    function fmtAmount(n) {
+      if(n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B';
+      if(n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+      return '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+
+    function renderTableHeaders() {
+      const thead = document.getElementById('auction-thead');
+      if (!thead) return;
+
+      if (currentSubTab === 'prior') {
+        thead.innerHTML = `
+          <tr>
+            <th><div class="th-inner" onclick="sortTable('sale_date')">Sale Date <i data-lucide="arrow-down-to-line" class="sort-icon active" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="th-inner" onclick="sortTable('state')">State <i data-lucide="chevron-up" class="sort-icon active" style="width:14px;height:14px;color:var(--color-primary);"></i></div></th>
+            <th><div class="th-inner" onclick="sortTable('jurisdiction')">Jurisdiction <i data-lucide="arrow-down-to-line" class="sort-icon active" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="th-inner" onclick="sortTable('auction_type')">Auction <i data-lucide="arrow-down-to-line" class="sort-icon active" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="th-inner" onclick="sortTable('parcels')"># of Parcels <i data-lucide="arrow-down-to-line" class="sort-icon active" style="width:12px;height:12px;"></i></div></th>
+            <th>Raw Sale Results</th>
+          </tr>
+        `;
+      } else {
+        thead.innerHTML = `
+          <tr>
+            <th><div class="th-inner" onclick="sortTable('jurisdiction')">Jurisdiction <i data-lucide="chevrons-up-down" class="sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="th-inner" onclick="sortTable('state')">State <i data-lucide="chevrons-up-down" class="sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="th-inner" onclick="sortTable('sale_date')">Sale Date <i data-lucide="chevrons-up-down" class="sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="th-inner" onclick="sortTable('post_date')">Post Date <i data-lucide="chevrons-up-down" class="sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="th-inner" onclick="sortTable('auction_type')">Auction Type <i data-lucide="chevrons-up-down" class="sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="th-inner" onclick="sortTable('sale_venue')">Sale Venue <i data-lucide="chevrons-up-down" class="sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th>Bidding Procedures</th>
+            <th><div class="th-inner" onclick="sortTable('parcels')"># of Parcels <i data-lucide="chevron-down" class="sort-icon active" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="th-inner" onclick="sortTable('amount')">Aggregate Sale Amount <i data-lucide="chevrons-up-down" class="sort-icon" style="width:12px;height:12px;"></i></div></th>
+          </tr>
+        `;
+      }
+      lucide.createIcons();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('auction-tbody');
+      tbody.innerHTML = '';
+      AUCTIONS.forEach(a => {
+        const tr = document.createElement('tr');
+        // ⚠️ RULE 16: Row click → Rama 2 parcels list (auction context), NEVER Parcel#show
+        tr.onclick = () => {
+          window.location.href = `/research/parcels?auction_id=${a.id}`;
+        };
+        tr.title = `Click to view parcels for ${a.jurisdiction} in Rama 2`;
+
+        const typeClass  = 'badge-deed';
+        const venueClass = a.sale_venue === 'Online' ? 'badge-online' : 'badge-inperson';
+
+        if (currentSubTab === 'prior') {
+          // Tab 3 UI Match (Historical)
+          // Convert sale date to a past year for the prototype (e.g. 2026 -> 2021)
+          let pastDate = a.sale_date.replace('2026', '2021');
+          
+          tr.innerHTML = `
+            <td class="td-date" style="font-weight:700; color:var(--color-primary);">${pastDate}</td>
+            <td class="td-state" style="font-weight:700;">${a.state}</td>
+            <td class="td-jurisdiction" style="font-weight:700;">${a.jurisdiction}</td>
+            <td><span class="td-badge ${typeClass}">${a.auction_type}</span></td>
+            <td>${a.id === 5 ? '562' : ''}</td>
+            <td>
+              <button style="background:var(--color-primary); color:#fff; border:none; padding:6px 16px; border-radius:4px; font-weight:700; font-size:12px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.1);" onclick="event.stopPropagation(); alert('Buy now clicked')">Buy now $15.00</button>
+            </td>
+          `;
+        } else {
+          // Default UI
+          tr.innerHTML = `
+            <td class="td-jurisdiction">${a.jurisdiction}</td>
+            <td class="td-state">${a.state}</td>
+            <td class="td-date">${a.sale_date}</td>
+            <td class="td-date">${a.post_date}</td>
+            <td><span class="td-badge ${typeClass}">${a.auction_type}</span></td>
+            <td><span class="td-badge ${venueClass}">${a.sale_venue}</span></td>
+            <td style="font-size:var(--text-xs);color:var(--color-text-secondary);">${a.bidding}</td>
+            <td class="parcels-count">${a.parcels.toLocaleString()}</td>
+            <td class="agg-amount">${fmtAmount(a.amount)}</td>
+          `;
+        }
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+      lucide.createIcons();
+    }
+
+    // ─── DROPDOWN FILTERS ───────────────────────────────────────────────────
+    function toggleDropdown(id) {
+      document.getElementById('menu-' + id).classList.toggle('show');
+      document.getElementById('btn-' + id).classList.toggle('open');
+    }
+
+    function filterDropdown(input, listId) {
+      const filter = input.value.toLowerCase();
+      const labels = document.getElementById(listId).getElementsByTagName('label');
+      for (let i = 0; i < labels.length; i++) {
+        const text = labels[i].textContent || labels[i].innerText;
+        if (text.toLowerCase().indexOf(filter) > -1) {
+          labels[i].style.display = "";
+        } else {
+          labels[i].style.display = "none";
+        }
+      }
+    }
+
+    function toggleSettingsPopup() {
+      document.getElementById('menu-settings-popup').classList.toggle('show');
+      document.getElementById('btn-filter').classList.toggle('btn-active-red');
+    }
+
+    function toggleSavePopup() {
+      document.getElementById('menu-save-popup').classList.toggle('show');
+      document.getElementById('btn-save').classList.toggle('btn-active-blue');
+    }
+
+    // Close dropdowns if clicked outside
+    document.addEventListener('click', function(event) {
+      if (!event.target.closest('.custom-dropdown')) {
+        document.querySelectorAll('.custom-dropdown-menu').forEach(m => m.classList.remove('show'));
+        document.querySelectorAll('.custom-dropdown-btn').forEach(b => b.classList.remove('open'));
+      }
+      if (!event.target.closest('#menu-settings-popup') && !event.target.closest('#btn-filter')) {
+        const popup = document.getElementById('menu-settings-popup');
+        const btn = document.getElementById('btn-filter');
+        if (popup && popup.classList.contains('show')) {
+          popup.classList.remove('show');
+          btn.classList.remove('btn-active-red');
+        }
+      }
+      if (!event.target.closest('#menu-save-popup') && !event.target.closest('#btn-save')) {
+        const popup = document.getElementById('menu-save-popup');
+        const btn = document.getElementById('btn-save');
+        if (popup && popup.classList.contains('show')) {
+          popup.classList.remove('show');
+          btn.classList.remove('btn-active-blue');
+        }
+      }
+    });
+
+    // UX Prototype Interaction: When investor selects a state, naturally open the Jurisdiction dropdown to show the counties available
+    document.querySelectorAll('#list-state input[type="checkbox"]').forEach(chk => {
+      chk.addEventListener('change', function() {
+        if(this.checked) {
+          // Add a short delay to allow "applyFilters" visual feedback first
+          setTimeout(() => {
+            document.getElementById('menu-jurisdiction').classList.add('show');
+            document.getElementById('btn-jurisdiction').classList.add('open');
+          }, 300);
+        }
+      });
+    });
+
+    // ─── SORT ────────────────────────────────────────────────────────────────
+    let sortField = 'parcels', sortDir = -1;
+    function sortTable(field) {
+      if(sortField === field) sortDir = -sortDir;
+      else { sortField = field; sortDir = 1; }
+      AUCTIONS.sort((a,b) => {
+        let av = a[field], bv = b[field];
+        if(typeof av === 'string') return sortDir * av.localeCompare(bv);
+        return sortDir * (av - bv);
+      });
+      renderTable();
+    }
+
+    // ─── PAGINATION (prototype) ──────────────────────────────────────────────
+    function changePage(p) {
+      const btns = document.querySelectorAll('.page-btn');
+      btns.forEach(b => { if(!isNaN(b.textContent.trim())) b.classList.remove('active'); });
+      alert(`[Prototype] Would load page ${p} (GET /research/auctions?page=${p})`);
+    }
+
+    // ─── INIT ────────────────────────────────────────────────────────────────
+    renderTable(); // Pre-render table (hidden until list view)
+    renderCalendar();
+
+    // ─── INITIAL ICON PASS ───────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => lucide.createIcons());
+  </script>
+</body>
+</html>
+

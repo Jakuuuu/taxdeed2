@@ -30,13 +30,14 @@ Rails.application.configure do
                        "https://fonts.gstatic.com",
                        :data
 
-    # Imágenes: propio dominio + Google Maps tiles + OpenStreetMap tiles + data URIs + GCS
+    # Imágenes: propio dominio + Google Maps tiles + OpenStreetMap tiles + CartoDB tiles + data URIs + GCS
     policy.img_src     :self,
                        "https://maps.googleapis.com",
                        "https://maps.gstatic.com",
                        "https://streetviewpixels-pa.googleapis.com",
                        "https://storage.googleapis.com",
                        "https://*.tile.openstreetmap.org",
+                       "https://*.basemaps.cartocdn.com",
                        :data,
                        :blob
 

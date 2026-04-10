@@ -1,33 +1,32 @@
 <% content_for :title, "Property Search — TaxDeed Lion" %>
 
+<%# ══════════════════════════════════════════════════════════════════════
+     RAMA 2: Geographic Search Module — Two-Phase Flow
+     Phase 1: Geographic Overview (county pins + heatmap)
+     Phase 2: County Detail (parcel sidebar + GIS map)
+     Migrated from approved prototype: rama2-internal-flow.html
+     ══════════════════════════════════════════════════════════════════════ %>
+
 <% content_for :head do %>
 <style>
-  /* ── Layout principal ───────────────────────────── */
+  /* ── Layout auxiliar (inline styles specific to this view) ── */
   .parcels-shell {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - var(--rn-header-h));
+    display: flex; flex-direction: column;
+    height: calc(100vh - var(--rn-header-h, 56px));
     overflow: hidden;
   }
 
-  /* Topbar */
+  /* Topbar - Phase 2 only */
   .parcels-topbar {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.65rem 1.1rem;
-    background: #fff;
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.65rem 1.1rem; background: #fff;
     border-bottom: 1px solid var(--color-border);
-    flex-wrap: wrap;
-    z-index: 10;
-    flex-shrink: 0;
+    flex-wrap: wrap; z-index: 10; flex-shrink: 0;
   }
   .auction-selector-btn {
     display: inline-flex; align-items: center; gap: 0.45rem;
-    padding: 0.5rem 1rem;
-    border: 1.5px solid var(--color-primary);
-    border-radius: 8px; background: #fff;
-    color: var(--color-primary);
+    padding: 0.5rem 1rem; border: 1.5px solid var(--color-primary);
+    border-radius: 8px; background: #fff; color: var(--color-primary);
     font-family: var(--font); font-size: 0.8125rem; font-weight: 600;
     cursor: pointer; transition: all 0.15s; white-space: nowrap;
   }
@@ -51,21 +50,13 @@
   }
   .results-meta { font-size: 0.78rem; color: var(--color-text-muted); white-space: nowrap; }
 
-  /* Body con sidebar */
-  .parcels-body {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
+  /* Body con sidebar - Phase 2 only */
+  .parcels-body { display: flex; flex: 1; overflow: hidden; }
 
-  /* Sidebar de filtros — NUNCA se oculta */
+  /* Sidebar de filtros */
   .parcels-sidebar {
-    width: 220px;
-    flex-shrink: 0;
-    background: #F8F9FA;
-    border-right: 1px solid var(--color-border);
-    overflow-y: auto;
-    padding: 1rem;
+    width: 220px; flex-shrink: 0; background: #F8F9FA;
+    border-right: 1px solid var(--color-border); overflow-y: auto; padding: 1rem;
   }
   .sidebar-section-title {
     font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
@@ -77,8 +68,7 @@
   .sidebar-input {
     width: 100%; padding: 0.42rem 0.65rem; border: 1.5px solid var(--color-border);
     border-radius: 7px; font-size: 0.8rem; font-family: var(--font);
-    background: #fff; outline: none; transition: border-color .15s;
-    box-sizing: border-box;
+    background: #fff; outline: none; transition: border-color .15s; box-sizing: border-box;
   }
   .sidebar-input:focus { border-color: var(--color-primary); }
   .sidebar-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236c757d'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.6rem center; background-size: 8px; padding-right: 1.8rem; }
@@ -86,45 +76,23 @@
   .sidebar-clear { display: block; text-align: center; margin-top: 0.45rem; font-size: 0.75rem; color: var(--color-text-muted); cursor: pointer; }
   .sidebar-clear:hover { color: var(--color-danger); }
 
-  /* Zona de resultados (tabla o mapa) */
-  .parcels-results {
-    flex: 1;
-    overflow: hidden;
-    position: relative;
-  }
-
-  /* Mapa GIS */
-  #parcels-map {
-    width: 100%;
-    height: 100%;
-    display: none;
-  }
+  /* Zona GIS */
+  #parcels-map { width: 100%; height: 100%; display: none; }
   #parcels-map.active { display: block; }
 
   /* Tabla */
-  #parcels-table-zone {
-    height: 100%;
-    overflow-y: auto;
-    display: none;
-  }
+  #parcels-table-zone { height: 100%; overflow-y: auto; display: none; }
   #parcels-table-zone.active { display: block; }
 
-  /* Empty states */
-  .empty-auction-state {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    height: 60vh; text-align: center; padding: 2rem;
-  }
-  .empty-auction-state__icon { font-size: 3rem; margin-bottom: 1rem; }
-  .empty-auction-state__title { font-size: 1.15rem; font-weight: 700; color: var(--color-primary); margin-bottom: .4rem; }
-  .empty-auction-state__desc { font-size: .875rem; color: var(--color-text-muted); max-width: 340px; line-height: 1.6; margin-bottom: 1.5rem; }
+  /* Zona de resultados */
+  .parcels-results { flex: 1; overflow: hidden; position: relative; }
 
-  /* Auction picker modal — agrupado por estado */
+  /* Auction picker modal */
   .picker-state-group { border-bottom: 1px solid var(--color-border); }
   .picker-state-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: .7rem 1.1rem; cursor: pointer; background: #F8F9FA;
-    font-weight: 700; font-size: .875rem; color: var(--color-primary);
-    user-select: none;
+    font-weight: 700; font-size: .875rem; color: var(--color-primary); user-select: none;
   }
   .picker-state-header:hover { background: #EBF5FB; }
   .picker-state-badge { font-size: .7rem; background: var(--color-primary); color: #fff; padding: .15rem .5rem; border-radius: 12px; font-weight: 600; }
@@ -133,8 +101,7 @@
   .picker-auction-row {
     display: flex; align-items: center; gap: 1rem;
     padding: .6rem 1.25rem .6rem 2rem; cursor: pointer;
-    font-size: .8125rem; border-top: 1px solid var(--color-border);
-    transition: background .1s;
+    font-size: .8125rem; border-top: 1px solid var(--color-border); transition: background .1s;
   }
   .picker-auction-row:hover { background: #EBF5FB; }
   .picker-auction-row__name { flex: 1; font-weight: 500; }
@@ -143,12 +110,11 @@
   .picker-search { padding: .75rem 1.1rem; border-bottom: 1px solid var(--color-border); }
   .picker-search input {
     width: 100%; padding: .5rem .85rem; border: 1.5px solid var(--color-border);
-    border-radius: 8px; font-size: .8125rem; font-family: var(--font); outline: none;
-    box-sizing: border-box;
+    border-radius: 8px; font-size: .8125rem; font-family: var(--font); outline: none; box-sizing: border-box;
   }
   .picker-search input:focus { border-color: var(--color-primary); }
 
-  /* Mapa overlay cargando */
+  /* Loading/spinner */
   .map-loading-overlay {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
@@ -157,10 +123,16 @@
   }
   .map-spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Phase visibility control ── */
+  .r2-phase1-zone { display: block; }
+  .r2-phase2-zone { display: none; }
+  .r2-in-phase2 .r2-phase1-zone { display: none; }
+  .r2-in-phase2 .r2-phase2-zone { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
 </style>
 <% end %>
 
-<div class="parcels-shell">
+<div class="parcels-shell" id="r2-shell">
 
   <!-- ── BLUR BACKDROP & DRAWER CONTAINER ── -->
   <div id="map-backdrop" class="map-backdrop-blur" onclick="closeParcelDrawer()"></div>
@@ -168,229 +140,226 @@
     <div id="property-detail-content" style="height:100%;overflow-y:auto;background:var(--color-bg);"></div>
   </div>
 
-  <!-- ── TOP BAR ─────────────────────────────────────────────── -->
-  <%= form_with url: research_parcels_path, method: :get, local: true, id: "parcel-filter-form" do |f| %>
-    <%= f.hidden_field :auction_id, value: params[:auction_id] if params[:auction_id].present? %>
-    <%= f.hidden_field :state,      value: params[:state] if params[:state].present? && params[:auction_id].blank? %>
-    <%= f.hidden_field :county,     value: params[:county], id: "filter_county" %>
-    <%= f.hidden_field :min_bid,    value: params[:min_bid], id: "filter_min_bid" %>
-    <%= f.hidden_field :max_bid,    value: params[:max_bid], id: "filter_max_bid" %>
-    <%= f.hidden_field :property_type, value: params[:property_type], id: "filter_property_type" %>
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PHASE 1: GEOGRAPHIC OVERVIEW — Full-screen Leaflet Map
+       County pins with parcel count + heatmap radial
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="r2-phase1-zone" id="r2-phase1" style="flex:1; position:relative; overflow:hidden;">
+    <!-- Leaflet map fills entire zone -->
+    <div id="r2-overview-map" style="width:100%; height:100%; z-index:1;"></div>
 
-    <div class="parcels-topbar">
-      <!-- Selector de subasta / estado -->
-      <button type="button"
-              class="auction-selector-btn <%= 'has-auction' if @has_context %>"
-              onclick="openAuctionPicker()">
-        🏛
-        <% if @auction %>
-          <%= @auction.county %>, <%= @auction.state %>
-        <% elsif @selected_state && !@auction %>
-          All auctions in <%= @selected_state %>
-        <% else %>
-          Select Auction
+    <!-- Loading overlay -->
+    <div class="r2-loading" id="r2-phase1-loading">
+      <div class="r2-spinner"></div>
+      <span>Loading geographic overview…</span>
+    </div>
+
+    <!-- "Seleccionar eventos" button (overlay) -->
+    <button type="button" class="r2-events-btn" onclick="openAuctionPicker()" id="r2-events-btn">
+      🏛 Seleccionar eventos
+      <span class="r2-events-badge" id="r2-events-count">0</span>
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PHASE 2: COUNTY DETAIL — Topbar + Filter Sidebar + Table/Map
+       Activated when user selects a county (via pin click or auction picker)
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="r2-phase2-zone" id="r2-phase2">
+
+    <!-- ── TOP BAR ─────────────────────────────────────────── -->
+    <%= form_with url: research_parcels_path, method: :get, local: true, id: "parcel-filter-form" do |f| %>
+      <%= f.hidden_field :auction_id, value: params[:auction_id] if params[:auction_id].present? %>
+      <%= f.hidden_field :state,      value: params[:state] if params[:state].present? && params[:auction_id].blank? %>
+      <%= f.hidden_field :county,     value: params[:county], id: "filter_county" %>
+      <%= f.hidden_field :min_bid,    value: params[:min_bid], id: "filter_min_bid" %>
+      <%= f.hidden_field :max_bid,    value: params[:max_bid], id: "filter_max_bid" %>
+      <%= f.hidden_field :property_type, value: params[:property_type], id: "filter_property_type" %>
+
+      <div class="parcels-topbar">
+        <!-- Selector de subasta / estado -->
+        <button type="button"
+                class="auction-selector-btn <%= 'has-auction' if @has_context %>"
+                onclick="openAuctionPicker()">
+          🏛
+          <% if @auction %>
+            <%= @auction.county %>, <%= @auction.state %>
+          <% elsif @selected_state && !@auction %>
+            All auctions in <%= @selected_state %>
+          <% else %>
+            Select Auction
+          <% end %>
+          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+        </button>
+
+        <!-- Back to Phase 1 -->
+        <button type="button" class="auction-selector-btn" onclick="backToPhase1()" style="border-color:#6C757D; color:#6C757D;" title="Back to Geographic Overview">
+          ← Overview
+        </button>
+
+        <!-- Búsqueda inline -->
+        <% if @has_context %>
+          <div class="topbar-search">
+            <%= f.text_field :q, value: params[:q], placeholder: "Search address, parcel ID…",
+                id: "parcel-search", autocomplete: "off" %>
+          </div>
         <% end %>
-        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-      </button>
 
-      <!-- Búsqueda inline -->
-      <% if @has_context %>
-        <div class="topbar-search">
-          <%= f.text_field :q, value: params[:q], placeholder: "Search address, parcel ID…",
-              id: "parcel-search", autocomplete: "off" %>
+        <!-- Toggle List / Map -->
+        <div class="toggle-view-group">
+          <button type="button" class="toggle-view-btn active" id="toggle-list" onclick="setView('list')">☰ List</button>
+          <button type="button" class="toggle-view-btn" id="toggle-map" onclick="setView('map')">🗺 Map</button>
         </div>
-        <select class="per-page-sel" name="per_page" onchange="this.form.submit()">
+
+        <% if @has_context %>
+          <span class="results-meta">
+            <%= @parcels.total_count %> parcels
+          </span>
+        <% end %>
+
+        <!-- Per-page selector -->
+        <select class="per-page-sel" onchange="document.getElementById('filter_per_page').value=this.value; document.getElementById('parcel-filter-form').submit();">
           <% [25, 50, 100].each do |n| %>
-            <option value="<%= n %>" <%= 'selected' if @per_page.to_i == n %>><%= n %> / page</option>
+            <option value="<%= n %>" <%= 'selected' if @per_page == n %>><%= n %>/page</option>
           <% end %>
         </select>
-        <button type="submit" class="btn-sm btn-sm-primary" style="padding:.42rem .9rem;">Search</button>
-      <% end %>
-
-      <!-- Toggle vista -->
-      <% if @has_context %>
-        <div class="toggle-view-group">
-          <button type="button" class="toggle-view-btn" id="toggle-list" onclick="setView('list')">☰ List</button>
-          <button type="button" class="toggle-view-btn" id="toggle-map"  onclick="setView('map')">🗺 Map</button>
-        </div>
-        <% if @parcels.respond_to?(:total_count) %>
-          <span class="results-meta"><%= @parcels.total_count %> parcels</span>
-        <% end %>
-      <% end %>
-    </div>
-  <% end %>
-
-  <!-- ── BODY: sidebar + zona de resultados ─────────────────── -->
-  <div class="parcels-body">
-
-    <!-- Sidebar de filtros — visible con contexto -->
-    <% if @has_context %>
-    <aside class="parcels-sidebar">
-      <%= form_with url: research_parcels_path, method: :get, local: true, id: "sidebar-filter-form" do |f| %>
-        <% if @auction %>
-          <%= f.hidden_field :auction_id, value: @auction.id %>
-        <% elsif @selected_state %>
-          <%= f.hidden_field :state, value: @selected_state %>
-        <% end %>
-        <%= f.hidden_field :per_page, value: @per_page %>
-
-        <p class="sidebar-section-title">Search</p>
-        <%= f.text_field :q, value: params[:q], placeholder: "Address or APN…", class: "sidebar-input", id: "sidebar-q" %>
-
-        <% if @selected_state && !@auction && @state_auctions&.any? %>
-          <p class="sidebar-section-title">Auction</p>
-          <%= f.select :auction_id,
-              options_for_select(
-                [['All Auctions', '']] + @state_auctions.map { |a| ["#{a.county} — #{a.sale_date&.strftime('%b %d, %Y')}", a.id] },
-                params[:auction_id]
-              ),
-              {}, class: "sidebar-input sidebar-select" %>
-        <% end %>
-
-        <p class="sidebar-section-title">City</p>
-        <%= f.text_field :county, value: params[:county], placeholder: "County…", class: "sidebar-input" %>
-
-        <p class="sidebar-section-title">Property Type</p>
-        <%= f.select :property_type,
-            options_for_select([
-              ['All Types', ''],
-              ['Single Family', 'Single Family'],
-              ['Commercial', 'Commercial'],
-              ['Land / Lot', 'Lot'],
-              ['Mobile Home', 'Mobile Home'],
-              ['Condo', 'Condo'],
-              ['Multi-Family', 'Multi-Family']
-            ], params[:property_type]),
-            {}, class: "sidebar-input sidebar-select" %>
-
-        <p class="sidebar-section-title">Open Bid Range</p>
-        <div style="display:flex;gap:.4rem;">
-          <%= f.number_field :min_bid, value: params[:min_bid], placeholder: "Min $", class: "sidebar-input", style: "width:50%;" %>
-          <%= f.number_field :max_bid, value: params[:max_bid], placeholder: "Max $", class: "sidebar-input", style: "width:50%;" %>
-        </div>
-
-        <button type="submit" class="sidebar-apply">Apply Filters</button>
-        <% clear_path = @auction ? research_parcels_path(auction_id: @auction.id) : research_parcels_path(state: @selected_state) %>
-        <% if [params[:q], params[:county], params[:property_type], params[:min_bid], params[:max_bid]].any?(&:present?) %>
-          <%= link_to "✕ Clear filters", clear_path, class: "sidebar-clear" %>
-        <% end %>
-      <% end %>
-    </aside>
+        <%= f.hidden_field :per_page, id: "filter_per_page", value: @per_page %>
+      </div>
     <% end %>
 
-    <!-- Zona de resultados -->
-    <div class="parcels-results">
+    <!-- ── BODY: Sidebar + Results ──────────────────────────── -->
+    <div class="parcels-body">
 
-      <!-- ── Vista TABLA ── -->
-      <div id="parcels-table-zone" class="active">
-        <% if !@has_context %>
-          <div class="empty-auction-state">
-            <div class="empty-auction-state__icon">🏛️</div>
-            <h1 class="empty-auction-state__title">Select a State or Auction to Begin</h1>
-            <p class="empty-auction-state__desc">
-              Choose a U.S. state to see all its auctions, or pick a specific auction to browse properties.
-            </p>
-            <button type="button" class="btn-sm btn-sm-primary" style="font-size:.9rem;padding:.6rem 1.5rem;" onclick="openAuctionPicker()">
-              🏛 Browse Auctions
-            </button>
+      <!-- FILTER SIDEBAR -->
+      <% if @has_context %>
+        <aside class="parcels-sidebar">
+          <div class="sidebar-section-title">County / State</div>
+          <input type="text" class="sidebar-input" value="<%= @auction&.county || @selected_state %>" readonly
+                 style="background:#F0F0F0; cursor:not-allowed;">
+
+          <div class="sidebar-section-title">Bid Range</div>
+          <div style="display:flex; gap:6px; margin-bottom:4px;">
+            <input type="number" class="sidebar-input" placeholder="Min" id="sb_min_bid" value="<%= params[:min_bid] %>">
+            <input type="number" class="sidebar-input" placeholder="Max" id="sb_max_bid" value="<%= params[:max_bid] %>">
           </div>
 
-        <% elsif @parcels.empty? %>
-          <div class="empty-auction-state">
-            <div class="empty-auction-state__icon">🔍</div>
-            <h2 class="empty-auction-state__title">No parcels match</h2>
-            <p class="empty-auction-state__desc">Try adjusting your filters or clearing the search terms.</p>
-            <% clear_path = @auction ? research_parcels_path(auction_id: @auction.id) : research_parcels_path(state: @selected_state) %>
-            <%= link_to "Clear Filters", clear_path, class: "btn-sm btn-sm-outline" %>
-          </div>
+          <div class="sidebar-section-title">Property Type</div>
+          <select class="sidebar-input sidebar-select" id="sb_property_type">
+            <option value="">All</option>
+            <option value="Residential" <%= 'selected' if params[:property_type] == 'Residential' %>>Residential</option>
+            <option value="Commercial" <%= 'selected' if params[:property_type] == 'Commercial' %>>Commercial</option>
+            <option value="Vacant Land" <%= 'selected' if params[:property_type] == 'Vacant Land' %>>Vacant Land</option>
+          </select>
 
-        <% else %>
-          <div class="data-table-wrap" style="border-radius:0;border-left:0;border-right:0;border-top:0;">
-            <table class="data-table" id="parcels-table">
-              <thead>
-                <tr>
-                  <th>Address</th>
-                  <th>Parcel ID</th>
-                  <th>County / State</th>
-                  <th>Opening Bid</th>
-                  <th>Assessed Value</th>
-                  <th>Max Bid (30%)</th>
-                  <th>Delinquent</th>
-                  <th>Sale Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% @parcels.each do |parcel| %>
-                  <tr style="cursor:pointer;"
-                      onclick="openParcelDrawer('<%= research_parcel_path(parcel) %>')">
-                    <td>
-                      <div style="font-weight:600;color:var(--color-accent);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                        <%= parcel.address || '—' %>
-                      </div>
-                      <div style="font-size:.75rem;color:var(--color-text-muted);">
-                        <%= [parcel.city, parcel.zip_code].compact.join(' ') %>
-                      </div>
-                    </td>
-                    <td style="font-family:monospace;font-size:.8rem;"><%= parcel.parcel_id || '—' %></td>
-                    <td>
-                      <div><%= parcel.county %></div>
-                      <div style="font-size:.75rem;color:var(--color-text-muted);"><%= parcel.state %></div>
-                    </td>
-                    <td><strong><% if parcel.opening_bid %>$<%= number_with_delimiter(parcel.opening_bid.to_i) %><% else %>—<% end %></strong></td>
-                    <td><% if parcel.assessed_value %>$<%= number_with_delimiter(parcel.assessed_value.to_i) %><% else %>—<% end %></td>
-                    <td>
-                      <% if parcel.max_bid_30 %>
-                        <span style="color:var(--color-success);font-weight:600;">$<%= number_with_delimiter(parcel.max_bid_30.to_i) %></span>
-                      <% else %>—<% end %>
-                    </td>
-                    <td>
-                      <% if parcel.delinquent_amount %>
-                        <span style="color:var(--color-danger);">$<%= number_with_delimiter(parcel.delinquent_amount.to_f.round(2)) %></span>
-                      <% else %>—<% end %>
-                    </td>
-                    <td style="white-space:nowrap;font-size:.8rem;"><%= parcel.auction&.sale_date&.strftime("%b %d, %Y") || '—' %></td>
+          <button type="button" class="sidebar-apply" onclick="applySidebarFilters()">Apply Filters</button>
+          <% clear_path = @auction ? research_parcels_path(auction_id: @auction.id) : research_parcels_path(state: @selected_state) %>
+          <a href="<%= clear_path %>" class="sidebar-clear">Clear Filters</a>
+        </aside>
+      <% end %>
+
+      <!-- RESULTS ZONE -->
+      <div class="parcels-results">
+
+        <!-- ── Vista TABLA ── -->
+        <div id="parcels-table-zone" class="active">
+          <% if !@has_context %>
+            <div class="empty-auction-state">
+              <div class="empty-auction-state__icon">🏛</div>
+              <h2 class="empty-auction-state__title">Select a county from the map</h2>
+              <p class="empty-auction-state__desc">Click a county pin on the geographic overview or use the Auction Picker to begin.</p>
+              <button type="button" class="btn-sm btn-sm-primary" onclick="backToPhase1()">← Back to Overview</button>
+            </div>
+
+          <% elsif @parcels.blank? || @parcels.total_count == 0 %>
+            <div class="empty-auction-state">
+              <div class="empty-auction-state__icon">🔍</div>
+              <h2 class="empty-auction-state__title">No parcels match</h2>
+              <p class="empty-auction-state__desc">Try adjusting your filters or clearing the search terms.</p>
+              <% clear_path = @auction ? research_parcels_path(auction_id: @auction.id) : research_parcels_path(state: @selected_state) %>
+              <%= link_to "Clear Filters", clear_path, class: "btn-sm btn-sm-outline" %>
+            </div>
+
+          <% else %>
+            <div class="data-table-wrap" style="border-radius:0;border-left:0;border-right:0;border-top:0;">
+              <table class="data-table" id="parcels-table">
+                <thead>
+                  <tr>
+                    <th>Address</th>
+                    <th>Parcel ID</th>
+                    <th>County / State</th>
+                    <th>Opening Bid</th>
+                    <th>Assessed Value</th>
+                    <th>Max Bid (30%)</th>
+                    <th>Delinquent</th>
+                    <th>Sale Date</th>
                   </tr>
-                <% end %>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  <% @parcels.each do |parcel| %>
+                    <tr style="cursor:pointer;"
+                        onclick="openParcelDrawer('<%= research_parcel_path(parcel) %>')">
+                      <td>
+                        <div style="font-weight:600;color:var(--color-accent);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                          <%= parcel.address || '—' %>
+                        </div>
+                        <div style="font-size:.75rem;color:var(--color-text-muted);">
+                          <%= [parcel.city, parcel.zip_code].compact.join(' ') %>
+                        </div>
+                      </td>
+                      <td style="font-family:monospace;font-size:.8rem;"><%= parcel.parcel_id || '—' %></td>
+                      <td>
+                        <div><%= parcel.county %></div>
+                        <div style="font-size:.75rem;color:var(--color-text-muted);"><%= parcel.state %></div>
+                      </td>
+                      <td><strong><% if parcel.opening_bid %>$<%= number_with_delimiter(parcel.opening_bid.to_i) %><% else %>—<% end %></strong></td>
+                      <td><% if parcel.assessed_value %>$<%= number_with_delimiter(parcel.assessed_value.to_i) %><% else %>—<% end %></td>
+                      <td>
+                        <% if parcel.max_bid_30 %>
+                          <span style="color:var(--color-success);font-weight:600;">$<%= number_with_delimiter(parcel.max_bid_30.to_i) %></span>
+                        <% else %>—<% end %>
+                      </td>
+                      <td>
+                        <% if parcel.delinquent_amount %>
+                          <span style="color:var(--color-danger);">$<%= number_with_delimiter(parcel.delinquent_amount.to_f.round(2)) %></span>
+                        <% else %>—<% end %>
+                      </td>
+                      <td style="white-space:nowrap;font-size:.8rem;"><%= parcel.auction&.sale_date&.strftime("%b %d, %Y") || '—' %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
 
-            <!-- Paginación -->
-            <div class="pagination">
-              <span>
-                Showing <%= [@parcels.offset_value + 1, @parcels.total_count].min %>–<%= [@parcels.offset_value + @parcels.length, @parcels.total_count].min %>
-                of <%= @parcels.total_count %> parcels
-              </span>
-              <div class="pagination__btns">
-                <% if @parcels.current_page > 1 %>
-                  <%= link_to "← Prev", research_parcels_path(request.query_parameters.merge(page: @parcels.current_page - 1)), class: "pagination__btn" %>
-                <% else %>
-                  <button class="pagination__btn" disabled>← Prev</button>
-                <% end %>
-                <span class="pagination__btn active"><%= @parcels.current_page %></span>
-                <% if @parcels.current_page < @parcels.total_pages %>
-                  <%= link_to "Next →", research_parcels_path(request.query_parameters.merge(page: @parcels.current_page + 1)), class: "pagination__btn" %>
-                <% else %>
-                  <button class="pagination__btn" disabled>Next →</button>
-                <% end %>
+              <!-- Paginación -->
+              <div class="pagination">
+                <span>
+                  Showing <%= [@parcels.offset_value + 1, @parcels.total_count].min %>–<%= [@parcels.offset_value + @parcels.length, @parcels.total_count].min %>
+                  of <%= @parcels.total_count %> parcels
+                </span>
+                <div class="pagination__btns">
+                  <% if @parcels.current_page > 1 %>
+                    <%= link_to "← Prev", research_parcels_path(request.query_parameters.merge(page: @parcels.current_page - 1)), class: "pagination__btn" %>
+                  <% else %>
+                    <button class="pagination__btn" disabled>← Prev</button>
+                  <% end %>
+                  <span class="pagination__btn active"><%= @parcels.current_page %></span>
+                  <% if @parcels.current_page < @parcels.total_pages %>
+                    <%= link_to "Next →", research_parcels_path(request.query_parameters.merge(page: @parcels.current_page + 1)), class: "pagination__btn" %>
+                  <% else %>
+                    <button class="pagination__btn" disabled>Next →</button>
+                  <% end %>
+                </div>
               </div>
             </div>
-          </div>
-        <% end %>
-      </div><!-- /#parcels-table-zone -->
+          <% end %>
+        </div><!-- /#parcels-table-zone -->
 
-      <!-- ── Vista MAPA ── -->
-      <div id="parcels-map">
-        <% if !@has_context %>
-          <div class="empty-auction-state" style="position:absolute;inset:0;background:#F8F9FA;">
-            <div class="empty-auction-state__icon">🗺</div>
-            <h2 class="empty-auction-state__title">Select a state or auction to load the map</h2>
-            <button type="button" class="btn-sm btn-sm-primary" onclick="openAuctionPicker()">Browse Auctions</button>
-          </div>
-        <% end %>
-      </div>
+        <!-- ── Vista MAPA (Phase 2 GIS) ── -->
+        <div id="parcels-map"></div>
 
-    </div><!-- /.parcels-results -->
-  </div><!-- /.parcels-body -->
+      </div><!-- /.parcels-results -->
+    </div><!-- /.parcels-body -->
+  </div><!-- /#r2-phase2 -->
+
 </div><!-- /.parcels-shell -->
 
 
@@ -463,41 +432,203 @@
 </div>
 
 <script>
-// ── TOGGLE VISTA LISTA / MAPA ────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// RAMA 2: Two-Phase Geographic Flow — JavaScript Controller
+// ══════════════════════════════════════════════════════════════
+
+// ── Configuration ────────────────────────────────────────────
+var COUNTY_OVERVIEW_URL = '<%= county_overview_research_parcels_path(format: :json) %>';
+var MAP_DATA_URL        = '<%= map_data_research_parcels_path(format: :json) %>';
+var PARCELS_BASE_PATH   = '<%= research_parcels_path %>';
+var AUCTION_ID          = '<%= @auction&.id %>';
+var SELECTED_STATE      = '<%= @selected_state %>';
+var HAS_CONTEXT         = <%= @has_context ? 'true' : 'false' %>;
+var TOTAL_AUCTIONS      = <%= @auctions_by_state.values.flatten.size %>;
+
+// ── State ────────────────────────────────────────────────────
 var STORAGE_KEY     = 'parcels_view_toggle';
-var AUCTION_ID      = '<%= @auction&.id %>';
-var SELECTED_STATE  = '<%= @selected_state %>';
-var HAS_CONTEXT     = <%= @has_context ? 'true' : 'false' %>;
-var MAP_DATA_URL    = '<%= map_data_research_parcels_path(format: :json) %>';
-var MAPS_API_KEY    = '<%= ENV["GOOGLE_MAPS_API_KEY"] %>';
-var mapInitialized  = false;
 var currentView     = localStorage.getItem(STORAGE_KEY) || 'list';
+var overviewMap     = null;
+var phase2Map       = null;
+var mapInitialized  = false;
+var currentPhase    = HAS_CONTEXT ? 2 : 1;
 
-// Centroides aproximados de estados US para centrado de mapa
-var STATE_CENTERS = {
-  'AL': {lat:32.8,lng:-81.1}, 'AK': {lat:64.2,lng:-152.5}, 'AZ': {lat:34.0,lng:-111.1},
-  'AR': {lat:35.2,lng:-91.8}, 'CA': {lat:36.8,lng:-119.4}, 'CO': {lat:39.1,lng:-105.4},
-  'CT': {lat:41.6,lng:-72.7}, 'DE': {lat:39.3,lng:-75.5}, 'FL': {lat:27.7,lng:-81.5},
-  'GA': {lat:32.2,lng:-83.6}, 'HI': {lat:19.9,lng:-155.6}, 'ID': {lat:44.1,lng:-114.7},
-  'IL': {lat:40.3,lng:-89.0}, 'IN': {lat:40.3,lng:-86.1}, 'IA': {lat:42.0,lng:-93.2},
-  'KS': {lat:38.5,lng:-98.8}, 'KY': {lat:37.8,lng:-84.3}, 'LA': {lat:31.2,lng:-92.0},
-  'ME': {lat:45.3,lng:-69.4}, 'MD': {lat:39.0,lng:-76.6}, 'MA': {lat:42.4,lng:-71.4},
-  'MI': {lat:44.3,lng:-85.6}, 'MN': {lat:46.7,lng:-94.6}, 'MS': {lat:32.7,lng:-89.7},
-  'MO': {lat:37.9,lng:-91.8}, 'MT': {lat:46.9,lng:-110.4}, 'NE': {lat:41.1,lng:-98.3},
-  'NV': {lat:38.8,lng:-116.4}, 'NH': {lat:43.2,lng:-71.6}, 'NJ': {lat:40.1,lng:-74.5},
-  'NM': {lat:34.8,lng:-106.2}, 'NY': {lat:43.0,lng:-75.0}, 'NC': {lat:35.6,lng:-79.8},
-  'ND': {lat:47.5,lng:-100.5}, 'OH': {lat:40.4,lng:-82.9}, 'OK': {lat:35.0,lng:-97.1},
-  'OR': {lat:43.8,lng:-120.6}, 'PA': {lat:41.2,lng:-77.2}, 'RI': {lat:41.6,lng:-71.5},
-  'SC': {lat:33.8,lng:-81.2}, 'SD': {lat:43.9,lng:-99.4}, 'TN': {lat:35.5,lng:-86.0},
-  'TX': {lat:31.0,lng:-100.0}, 'UT': {lat:39.3,lng:-111.1}, 'VT': {lat:44.0,lng:-72.7},
-  'VA': {lat:37.8,lng:-79.4}, 'WA': {lat:47.8,lng:-120.7}, 'WV': {lat:38.6,lng:-80.6},
-  'WI': {lat:43.8,lng:-88.8}, 'WY': {lat:43.1,lng:-107.6}, 'DC': {lat:38.9,lng:-77.0}
-};
+// ── INITIALIZATION — Turbo Drive compatible ───────────────────
+function r2Init() {
+  var eventsEl = document.getElementById('r2-events-count');
+  if (!eventsEl) return; // Not on this page
 
-document.addEventListener('DOMContentLoaded', function() {
-  applyView(currentView, false);
-});
+  // Clean up any existing Leaflet instances before re-init (Turbo navigation)
+  if (overviewMap) { try { overviewMap.remove(); } catch(e) {} }
+  if (phase2Map)   { try { phase2Map.remove(); }   catch(e) {} }
+  overviewMap    = null;
+  phase2Map      = null;
+  mapInitialized = false;
 
+  eventsEl.textContent = TOTAL_AUCTIONS;
+
+  if (HAS_CONTEXT) {
+    enterPhase2();
+    applyView(currentView, true);
+  } else {
+    enterPhase1();
+  }
+}
+
+// Fire on initial load AND on every Turbo navigation
+document.addEventListener('DOMContentLoaded', r2Init);
+document.addEventListener('turbo:load', r2Init);
+
+
+
+
+
+// ══════════════════════════════════════════════════════════════
+// PHASE 1: Geographic Overview
+// ══════════════════════════════════════════════════════════════
+function enterPhase1() {
+  currentPhase = 1;
+  var shell = document.getElementById('r2-shell');
+  shell.classList.remove('r2-in-phase2');
+  initOverviewMap();
+}
+
+
+function initOverviewMap() {
+  if (overviewMap) return; // already initialized
+
+  var mapDiv = document.getElementById('r2-overview-map');
+  if (!mapDiv) return;
+
+  // Wait for Leaflet to be available (it loads from CDN in <head>, but
+  // ES module scripts from importmap can execute before it's ready)
+  if (typeof L === 'undefined') {
+    var attempts = 0;
+    var poll = setInterval(function() {
+      attempts++;
+      if (typeof L !== 'undefined') {
+        clearInterval(poll);
+        initOverviewMap();
+      } else if (attempts >= 50) { // 5 second timeout
+        clearInterval(poll);
+        var loading = document.getElementById('r2-phase1-loading');
+        if (loading) loading.innerHTML = '<span style="color:var(--color-danger);">⚠️ Map library failed to load. <a href="" style="text-decoration:underline;">Refresh</a></span>';
+      }
+    }, 100);
+    return;
+  }
+
+  // Initialize Leaflet map — US centered
+  overviewMap = L.map(mapDiv, {
+    zoomControl: true,
+    attributionControl: false
+  }).setView([39.8, -98.5], 5);
+
+  // CartoDB light tile layer
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 18,
+    subdomains: 'abcd'
+  }).addTo(overviewMap);
+
+  // Fetch county overview data
+  fetch(COUNTY_OVERVIEW_URL, { headers: { 'Accept': 'application/json' } })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(counties) {
+      // Always remove loading spinner first
+      var loading = document.getElementById('r2-phase1-loading');
+      if (loading) loading.remove();
+
+      if (!counties || !counties.length) return;
+
+      // ── Heatmap simulation: native Leaflet circles (no external plugin needed) ──
+      counties.forEach(function(c) {
+        var intensity = Math.min(c.parcel_count / 20, 1);
+        var color = intensity < 0.3 ? '#3498DB' :
+                    intensity < 0.6 ? '#1ABC9C' :
+                    intensity < 0.8 ? '#F1C40F' : '#E67E22';
+        L.circle([c.lat, c.lng], {
+          radius: 35000 + (intensity * 65000), // 35km–100km radius
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.15,
+          opacity: 0.25,
+          weight: 1
+        }).addTo(overviewMap);
+      });
+
+      // ── County pins ──
+      counties.forEach(function(county) {
+        var count = county.parcel_count;
+        var sizeClass = count < 10 ? 'r2-county-pin--sm' :
+                        count < 50 ? 'r2-county-pin--md' :
+                        count < 200 ? 'r2-county-pin--lg' : 'r2-county-pin--xl';
+
+        var size = count < 10 ? 36 : count < 50 ? 44 : count < 200 ? 54 : 64;
+
+        var icon = L.divIcon({
+          className: '',
+          html: '<div class="r2-county-pin ' + sizeClass + '">' +
+                  count +
+                  '<span class="r2-county-pin__label">' + county.county + ', ' + county.state + '</span>' +
+                '</div>',
+          iconSize: [size, size],
+          iconAnchor: [size/2, size/2]
+        });
+
+        var marker = L.marker([county.lat, county.lng], { icon: icon });
+
+        // Popup with county info
+        var dates = (county.sale_dates || []).join(', ') || '—';
+        var amt = county.total_amount ? '$' + Math.round(county.total_amount).toLocaleString() : '—';
+        var popupHtml =
+          '<div class="r2-popup">' +
+            '<h4>' + county.county + ', ' + county.state + '</h4>' +
+            '<div class="r2-popup-row"><span>Parcels</span><strong>' + county.parcel_count + '</strong></div>' +
+            '<div class="r2-popup-row"><span>Auctions</span><strong>' + county.auction_count + '</strong></div>' +
+            '<div class="r2-popup-row"><span>Total Amount</span><strong>' + amt + '</strong></div>' +
+            '<div class="r2-popup-row"><span>Sale Dates</span><strong>' + dates + '</strong></div>' +
+            '<button class="r2-popup-cta" onclick="selectCountyFromMap(\'' + encodeURIComponent(county.state) + '\')">View Parcels →</button>' +
+          '</div>';
+        marker.bindPopup(popupHtml, { maxWidth: 280 });
+        marker.addTo(overviewMap);
+      });
+
+      // Fit map to markers bounds
+      try {
+        var bounds = counties.map(function(c) { return [c.lat, c.lng]; });
+        overviewMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
+      } catch(e) { /* ignore fitBounds edge cases */ }
+    })
+    .catch(function(err) {
+      console.error('County overview load failed:', err);
+      var loading = document.getElementById('r2-phase1-loading');
+      if (loading) loading.innerHTML = '<span style="color:var(--color-danger);">⚠️ Failed to load geographic data. <button onclick="initOverviewMap()" style="text-decoration:underline;background:none;border:none;cursor:pointer;">Retry</button></span>';
+    });
+}
+
+
+// Navigate from Phase 1 pin → Phase 2
+function selectCountyFromMap(encodedState) {
+  window.location.href = PARCELS_BASE_PATH + '?state=' + encodedState;
+}
+
+function backToPhase1() {
+  window.location.href = PARCELS_BASE_PATH;
+}
+
+// ══════════════════════════════════════════════════════════════
+// PHASE 2: County Detail (Table + GIS Map)
+// ══════════════════════════════════════════════════════════════
+function enterPhase2() {
+  currentPhase = 2;
+  var shell = document.getElementById('r2-shell');
+  shell.classList.add('r2-in-phase2');
+}
+
+// ── TOGGLE VISTA LISTA / MAPA ────────────────────────────────
 function setView(view) {
   currentView = view;
   localStorage.setItem(STORAGE_KEY, view);
@@ -516,7 +647,7 @@ function applyView(view, loadMap) {
     mapZone.classList.add('active');
     if (btnList) btnList.classList.remove('active');
     if (btnMap)  btnMap.classList.add('active');
-    if (loadMap && HAS_CONTEXT && !mapInitialized) initParcelMap();
+    if (loadMap && HAS_CONTEXT && !mapInitialized) initPhase2Map();
   } else {
     mapZone.classList.remove('active');
     tableZone.classList.add('active');
@@ -525,42 +656,62 @@ function applyView(view, loadMap) {
   }
 }
 
-// ── MAPA GIS CON CLUSTERING ───────────────────────────────────
-function initParcelMap() {
+// ── Phase 2 GIS Map (Leaflet — parcelas individuales) ────────
+function initPhase2Map() {
   if (mapInitialized) return;
 
   var mapDiv = document.getElementById('parcels-map');
 
   // Loading overlay
   var overlay = document.createElement('div');
-  overlay.className = 'map-loading-overlay';
-  overlay.id = 'map-loading';
-  overlay.innerHTML = '<div class="map-spinner"></div><span>Loading parcels map…</span>';
+  overlay.className = 'r2-loading';
+  overlay.id = 'r2-phase2-loading';
+  overlay.innerHTML = '<div class="r2-spinner"></div><span>Loading parcels map…</span>';
   mapDiv.appendChild(overlay);
 
-  // Cargar Google Maps dinámicamente
-  if (typeof google === 'undefined') {
-    var s = document.createElement('script');
-    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + MAPS_API_KEY + '&callback=gMapsReady';
-    s.async = true; s.defer = true;
-    document.head.appendChild(s);
-  } else {
-    gMapsReady();
-  }
-}
+  // State centers for initial positioning
+  var STATE_CENTERS = {
+    'AL': [32.8,-86.8], 'AK': [64.2,-152.5], 'AZ': [34.0,-111.1],
+    'AR': [35.2,-91.8], 'CA': [36.8,-119.4], 'CO': [39.1,-105.4],
+    'CT': [41.6,-72.7], 'DE': [39.3,-75.5], 'FL': [27.7,-81.5],
+    'GA': [32.2,-83.6], 'HI': [19.9,-155.6], 'ID': [44.1,-114.7],
+    'IL': [40.3,-89.0], 'IN': [40.3,-86.1], 'IA': [42.0,-93.2],
+    'KS': [38.5,-98.8], 'KY': [37.8,-84.3], 'LA': [31.2,-92.0],
+    'ME': [45.3,-69.4], 'MD': [39.0,-76.6], 'MA': [42.4,-71.4],
+    'MI': [44.3,-85.6], 'MN': [46.7,-94.6], 'MS': [32.7,-89.7],
+    'MO': [37.9,-91.8], 'MT': [46.9,-110.4], 'NE': [41.1,-98.3],
+    'NV': [38.8,-116.4], 'NH': [43.2,-71.6], 'NJ': [40.1,-74.5],
+    'NM': [34.8,-106.2], 'NY': [43.0,-75.0], 'NC': [35.6,-79.8],
+    'ND': [47.5,-100.5], 'OH': [40.4,-82.9], 'OK': [35.0,-97.1],
+    'OR': [43.8,-120.6], 'PA': [41.2,-77.2], 'RI': [41.6,-71.5],
+    'SC': [33.8,-81.2], 'SD': [43.9,-99.4], 'TN': [35.5,-86.0],
+    'TX': [31.0,-100.0], 'UT': [39.3,-111.1], 'VT': [44.0,-72.7],
+    'VA': [37.8,-79.4], 'WA': [47.8,-120.7], 'WV': [38.6,-80.6],
+    'WI': [43.8,-88.8], 'WY': [43.1,-107.6], 'DC': [38.9,-77.0]
+  };
 
-window.gMapsReady = function() {
-  var mapDiv   = document.getElementById('parcels-map');
-  var gmap = new google.maps.Map(mapDiv, {
-    zoom: 10,
-    center: { lat: 27.5, lng: -81.5 },  // Florida por defecto
-    mapTypeId: 'roadmap',
-    streetViewControl: false,
-    fullscreenControl: true,
-    mapTypeControl: false
-  });
+  var center = (SELECTED_STATE && STATE_CENTERS[SELECTED_STATE])
+    ? STATE_CENTERS[SELECTED_STATE]
+    : [27.7, -81.5];
+  var zoom = AUCTION_ID ? 10 : 7;
 
-  // Fetch parcelas GeoJSON — soporta auction_id o state
+  phase2Map = L.map(mapDiv, {
+    zoomControl: true,
+    attributionControl: false
+  }).setView(center, zoom);
+
+  // Satellite/hybrid tile layer for Phase 2 GIS
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19
+  }).addTo(phase2Map);
+
+  // Labels overlay
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    subdomains: 'abcd'
+  }).addTo(phase2Map);
+
+  // Fetch parcel data
   var fetchUrl = MAP_DATA_URL;
   if (AUCTION_ID) {
     fetchUrl += '?auction_id=' + AUCTION_ID;
@@ -568,91 +719,104 @@ window.gMapsReady = function() {
     fetchUrl += '?state=' + SELECTED_STATE;
   }
 
-  fetch(fetchUrl, {
-    headers: { 'Accept': 'application/json' }
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(parcels) {
-    var overlay = document.getElementById('map-loading');
-    if (overlay) overlay.remove();
+  fetch(fetchUrl, { headers: { 'Accept': 'application/json' } })
+    .then(function(r) { return r.json(); })
+    .then(function(parcels) {
+      var loadEl = document.getElementById('r2-phase2-loading');
+      if (loadEl) loadEl.remove();
 
-    if (!parcels.length) return;
+      if (!parcels.length) return;
 
-    // Centrar mapa: usar centroide del estado si modo state, si no primera parcela
-    if (!AUCTION_ID && SELECTED_STATE && STATE_CENTERS[SELECTED_STATE]) {
-      gmap.setCenter(STATE_CENTERS[SELECTED_STATE]);
-      gmap.setZoom(7);
-    } else {
-      gmap.setCenter({ lat: parcels[0].lat, lng: parcels[0].lng });
-    }
+      // Center on first parcel if single auction
+      if (AUCTION_ID && parcels[0]) {
+        phase2Map.setView([parcels[0].lat, parcels[0].lng], 12);
+      }
 
-    // Crear markers
-    var markers = parcels.map(function(p) {
-      var marker = new google.maps.Marker({
-        position: { lat: p.lat, lng: p.lng },
-        title: p.address
+      // MarkerCluster group
+      var clusterGroup = L.markerClusterGroup({
+        chunkedLoading: true,
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true
       });
 
-      var infoContent = '<div style="font-family:var(--font, sans-serif);min-width:200px;">' +
-        '<div style="font-weight:700;color:#1E3A5F;font-size:.9rem;margin-bottom:.3rem;">' + (p.address || '—') + '</div>' +
-        '<div style="font-size:.78rem;color:#6C757D;margin-bottom:.45rem;">' + [p.county, p.state].filter(Boolean).join(', ') + '</div>' +
-        (p.opening_bid ? '<div style="font-size:.85rem;font-weight:700;color:#0F5132;">Opening Bid: $' + Math.round(p.opening_bid).toLocaleString() + '</div>' : '') +
-        '<a href="javascript:void(0)" onclick="openParcelDrawer(\'/research/parcels/' + p.id + '\')" style="display:inline-block;margin-top:.5rem;font-size:.78rem;font-weight:600;color:#1E3A5F;text-decoration:none;">View Details →</a>' +
-        '</div>';
+      parcels.forEach(function(p) {
+        if (!p.lat || !p.lng) return;
 
-      var infoWindow = new google.maps.InfoWindow({ content: infoContent });
-      marker.addListener('click', function() { infoWindow.open(gmap, marker); });
-      return marker;
+        var marker = L.marker([p.lat, p.lng]);
+
+        var bid = p.opening_bid ? '$' + Math.round(p.opening_bid).toLocaleString() : '—';
+        var popupHtml =
+          '<div class="r2-popup">' +
+            '<h4>' + (p.address || 'Unknown') + '</h4>' +
+            '<div class="r2-popup-row"><span>County</span><strong>' + [p.county, p.state].filter(Boolean).join(', ') + '</strong></div>' +
+            '<div class="r2-popup-row"><span>Opening Bid</span><strong>' + bid + '</strong></div>' +
+            '<button class="r2-popup-cta" onclick="openParcelDrawer(\'/research/parcels/' + p.id + '\')">View Property Card →</button>' +
+          '</div>';
+
+        marker.bindPopup(popupHtml, { maxWidth: 280 });
+        clusterGroup.addLayer(marker);
+      });
+
+      phase2Map.addLayer(clusterGroup);
+      mapInitialized = true;
+    })
+    .catch(function(err) {
+      console.error('Phase 2 map load failed:', err);
+      var loadEl = document.getElementById('r2-phase2-loading');
+      if (loadEl) loadEl.innerHTML = '<span style="color:var(--color-danger);">⚠️ Failed to load parcel map data.</span>';
     });
-
-    mapInitialized = true;
-  })
-  .catch(function(err) {
-    var overlay = document.getElementById('map-loading');
-    if (overlay) { overlay.innerHTML = '<span style="color:var(--color-danger);">⚠️ Failed to load map data.</span>'; }
-  });
-};
+}
 
 // ── PARCEL DRAWER (Overlay) ──────────────────────────────────
 function openParcelDrawer(url) {
-  var overlay = document.getElementById('property-detail-overlay');
+  var overlay  = document.getElementById('property-detail-overlay');
   var backdrop = document.getElementById('map-backdrop');
-  var content = document.getElementById('property-detail-content');
-  
+  var content  = document.getElementById('property-detail-content');
+
   backdrop.classList.add('is-open');
   overlay.classList.add('is-open');
-  
-  // Set internally URL
   window.history.pushState({ path: url }, '', url);
-  
+
   content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--color-text-muted);"><div class="map-spinner"></div></div>';
-  
+
   fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-    .then(r => r.text())
-    .then(html => {
-      content.innerHTML = html;
-    })
-    .catch(err => {
+    .then(function(r) { return r.text(); })
+    .then(function(html) { content.innerHTML = html; })
+    .catch(function(err) {
       content.innerHTML = '<div style="padding:2rem;color:var(--color-danger);text-align:center;">Failed to load property details. <br><button onclick="closeParcelDrawer()" class="btn-sm btn-sm-outline" style="margin-top:1rem;">Close</button></div>';
     });
 }
 
 function closeParcelDrawer() {
-  var overlay = document.getElementById('property-detail-overlay');
+  var overlay  = document.getElementById('property-detail-overlay');
   var backdrop = document.getElementById('map-backdrop');
   if (overlay) overlay.classList.remove('is-open');
   if (backdrop) backdrop.classList.remove('is-open');
-  
-  var currentUrl = new URL(window.location);
-  currentUrl.pathname = '<%= research_parcels_path %>';
-  window.history.pushState({}, '', currentUrl.href);
+
+  // Restore URL: keep auction_id / state params but remove any parcel-specific path/params
+  var cleanUrl = new URL(window.location);
+  cleanUrl.pathname = PARCELS_BASE_PATH;
+  cleanUrl.searchParams.delete('parcel_id'); // scrub parcel context; keep auction_id / state
+  window.history.pushState({}, '', cleanUrl.href);
 }
 
 window.addEventListener('popstate', function(e) {
-  if (window.location.pathname === '<%= research_parcels_path %>') {
+  if (window.location.pathname === PARCELS_BASE_PATH) {
     closeParcelDrawer();
   }
 });
+
+// ── SIDEBAR FILTERS ──────────────────────────────────────────
+function applySidebarFilters() {
+  var form       = document.getElementById('parcel-filter-form');
+  var minBid     = document.getElementById('sb_min_bid');
+  var maxBid     = document.getElementById('sb_max_bid');
+  var propType   = document.getElementById('sb_property_type');
+  if (minBid)   document.getElementById('filter_min_bid').value = minBid.value;
+  if (maxBid)   document.getElementById('filter_max_bid').value = maxBid.value;
+  if (propType) document.getElementById('filter_property_type').value = propType.value;
+  form.submit();
+}
 
 // ── AUCTION PICKER ────────────────────────────────────────────
 function openAuctionPicker() {
@@ -668,20 +832,15 @@ function closeAuctionPickerDirect() {
 }
 function selectAuction(id) {
   closeAuctionPickerDirect();
-  window.location.href = '<%= research_parcels_path %>?auction_id=' + id;
+  window.location.href = PARCELS_BASE_PATH + '?auction_id=' + id;
 }
 function showStateAuctions(event, stateId) {
   document.querySelectorAll('.master-col-item').forEach(function(el) { el.classList.remove('active'); });
   event.currentTarget.classList.add('active');
-
   document.querySelectorAll('.picker-state-details').forEach(function(el) { el.style.display = 'none'; });
   document.getElementById('state-auctions-' + stateId).style.display = 'block';
-
   var searchInput = document.getElementById('picker-search-input');
-  if (searchInput.value) {
-    searchInput.value = '';
-    filterPickerRows('');
-  }
+  if (searchInput && searchInput.value) { searchInput.value = ''; filterPickerRows(''); }
 }
 function filterPickerRows(query) {
   var q = query.toLowerCase().trim();
@@ -705,7 +864,8 @@ function filterPickerRows(query) {
     var banner = document.createElement('div');
     banner.style.cssText = 'background:' + (pct >= 90 ? '#FEE2E2' : '#FEF3C7') + ';color:' + (pct >= 90 ? '#991B1B' : '#92400E') + ';padding:.55rem 1.1rem;font-size:.78rem;font-weight:500;text-align:center;border-bottom:1px solid ' + (pct >= 90 ? '#FECACA' : '#FDE68A') + ';';
     banner.textContent = (pct >= 90 ? '🔴' : '🟡') + ' Property Reports: ' + used + ' / ' + limit + ' used (' + pct + '%)' + (pct >= 90 ? ' — Upgrade recommended.' : ' — Running low.');
-    document.querySelector('.parcels-topbar')?.before(banner);
+    var topbar = document.querySelector('.parcels-topbar');
+    if (topbar) topbar.before(banner);
   }
 })();
 <% end %>

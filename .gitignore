@@ -33,3 +33,20 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# ── Regla de Cero Contaminación en la Raíz ───────────────────────────────────
+# Archivos de debugging/output temporales no deben comitearse en la raíz.
+/*.log
+# (excepción: Gemfile.lock es necesario)
+/dump.txt
+/error.txt
+/out.txt
+/test.txt
+/*_out.txt
+/*_fail*.txt
+/*_fail*.log
+/tmp_*.log
+/sync_out.txt
+
+# Node modules (Leaflet installed via npm)
+node_modules/

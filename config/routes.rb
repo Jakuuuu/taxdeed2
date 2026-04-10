@@ -21,13 +21,18 @@ Rails.application.routes.draw do
       end
       collection do
         get :map_data           # GET /research/parcels/map_data.json
+        get :county_overview    # GET /research/parcels/county_overview.json — Phase 1 county pins
       end
     end
 
     # Mini CRM — Rama 2 escribe exclusivamente (nested under parcel context)
     resources :parcel_user_tags,  only: [:create],                   path: "parcel_user_tags"
     resources :parcel_user_notes, only: [:create, :destroy],         path: "parcel_user_notes"
-    resources :auctions,          only: [:index, :show]
+    resources :auctions,          only: [:index, :show] do
+      collection do
+        get :jurisdictions  # AJAX: filtrado predictivo Estado → Jurisdicción
+      end
+    end
     resources :purchased_reports, only: [:index, :create]
     resource  :settings,          only: [:show] do
       patch  :profile
@@ -86,6 +91,9 @@ Rails.application.routes.draw do
     get "regrid/tiles/:z/:x/:y", to: "regrid_tiles#show",
       constraints: { z: /\d+/, x: /\d+/, y: /\d+/ },
       as: :regrid_tile
+    # Proxy server-side para Regrid parcel GeoJSON (oculta API token del frontend)
+    # Consumido por show.html.erb — NUNCA interpolado en JS del cliente
+    get "regrid/geojson", to: "regrid_tiles#geojson", as: :regrid_geojson
   end
 
   # Webhooks de Stripe (endpoint publico, verificado por firma)

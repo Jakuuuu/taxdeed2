@@ -5,27 +5,24 @@ class ParcelUserTag < ApplicationRecord
   belongs_to :parcel
 
   VALID_TAGS = %w[
-    ya_visto
-    hacer_seguimiento
-    potencial
-    en_evaluacion
-    descartado
+    target
+    diligence
+    ready
+    dismissed
   ].freeze
 
   TAG_LABELS = {
-    "ya_visto"           => "Already Seen",
-    "hacer_seguimiento"  => "Follow Up",
-    "potencial"          => "Potential",
-    "en_evaluacion"      => "Evaluating",
-    "descartado"         => "Discarded"
+    "target"     => "Target",
+    "diligence"  => "Due Diligence",
+    "ready"      => "Ready to Bid",
+    "dismissed"  => "Dismissed"
   }.freeze
 
   TAG_COLORS = {
-    "ya_visto"           => "#6C757D",
-    "hacer_seguimiento"  => "#0D6EFD",
-    "potencial"          => "#198754",
-    "en_evaluacion"      => "#FFC107",
-    "descartado"         => "#DC3545"
+    "target"     => "#2E86C1",
+    "diligence"  => "#E67E22",
+    "ready"      => "#27AE60",
+    "dismissed"  => "#6C757D"
   }.freeze
 
   validates :tag, inclusion: { in: VALID_TAGS, message: "%{value} is not a valid tag" }

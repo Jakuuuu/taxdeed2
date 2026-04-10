@@ -1,255 +1,648 @@
-<% content_for :title, "Auctions — TaxDeed Lion" %>
+<%#
+  Rama 1: Auctions Index — Production View
+  Migrated from approved prototype: rama1-auctions-test.html
+  ──────────────────────────────────────────────────────────────
+  ARCHITECTURE RULES:
+  • Regla 16: This module is macro-statistical ONLY.
+    - Map click → /research/parcels?state=XX (Rama 2 list)
+    - Calendar click → /research/parcels?auction_id=:id (Rama 2)
+    - Table row click → /research/parcels?auction_id=:id (Rama 2)
+    - NEVER links to Parcel#show from Rama 1.
+  • Regla 17: Single Advanced Property Card (in Rama 2 only).
+%>
 
-<%# Inject Google Maps API key and page-level head tags %>
-<% content_for :head do %>
-  <style>
-    .auction-map { height: calc(100vh - var(--rn-header-h) - 120px); min-height: 400px; }
-    .auction-card {
-      background: #fff;
-      border: 1px solid var(--color-border, #DEE2E6);
-      border-radius: 10px;
-      padding: 1rem 1.25rem;
-      cursor: pointer;
-      transition: box-shadow 0.15s, border-color 0.15s;
-      margin-bottom: 0.75rem;
-    }
-    .auction-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); border-color: var(--color-accent, #2E86C1); }
-    .auction-card.highlighted { border-color: var(--color-accent, #2E86C1); box-shadow: 0 0 0 2px rgba(46,134,193,.2); }
-    .auction-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
-    .auction-card__title { font-size: 0.9375rem; font-weight: 700; color: var(--color-primary, #1E3A5F); margin: 0; }
-    .auction-card__meta { font-size: 0.8rem; color: var(--color-text-muted, #6C757D); margin-bottom: 0.5rem; }
-    .auction-card__stats { display: flex; gap: 1rem; flex-wrap: wrap; }
-    .auction-card__stat { font-size: 0.8rem; }
-    .auction-card__stat span { font-weight: 600; color: var(--color-primary, #1E3A5F); }
-    .list-scroll { overflow-y: auto; height: calc(100vh - var(--rn-header-h) - 180px); padding-right: 0.25rem; }
-    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
-    @media (max-width: 900px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
-    .map-info-window { font-family: 'Inter', sans-serif; min-width: 200px; }
-    .map-info-window h4 { font-size: 0.875rem; font-weight: 700; color: #1E3A5F; margin: 0 0 0.4rem; }
-    .map-info-window p  { font-size: 0.8rem; color: #4a5568; margin: 0 0 0.25rem; }
-    .map-info-window a  { font-size: 0.8rem; color: #2E86C1; font-weight: 600; text-decoration: none; }
-    
-    /* ── Choropleth container ── */
-    #usa-choropleth {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      min-height: 420px;
-      background: #F8FAFC;
-      border: 1px solid var(--color-border, #E2E8F0);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    #usa-choropleth svg {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-    .datamaps-subunit { cursor: pointer; transition: opacity .15s; }
-    .datamaps-subunit:hover { opacity: .8; }
+<%# ── Sub-Navigation Tabs ─────────────────────────────────────────────── %>
+<div class="r1-sub-nav">
+  <a href="<%= research_auctions_path %>" class="r1-sub-tab <%= 'active' unless params[:sub_tab] == 'prior' %>" id="tab-taxsale"
+     onclick="r1SwitchSubTab('taxsale'); return false;">
+    <i data-lucide="gavel" style="width:14px;height:14px;margin-right:4px;"></i> Tax Sale Auctions
+  </a>
+  <a href="<%= research_auctions_path(sub_tab: 'prior') %>" class="r1-sub-tab <%= 'active' if params[:sub_tab] == 'prior' %>" id="tab-prior"
+     onclick="r1SwitchSubTab('prior'); return false;">
+    <i data-lucide="history" style="width:14px;height:14px;margin-right:4px;"></i> Prior Sale Results
+  </a>
+</div>
 
-    #state-info-bar {
-      display:none; margin: 1rem auto; max-width: 900px;
-      background: linear-gradient(135deg,#1E3A5F,#2E5F8A);
-      border-radius:10px; padding:1rem 1.25rem;
-      color:#fff;
-    }
-    #state-info-bar h3 { font-size:1rem; font-weight:700; margin-bottom:.35rem; }
-    .state-bar-meta { display:flex; gap:1.25rem; flex-wrap:wrap; font-size:.82rem; opacity:.85; margin-bottom:.75rem; }
-    .state-bar-auctions { display:flex; gap:.5rem; flex-wrap:wrap; }
-    .state-bar-item {
-      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
-      border-radius:8px; padding:.5rem .85rem; font-size:.8rem; min-width:180px;
-    }
-  </style>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-<% end %>
+<%# ── Filter Bar ──────────────────────────────────────────────────────── %>
+<div class="r1-filter-bar">
+  <div class="r1-filter-group">
 
-<div class="rn-page">
-  <!-- Sidebar: Filters -->
-  <aside class="rn-sidebar">
-    <%= form_with url: research_auctions_path, method: :get, local: true, id: "auction-filter-form" do |f| %>
-      <div class="filter-sidebar">
-        <p class="filter-sidebar__title">Filters</p>
-
-        <div class="filter-group">
-          <label class="filter-label" for="filter-state">State</label>
-          <select class="filter-select" name="state" id="filter-state">
-            <option value="">All States</option>
-            <% @states.each do |s| %>
-              <option value="<%= s %>" <%= 'selected' if params[:state] == s %>><%= s %></option>
-            <% end %>
-          </select>
+    <%# State multi-select dropdown %>
+    <div class="r1-custom-dropdown" id="dd-state">
+      <button class="r1-custom-dropdown-btn" id="btn-state" onclick="r1ToggleDropdown('state')">
+        <i data-lucide="map-pin" style="width:12px;height:12px;"></i> State
+        <i data-lucide="chevron-down" style="width:10px;height:10px;"></i>
+      </button>
+      <div class="r1-custom-dropdown-menu" id="menu-state">
+        <div class="r1-custom-dropdown-search">
+          <input type="text" placeholder="Search states..." oninput="r1FilterDropdown(this, 'list-state')">
         </div>
-
-        <div class="filter-group">
-          <label class="filter-label" for="filter-county">County</label>
-          <select class="filter-select" name="county" id="filter-county">
-            <option value="">All Counties</option>
-            <% @all_counties.each do |c| %>
-              <option value="<%= c %>" <%= 'selected' if params[:county] == c %>><%= c %></option>
-            <% end %>
-          </select>
+        <div class="r1-custom-dropdown-list" id="list-state">
+          <% @states_with_counts.each do |state_name, count| %>
+            <label class="r1-custom-dropdown-item">
+              <input type="checkbox" class="r1-state-checkbox" value="<%= state_name %>"
+                     <%= 'checked' if Array(params[:states]).include?(state_name) %>
+                     onchange="r1OnStateChange(this)">
+              <%= state_name %>
+              <span class="r1-badge"><%= count %></span>
+            </label>
+          <% end %>
         </div>
-
-        <div class="filter-group">
-          <label class="filter-label" for="filter-status">Status</label>
-          <select class="filter-select" name="status" id="filter-status">
-            <option value="">All Statuses</option>
-            <option value="upcoming"  <%= 'selected' if params[:status] == 'upcoming' %>>Upcoming</option>
-            <option value="active"    <%= 'selected' if params[:status] == 'active' %>>Active</option>
-            <option value="completed" <%= 'selected' if params[:status] == 'completed' %>>Completed</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label class="filter-label" for="filter-from">From Date</label>
-          <input class="filter-input" type="date" name="from_date" id="filter-from" value="<%= params[:from_date] %>">
-        </div>
-
-        <div class="filter-group">
-          <label class="filter-label" for="filter-to">To Date</label>
-          <input class="filter-input" type="date" name="to_date" id="filter-to" value="<%= params[:to_date] %>">
-        </div>
-
-        <button type="submit" class="filter-btn-apply">Apply Filters</button>
-        <%= link_to "Clear", research_auctions_path, class: "filter-btn-clear" %>
-      </div>
-    <% end %>
-  </aside>
-
-  <!-- Main Content -->
-  <div class="rn-content">
-    <!-- Page Header -->
-    <div class="rn-page-header">
-      <div>
-        <h1 class="rn-page-title">Tax Sale Auctions</h1>
-        <p class="rn-page-subtitle"><%= @auctions.count %> auctions found</p>
-      </div>
-      <div class="view-toggle" id="view-toggle" role="group" aria-label="Switch view">
-        <button class="view-toggle__btn active" id="btn-map" onclick="switchView('map')" type="button">
-          🗺 Map
-        </button>
-        <button class="view-toggle__btn" id="btn-list" onclick="switchView('list')" type="button">
-          ☰ List
-        </button>
       </div>
     </div>
 
-    <!-- Stats Row -->
-    <div class="stat-row">
-      <div class="stat-card">
-        <p class="stat-card__label">Total Auctions</p>
-        <p class="stat-card__value"><%= @count_total %></p>
-        <p class="stat-card__sub">filtered</p>
-      </div>
-      <div class="stat-card">
-        <p class="stat-card__label">Upcoming</p>
-        <p class="stat-card__value"><%= @count_upcoming %></p>
-        <p class="stat-card__sub">scheduled</p>
-      </div>
-      <div class="stat-card">
-        <p class="stat-card__label">Active</p>
-        <p class="stat-card__value"><%= @count_active %></p>
-        <p class="stat-card__sub">in progress</p>
-      </div>
-      <div class="stat-card">
-        <p class="stat-card__label">Total Parcels</p>
-        <p class="stat-card__value"><%= @count_total_parcels %></p>
-        <p class="stat-card__sub">across all auctions</p>
+    <%# Jurisdiction dropdown (populated via AJAX) %>
+    <div class="r1-custom-dropdown" id="dd-jurisdiction">
+      <button class="r1-custom-dropdown-btn" id="btn-jurisdiction" onclick="r1ToggleDropdown('jurisdiction')">
+        <i data-lucide="building" style="width:12px;height:12px;"></i> Jurisdiction
+        <i data-lucide="chevron-down" style="width:10px;height:10px;"></i>
+      </button>
+      <div class="r1-custom-dropdown-menu" id="menu-jurisdiction">
+        <div class="r1-custom-dropdown-search">
+          <input type="text" placeholder="Search jurisdictions..." oninput="r1FilterDropdown(this, 'list-jurisdiction')">
+        </div>
+        <div class="r1-custom-dropdown-list" id="list-jurisdiction">
+          <div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">
+            Select a state first
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- MAP VIEW -->
-    <div id="map-view">
-      <div class="map-container auction-map" id="usa-choropleth"></div>
-      <div id="state-info-bar">
-        <h3 id="bar-title"></h3>
-        <div class="state-bar-meta" id="bar-meta"></div>
-        <div class="state-bar-auctions" id="bar-auctions"></div>
+    <%# Status filter (hidden in Prior tab) %>
+    <select class="r1-filter-select" id="filter-status" onchange="r1ApplyFilters()">
+      <option value="">Status</option>
+      <option value="upcoming" <%= 'selected' if params[:status] == 'upcoming' %>>Upcoming</option>
+      <option value="active" <%= 'selected' if params[:status] == 'active' %>>Active</option>
+    </select>
+
+    <%# Sale Venue %>
+    <select class="r1-filter-select" id="filter-venue" onchange="r1ApplyFilters()">
+      <option value="">Sale Venue</option>
+      <option value="Online" <%= 'selected' if params[:sale_venue] == 'Online' %>>Online</option>
+      <option value="In-Person" <%= 'selected' if params[:sale_venue] == 'In-Person' %>>In-Person</option>
+    </select>
+
+    <%# Date range %>
+    <div class="r1-filter-date-wrap">
+      <input type="date" class="r1-filter-date" id="filter-from" placeholder="From"
+             value="<%= params[:from_date] %>" onchange="r1ApplyFilters()">
+      <button class="r1-filter-clear" onclick="r1ClearDate('filter-from')" title="Clear">✕</button>
+    </div>
+    <div class="r1-filter-date-wrap">
+      <input type="date" class="r1-filter-date" id="filter-to" placeholder="To"
+             value="<%= params[:to_date] %>" onchange="r1ApplyFilters()">
+      <button class="r1-filter-clear" onclick="r1ClearDate('filter-to')" title="Clear">✕</button>
+    </div>
+  </div>
+
+  <div class="r1-filter-spacer"></div>
+
+  <%# Action buttons: Settings, Save, Presets %>
+  <div class="r1-filter-group" style="position:relative;">
+    <%# Settings (column visibility) popup %>
+    <div style="position:relative;">
+      <button class="r1-custom-dropdown-btn" id="btn-filter" onclick="r1ToggleSettingsPopup()" title="Table Settings">
+        <i data-lucide="settings" style="width:14px;height:14px;"></i>
+      </button>
+      <div class="r1-settings-popup" id="menu-settings-popup">
+        <h4>Table Columns</h4>
+        <div class="r1-settings-list" id="r1-column-settings">
+          <!-- Populated by JS -->
+        </div>
       </div>
     </div>
 
-    <!-- LIST VIEW -->
-    <div id="list-view" style="display:none;">
-      <% if @auctions.any? %>
-        <div class="data-table-wrap">
-          <table class="data-table" id="auctions-table">
-            <thead>
-              <tr>
-                <th>Jurisdiction</th>
-                <th>Type</th>
-                <th>Sale Date</th>
-                <th>Parcels</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <% @auctions.each do |auction| %>
-                <tr id="row-<%= auction.id %>">
-                  <td>
-                    <div style="font-weight: 600; color: var(--color-primary)"><%= auction.county %></div>
-                    <div style="font-size: 0.8rem; color: var(--color-text-muted)"><%= auction.state %></div>
-                  </td>
-                  <td>Tax Deed</td>
-                  <td>
-                    <% if auction.sale_date %>
-                      <div style="font-weight: 500;"><%= auction.sale_date.strftime("%b %d, %Y") %></div>
-                    <% else %>
-                      <span style="color: var(--color-text-muted)">—</span>
-                    <% end %>
-                  </td>
-                  <td><strong><%= auction.parcel_count || 0 %></strong></td>
-                  <td>
-                    <% if auction.total_amount&.positive? %>
-                      $<%= number_with_delimiter(auction.total_amount.to_i) %>
-                    <% else %>
-                      <span style="color: var(--color-text-muted)">—</span>
-                    <% end %>
-                  </td>
-                  <td>
-                    <span class="badge badge-<%= auction.status %>">
-                      <%= auction.status_label %>
-                    </span>
-                  </td>
-                  <td>
-                    <% if auction.bidding_url.present? %>
-                      <%= link_to "Bid →", auction.bidding_url, target: "_blank", rel: "noopener", class: "btn-sm btn-sm-primary" %>
-                    <% end %>
-                    <%= link_to "View", research_auction_path(auction), class: "btn-sm btn-sm-outline" %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
+    <%# Save search popup %>
+    <div style="position:relative;">
+      <button class="r1-custom-dropdown-btn" id="btn-save" onclick="r1ToggleSavePopup()" title="Saved Searches">
+        <i data-lucide="bookmark" style="width:14px;height:14px;"></i>
+      </button>
+      <div class="r1-save-popup" id="menu-save-popup">
+        <h4>Saved Searches</h4>
+        <div class="r1-save-form-row">
+          <input type="text" id="r1-save-name" placeholder="Name this search...">
+          <button onclick="r1SaveSearch()">Save</button>
         </div>
-      <% else %>
-        <div class="empty-state">
-          <div class="empty-state__icon">🏛️</div>
-          <h2 class="empty-state__title">No auctions found</h2>
-          <p class="empty-state__desc">Try adjusting your filters or clearing them to see all available auctions.</p>
-          <%= link_to "Clear Filters", research_auctions_path, class: "btn-sm btn-sm-primary" %>
+        <div id="r1-saved-list">
+          <!-- Populated by JS from localStorage -->
         </div>
-      <% end %>
+      </div>
+    </div>
+
+    <%# Preset chip %>
+    <a href="<%= research_auctions_path %>" class="r1-preset-chip" title="Reset all filters">
+      <i data-lucide="filter-x" style="width:12px;height:12px;"></i> Reset
+    </a>
+
+    <%# View toggle buttons %>
+    <div class="r1-view-btn-group">
+      <button class="r1-view-btn active" id="btn-map" onclick="r1SwitchView('map')" title="Map View">
+        <i data-lucide="map" style="width:14px;height:14px;"></i>
+      </button>
+      <button class="r1-view-btn" id="btn-calendar" onclick="r1SwitchView('calendar')" title="Calendar">
+        <i data-lucide="calendar" style="width:14px;height:14px;"></i>
+      </button>
+      <button class="r1-view-btn" id="btn-list" onclick="r1SwitchView('list')" title="List View">
+        <i data-lucide="list" style="width:14px;height:14px;"></i>
+      </button>
     </div>
   </div>
 </div>
 
-<!-- Auction data for JS map -->
-<script>
-  // ⚠️ Solo auctions visible (upcoming + active) — excluye completed del mapa
-  var AUCTIONS_BY_STATE = <%= raw @auctions.visible.group_by(&:state).transform_values { |state_auctions|
-    {
-      count: state_auctions.size,
-      total_parcels: state_auctions.sum { |a| a.parcel_count || 0 },
-      total_amount: state_auctions.sum { |a| a.total_amount&.to_f || 0 },
-      auctions: []
-    }
-  }.to_json %>;
 
-  var STATE_NAME_TO_CODE = {
+<%# ═══════════════════ MAIN CONTENT ═══════════════════════════════════ %>
+<div class="r1-main-content">
+
+  <%# ══ VIEW: MAP (Choropleth) ══ %>
+  <div class="r1-view-panel active" id="panel-map">
+    <div class="r1-map-container">
+      <div class="r1-map-header">
+        <h2>Tax Deed Auction Heat Map — United States</h2>
+        <div class="r1-map-legend">
+          <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#CBD5E0;"></div> No Auctions</div>
+          <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#90BEE8;"></div> 1–5</div>
+          <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#3A82C3;"></div> 6–20</div>
+          <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#1E4E8C;"></div> 21+</div>
+        </div>
+      </div>
+      <div class="r1-map-svg-wrap">
+        <%= render partial: 'research/auctions/us_choropleth_svg' %>
+      </div>
+    </div>
+
+    <%# Summary Stats %>
+    <div class="r1-stats-row">
+      <div class="r1-stat-card">
+        <div class="r1-stat-label">Sale Events</div>
+        <div class="r1-stat-value"><%= @count_total %></div>
+        <div class="r1-stat-sub">County-level tax sales</div>
+      </div>
+      <div class="r1-stat-card">
+        <div class="r1-stat-label">States Active</div>
+        <div class="r1-stat-value"><%= @states_with_counts.size %></div>
+        <div class="r1-stat-sub">With scheduled sales</div>
+      </div>
+      <div class="r1-stat-card">
+        <div class="r1-stat-label">Properties Up for Bid</div>
+        <div class="r1-stat-value"><%= number_with_delimiter(@count_total_parcels) %></div>
+        <div class="r1-stat-sub">Individual parcels</div>
+      </div>
+      <div class="r1-stat-card">
+        <div class="r1-stat-label">Est. Aggregate Value</div>
+        <div class="r1-stat-value">
+          <% if @total_amount && @total_amount >= 1_000_000 %>
+            $<%= (@total_amount / 1_000_000.0).round(1) %>M
+          <% elsif @total_amount && @total_amount > 0 %>
+            $<%= number_with_delimiter(@total_amount.to_i) %>
+          <% else %>
+            —
+          <% end %>
+        </div>
+        <div class="r1-stat-sub">Sum of opening bids</div>
+      </div>
+    </div>
+  </div>
+
+  <%# ══ VIEW: CALENDAR ══ %>
+  <div class="r1-view-panel" id="panel-calendar">
+    <div class="r1-calendar-container">
+      <div class="r1-calendar-header">
+        <button class="r1-cal-nav-btn" title="Previous month" onclick="r1ChangeMonth(-1)">
+          <i data-lucide="chevron-left" style="width:14px;height:14px;"></i>
+        </button>
+        <button class="r1-cal-today-btn" onclick="r1GoToday()">Today</button>
+        <button class="r1-cal-nav-btn" title="Next month" onclick="r1ChangeMonth(1)">
+          <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
+        </button>
+        <span class="r1-cal-month-title" id="r1-cal-title"></span>
+        <div class="r1-cal-legend">
+          <div class="r1-cal-legend-item">
+            <div class="r1-cal-legend-dot" style="background:#15803D;"></div> Deed
+          </div>
+        </div>
+        <div class="r1-cal-view-toggle">
+          <button class="r1-cal-view-btn active" onclick="r1CalViewMode('month', this)">Month</button>
+        </div>
+      </div>
+      <div id="r1-cal-grid" class="r1-calendar-grid">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <%# ══ VIEW: LIST (Table) ══ %>
+  <div class="r1-view-panel" id="panel-list">
+    <div class="r1-table-container">
+      <div class="r1-table-toolbar">
+        <span class="r1-table-count">
+          Showing sale events
+          <strong><%= ((@page - 1) * 25) + 1 %></strong>–<strong><%= [(@page * 25), @total_count].min %></strong>
+          of <strong><%= number_with_delimiter(@total_count) %></strong>
+          <span class="r1-table-count-sub">(each row = one county sale)</span>
+        </span>
+      </div>
+      <div class="r1-table-wrap">
+        <table id="r1-auction-table">
+          <thead id="r1-auction-thead">
+            <% if params[:sub_tab] == 'prior' %>
+              <tr>
+                <th><div class="r1-th-inner" onclick="r1SortRedirect('sale_date')">Sale Date <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+                <th><div class="r1-th-inner" onclick="r1SortRedirect('state')">State <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+                <th><div class="r1-th-inner" onclick="r1SortRedirect('county')">Jurisdiction <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+                <th>Auction</th>
+                <th><div class="r1-th-inner" onclick="r1SortRedirect('parcel_count')"># of Parcels <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+                <th>Raw Sale Results</th>
+              </tr>
+            <% else %>
+              <tr>
+                <th><div class="r1-th-inner" onclick="r1SortRedirect('county')">Jurisdiction <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+                <th><div class="r1-th-inner" onclick="r1SortRedirect('state')">State <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+                <th><div class="r1-th-inner" onclick="r1SortRedirect('sale_date')">Sale Date <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+                <th>Sale Type</th>
+                <th>Sale Venue</th>
+                <th>Bidding Procedures</th>
+                <th><div class="r1-th-inner" onclick="r1SortRedirect('parcel_count')"># of Parcels <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+                <th><div class="r1-th-inner" onclick="r1SortRedirect('total_amount')">Aggregate Amount <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+              </tr>
+            <% end %>
+          </thead>
+          <tbody id="r1-auction-tbody">
+            <% @auctions.each do |auction| %>
+              <%# ⚠️ RULE 16: Row click → Rama 2 parcels list (auction context) %>
+              <tr onclick="window.location.href='<%= research_parcels_path(auction_id: auction.id) %>'"
+                  title="Click to view parcels for <%= auction.jurisdiction %> in Rama 2"
+                  style="cursor:pointer;">
+                <% if params[:sub_tab] == 'prior' %>
+                  <td class="r1-td-date" style="font-weight:700;color:var(--r1-color-primary);"><%= auction.sale_date&.strftime('%m/%d/%Y') %></td>
+                  <td class="r1-td-state" style="font-weight:700;"><%= auction.state %></td>
+                  <td class="r1-td-jurisdiction" style="font-weight:700;"><%= auction.county %></td>
+                  <td><span class="r1-td-badge r1-badge-deed">Deed</span></td>
+                  <td><%= auction.parcel_count %></td>
+                  <td>
+                    <button style="background:var(--r1-color-primary);color:#fff;border:none;padding:6px 16px;border-radius:4px;font-weight:700;font-size:12px;cursor:pointer;"
+                            onclick="event.stopPropagation(); alert('Buy now clicked');">
+                      Buy now $15.00
+                    </button>
+                  </td>
+                <% else %>
+                  <td class="r1-td-jurisdiction"><%= auction.county %></td>
+                  <td class="r1-td-state"><%= auction.state %></td>
+                  <td class="r1-td-date"><%= auction.sale_date&.strftime('%m/%d/%Y') %></td>
+                  <td><span class="r1-td-badge r1-badge-deed">Deed</span></td>
+                  <td>
+                    <% venue = auction.bidding_url.present? ? 'Online' : 'In Person' %>
+                    <span class="r1-td-badge <%= venue == 'Online' ? 'r1-badge-online' : 'r1-badge-inperson' %>"><%= venue %></span>
+                  </td>
+                  <td style="font-size:var(--r1-text-xs);color:var(--r1-color-text-secondary);"><%= auction.notes.present? ? auction.notes.truncate(40) : '—' %></td>
+                  <td class="r1-parcels-count"><%= number_with_delimiter(auction.parcel_count || 0) %></td>
+                  <td class="r1-agg-amount"><%= auction.formatted_amount || '—' %></td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <%# Server-side Pagination %>
+      <div class="r1-pagination-wrap">
+        <div class="r1-pagination-info">
+          Displaying auctions
+          <strong><%= ((@page - 1) * 25) + 1 %></strong> –
+          <strong><%= [(@page * 25), @total_count].min %></strong>
+          of <strong><%= number_with_delimiter(@total_count) %></strong>
+        </div>
+        <div class="r1-pagination-btns">
+          <% if @page > 1 %>
+            <a href="<%= research_auctions_path(r1_pagination_params.merge(page: @page - 1)) %>" class="r1-page-btn">
+              <i data-lucide="chevron-left" style="width:12px;height:12px;"></i>
+            </a>
+          <% else %>
+            <span class="r1-page-btn disabled"><i data-lucide="chevron-left" style="width:12px;height:12px;"></i></span>
+          <% end %>
+
+          <% r1_page_range(@page, @total_pages).each do |p| %>
+            <% if p == :gap %>
+              <span class="r1-page-btn disabled">…</span>
+            <% else %>
+              <a href="<%= research_auctions_path(r1_pagination_params.merge(page: p)) %>"
+                 class="r1-page-btn <%= 'active' if p == @page %>"><%= p %></a>
+            <% end %>
+          <% end %>
+
+          <% if @page < @total_pages %>
+            <a href="<%= research_auctions_path(r1_pagination_params.merge(page: @page + 1)) %>" class="r1-page-btn">
+              Next <i data-lucide="chevron-right" style="width:12px;height:12px;"></i>
+            </a>
+          <% else %>
+            <span class="r1-page-btn disabled">Next <i data-lucide="chevron-right" style="width:12px;height:12px;"></i></span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /r1-main-content -->
+
+
+<%# ── State popup (for map hover) ─────────────────────────────────── %>
+<div class="r1-state-popup" id="r1-state-popup">
+  <h4 id="r1-popup-state-name"></h4>
+  <div class="r1-popup-row"><span>Sale Events <small style="opacity:0.6;font-size:10px;">(county tax sales)</small></span><strong id="r1-popup-auctions">0</strong></div>
+  <div class="r1-popup-row"><span>Properties for Bid</span><strong id="r1-popup-parcels">0</strong></div>
+  <div class="r1-popup-row"><span>Est. Aggregate Value</span><strong id="r1-popup-amount">$0</strong></div>
+  <!--
+    ARCHITECTURE NOTE (Rule 16):
+    This link goes to /research/parcels?state=X (Rama 2 list view)
+    NEVER to Parcel#show — Rama 1 cannot access individual parcels.
+  -->
+  <a class="r1-popup-cta" id="r1-popup-cta-link" href="#">View Properties for Bid in State →</a>
+</div>
+
+
+<script>
+// ═══════════════════ RAMA 1: AUCTIONS MODULE — Production JS ═══════════════
+// Migrated from approved prototype with real data bindings.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Initialize Lucide Icons ────────────────────────────────────────────
+if (typeof lucide !== 'undefined') lucide.createIcons();
+
+// ─── REAL DATA FROM RAILS ───────────────────────────────────────────────
+const R1_AUCTIONS_BY_STATE = <%= raw @auctions_by_state.to_json %>;
+const R1_CALENDAR_EVENTS   = <%= raw @calendar_events.to_json %>;
+const R1_CURRENT_PAGE      = <%= @page %>;
+const R1_TOTAL_PAGES       = <%= @total_pages %>;
+
+// ─── VIEW SWITCHING ─────────────────────────────────────────────────────
+let r1CurrentView = 'map';
+
+function r1SwitchView(view) {
+  document.querySelectorAll('.r1-view-panel').forEach(p => p.classList.remove('active'));
+  ['btn-map','btn-calendar','btn-list'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.classList.remove('active');
+  });
+  r1CurrentView = view;
+  if(view === 'map') {
+    document.getElementById('panel-map').classList.add('active');
+    document.getElementById('btn-map').classList.add('active');
+  } else if(view === 'calendar') {
+    document.getElementById('panel-calendar').classList.add('active');
+    document.getElementById('btn-calendar').classList.add('active');
+    r1RenderCalendar();
+  } else if(view === 'list') {
+    document.getElementById('panel-list').classList.add('active');
+    document.getElementById('btn-list').classList.add('active');
+  }
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  // Persist view preference
+  try { localStorage.setItem('r1_view', view); } catch(e) {}
+}
+
+// ─── SUB-TAB SWITCHING ──────────────────────────────────────────────────
+let r1CurrentSubTab = '<%= params[:sub_tab] == "prior" ? "prior" : "taxsale" %>';
+
+function r1SwitchSubTab(tab) {
+  if (tab === 'prior') {
+    // Redirect server-side for proper data
+    window.location.href = '<%= research_auctions_path(sub_tab: "prior") %>';
+  } else {
+    window.location.href = '<%= research_auctions_path %>';
+  }
+}
+
+// ─── FILTER FUNCTIONS ───────────────────────────────────────────────────
+function r1ApplyFilters() {
+  const params = new URLSearchParams();
+
+  // Collect checked states
+  document.querySelectorAll('.r1-state-checkbox:checked').forEach(chk => {
+    params.append('states[]', chk.value);
+  });
+
+  // Collect checked jurisdictions
+  document.querySelectorAll('.r1-jurisdiction-checkbox:checked').forEach(chk => {
+    params.append('county', chk.value);
+  });
+
+  const status = document.getElementById('filter-status')?.value;
+  if (status) params.set('status', status);
+
+  const venue = document.getElementById('filter-venue')?.value;
+  if (venue) params.set('sale_venue', venue);
+
+  const fromDate = document.getElementById('filter-from')?.value;
+  if (fromDate) params.set('from_date', fromDate);
+
+  const toDate = document.getElementById('filter-to')?.value;
+  if (toDate) params.set('to_date', toDate);
+
+  if (r1CurrentSubTab === 'prior') params.set('sub_tab', 'prior');
+
+  window.location.href = '<%= research_auctions_path %>?' + params.toString();
+}
+
+function r1ClearDate(id) {
+  document.getElementById(id).value = '';
+  r1ApplyFilters();
+}
+
+// ─── AJAX: PREDICTIVE JURISDICTION FILTERING ────────────────────────────
+function r1OnStateChange(checkbox) {
+  r1LoadJurisdictions();
+  // After a short delay, open jurisdiction dropdown (UX continuity)
+  if (checkbox.checked) {
+    setTimeout(() => {
+      document.getElementById('menu-jurisdiction')?.classList.add('show');
+      document.getElementById('btn-jurisdiction')?.classList.add('open');
+    }, 300);
+  }
+}
+
+function r1LoadJurisdictions() {
+  const checked = document.querySelectorAll('.r1-state-checkbox:checked');
+  const states = Array.from(checked).map(c => c.value);
+  const listEl = document.getElementById('list-jurisdiction');
+
+  if (states.length === 0) {
+    listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">Select a state first</div>';
+    return;
+  }
+
+  listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">Loading...</div>';
+
+  const params = new URLSearchParams();
+  states.forEach(s => params.append('states[]', s));
+
+  fetch('<%= jurisdictions_research_auctions_path(format: :json) %>?' + params.toString())
+    .then(r => r.json())
+    .then(data => {
+      if (data.length === 0) {
+        listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">No jurisdictions found</div>';
+        return;
+      }
+      listEl.innerHTML = data.map(j =>
+        `<label class="r1-custom-dropdown-item">
+          <input type="checkbox" class="r1-jurisdiction-checkbox" value="${j.name.split(',')[0].trim()}">
+          ${j.name}
+          <span class="r1-badge">${j.count}</span>
+        </label>`
+      ).join('');
+    })
+    .catch(() => {
+      listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-danger);font-size:12px;">Error loading</div>';
+    });
+}
+
+// ─── MAP TOOLTIP ────────────────────────────────────────────────────────
+function r1StateClick(event, stateName) {
+  event.stopPropagation();
+
+  const data = R1_AUCTIONS_BY_STATE[stateName] || { count: 0, total_parcels: 0, total_amount: 0 };
+  const popup = document.getElementById('r1-state-popup');
+  popup.style.display = 'block';
+  popup.style.pointerEvents = 'auto';
+  popup.style.left = (event.clientX + 12) + 'px';
+  popup.style.top  = (event.clientY - 30) + 'px';
+
+  document.getElementById('r1-popup-state-name').textContent = stateName;
+  document.getElementById('r1-popup-auctions').textContent   = data.count;
+  document.getElementById('r1-popup-parcels').textContent    = (data.total_parcels || 0).toLocaleString();
+
+  const amt = data.total_amount || 0;
+  document.getElementById('r1-popup-amount').textContent = amt >= 1e6
+    ? '$' + (amt / 1e6).toFixed(1) + 'M'
+    : '$' + amt.toLocaleString();
+
+  // ⚠️ ARCHITECTURE RULE 16: Link goes to Rama 2 (parcels list by state)
+  const link = document.getElementById('r1-popup-cta-link');
+  if (data.count > 0) {
+    link.href = '/research/parcels?state=' + encodeURIComponent(stateName);
+    link.style.display = 'block';
+  } else {
+    link.style.display = 'none';
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.r1-state-popup') && !e.target.closest('.r1-state-path')) {
+    document.getElementById('r1-state-popup').style.display = 'none';
+  }
+});
+
+// ─── CALENDAR ───────────────────────────────────────────────────────────
+let r1CalYear, r1CalMonth;
+(function() {
+  const now = new Date();
+  r1CalYear  = now.getFullYear();
+  r1CalMonth = now.getMonth();
+})();
+
+const R1_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const R1_DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function r1RenderCalendar() {
+  document.getElementById('r1-cal-title').textContent = R1_MONTH_NAMES[r1CalMonth] + ' ' + r1CalYear;
+  const grid = document.getElementById('r1-cal-grid');
+  grid.innerHTML = '';
+
+  // Day headers
+  R1_DAY_NAMES.forEach(d => {
+    const hdr = document.createElement('div');
+    hdr.className = 'r1-cal-day-header';
+    hdr.textContent = d;
+    grid.appendChild(hdr);
+  });
+
+  const firstDay     = new Date(r1CalYear, r1CalMonth, 1).getDay();
+  const daysInMonth  = new Date(r1CalYear, r1CalMonth + 1, 0).getDate();
+  const daysInPrev   = new Date(r1CalYear, r1CalMonth, 0).getDate();
+  const today        = new Date();
+  let dayCount = 1, nextCount = 1;
+  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+
+  for (let i = 0; i < totalCells; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'r1-cal-cell';
+    let dayNum, isOther = false, dateKey = '';
+
+    if (i < firstDay) {
+      dayNum = daysInPrev - firstDay + i + 1;
+      isOther = true;
+      const pm = r1CalMonth === 0 ? 11 : r1CalMonth - 1;
+      const py = r1CalMonth === 0 ? r1CalYear - 1 : r1CalYear;
+      dateKey = `${py}-${String(pm+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+    } else if (dayCount <= daysInMonth) {
+      dayNum = dayCount++;
+      dateKey = `${r1CalYear}-${String(r1CalMonth+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+      if (r1CalYear === today.getFullYear() && r1CalMonth === today.getMonth() && dayNum === today.getDate()) {
+        cell.classList.add('today');
+      }
+    } else {
+      dayNum = nextCount++;
+      isOther = true;
+      const nm = r1CalMonth === 11 ? 0 : r1CalMonth + 1;
+      const ny = r1CalMonth === 11 ? r1CalYear + 1 : r1CalYear;
+      dateKey = `${ny}-${String(nm+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+    }
+
+    if (isOther) cell.classList.add('other-month');
+
+    const numWrap = document.createElement('div');
+    numWrap.className = 'r1-cal-day-num';
+    numWrap.textContent = dayNum;
+    cell.appendChild(numWrap);
+
+    // Add real events from Rails data
+    const events = R1_CALENDAR_EVENTS[dateKey] || [];
+    const maxShow = 3;
+    events.slice(0, maxShow).forEach(ev => {
+      const evEl = document.createElement('div');
+      evEl.className = 'r1-cal-event type-deed';
+      evEl.textContent = ev.jurisdiction;
+      evEl.title = `Click to view parcels for this auction in Rama 2`;
+      // ⚠️ RULE 16: Click goes to Rama 2 parcels list, NOT individual parcel
+      evEl.onclick = (e) => {
+        e.stopPropagation();
+        window.location.href = '/research/parcels?auction_id=' + ev.id;
+      };
+      cell.appendChild(evEl);
+    });
+
+    if (events.length > maxShow) {
+      const moreEl = document.createElement('div');
+      moreEl.className = 'r1-cal-event-more';
+      moreEl.textContent = `+${events.length - maxShow} more`;
+      cell.appendChild(moreEl);
+    }
+
+    grid.appendChild(cell);
+  }
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function r1ChangeMonth(delta) {
+  r1CalMonth += delta;
+  if (r1CalMonth > 11) { r1CalMonth = 0; r1CalYear++; }
+  if (r1CalMonth < 0)  { r1CalMonth = 11; r1CalYear--; }
+  r1RenderCalendar();
+}
+
+function r1GoToday() {
+  const now = new Date();
+  r1CalYear  = now.getFullYear();
+  r1CalMonth = now.getMonth();
+  r1RenderCalendar();
+}
+
+// ─── MAP: State Click → Rama 2 (Rule 16) ────────────────────────────────
+// ⚠️ ARCHITECTURE: Clicks on map states ALWAYS redirect to Rama 2 parcel search.
+// NEVER to Parcel#show or any internal auction detail.
+function r1StateClick(event, stateName) {
+  event.stopPropagation();
+  // Build the state abbreviation lookup
+  const stateAbbrevs = {
     'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
     'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
     'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
@@ -259,184 +652,151 @@
     'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
     'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
     'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
-    'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'
+    'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+    'District of Columbia':'DC'
   };
-
-  function stateColor(count) {
-    if (!count || count === 0) return '#CBD5E0';
-    if (count <= 2)  return '#BFD9EC';
-    if (count <= 5)  return '#5BA3C9';
-    if (count <= 15) return '#2E86C1';
-    return '#1E3A5F';
+  const abbr = stateAbbrevs[stateName];
+  if (abbr) {
+    window.location.href = '<%= research_parcels_path %>?state=' + abbr;
   }
+}
 
-  // ── Cache del GeoJSON para no hacer fetch en cada toggle ──────────────────
-  var _geoDataCache = null;
-  var _mapRendered  = false;
+function r1CalViewMode(mode, btn) {
+  document.querySelectorAll('.r1-cal-view-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
 
-  // ── Fixed viewBox dimensions — projection fits into these coords ──────────
-  var MAP_W = 960;
-  var MAP_H = 500;
-
-  function _buildMapFromGeo(geoData) {
-    var container = d3.select('#usa-choropleth');
-    container.selectAll('*').remove();
-
-    // Always use a fixed viewBox so the projection is stable regardless of
-    // CSS calc / container height at render time.
-    var svg = container
-      .append('svg')
-      .attr('viewBox', '0 0 ' + MAP_W + ' ' + MAP_H)
-      .attr('preserveAspectRatio', 'xMidYMid meet')
-      .style('display', 'block')
-      .style('width', '100%')
-      .style('height', '100%');
-
-    // AlbersUsa projection fitted to the fixed 960×500 space
-    var projection = d3.geoAlbersUsa().fitSize([MAP_W, MAP_H], geoData);
-    var path       = d3.geoPath().projection(projection);
-
-    var statesGroup = svg.append('g').attr('class', 'states');
-    var labelsGroup = svg.append('g').attr('class', 'labels');
-
-    statesGroup.selectAll('path')
-      .data(geoData.features)
-      .enter()
-      .append('path')
-      .attr('class', 'datamaps-subunit')
-      .attr('d', path)
-      .attr('fill', function(d) {
-        var code  = STATE_NAME_TO_CODE[d.properties.name];
-        var count = code && AUCTIONS_BY_STATE[code] ? AUCTIONS_BY_STATE[code].count : 0;
-        return stateColor(count);
-      })
-      .attr('stroke', '#ffffff')
-      .attr('stroke-width', 1)
-      .style('cursor', function(d) {
-        var code  = STATE_NAME_TO_CODE[d.properties.name];
-        var count = code && AUCTIONS_BY_STATE[code] ? AUCTIONS_BY_STATE[code].count : 0;
-        return count > 0 ? 'pointer' : 'default';
-      })
-      .on('click', function(event, d) {
-        var code = STATE_NAME_TO_CODE[d.properties.name];
-        if (code && AUCTIONS_BY_STATE[code] && AUCTIONS_BY_STATE[code].count > 0) {
-          showStateBar(code, AUCTIONS_BY_STATE[code]);
-        }
-      })
-      .on('mouseover', function() {
-        d3.select(this).attr('stroke', '#1E3A5F').attr('stroke-width', 2).attr('opacity', 0.85);
-      })
-      .on('mouseout', function() {
-        d3.select(this).attr('stroke', '#ffffff').attr('stroke-width', 1).attr('opacity', 1);
-      });
-
-    // Labels: only on states that have auctions (with data) OR show state abbrev for all
-    geoData.features.forEach(function(d) {
-      var code  = STATE_NAME_TO_CODE[d.properties.name];
-      var count = code && AUCTIONS_BY_STATE[code] ? AUCTIONS_BY_STATE[code].count : 0;
-      if (count > 0) {
-        var centroid = path.centroid(d);
-        if (isNaN(centroid[0]) || isNaN(centroid[1])) return;
-        var cx = centroid[0], cy = centroid[1];
-        // Minor nudges for awkward states
-        if (code === 'FL') { cx += 12; cy += 8; }
-        if (code === 'MI') { cx += 12; cy += 18; }
-        if (code === 'ID') { cy += 15; }
-        if (code === 'CA') { cx -= 10; cy += 10; }
-        if (code === 'LA') { cx -= 8; }
-        if (code === 'MD') { cy -= 5; cx += 5; }
-
-        labelsGroup.append('text')
-          .attr('x', cx)
-          .attr('y', cy + 5)
-          .attr('text-anchor', 'middle')
-          .attr('fill', '#ffffff')
-          .attr('font-size', '13px')
-          .attr('font-weight', '700')
-          .style('pointer-events', 'none')
-          .text(count);
-      }
-    });
-
-    _mapRendered = true;
+// ─── SORT (server-side redirect) ────────────────────────────────────────
+function r1SortRedirect(field) {
+  const params = new URLSearchParams(window.location.search);
+  const currentSort = params.get('sort');
+  const currentDir  = params.get('dir') || 'asc';
+  if (currentSort === field) {
+    params.set('dir', currentDir === 'asc' ? 'desc' : 'asc');
+  } else {
+    params.set('sort', field);
+    params.set('dir', 'asc');
   }
+  window.location.href = '<%= research_auctions_path %>?' + params.toString();
+}
 
-  function _renderD3Map() {
-    if (_mapRendered) return;
+// ─── DROPDOWN MANAGEMENT ────────────────────────────────────────────────
+function r1ToggleDropdown(id) {
+  document.getElementById('menu-' + id)?.classList.toggle('show');
+  document.getElementById('btn-' + id)?.classList.toggle('open');
+}
 
-    var containerEl = document.getElementById('usa-choropleth');
-    var container   = d3.select(containerEl);
+function r1FilterDropdown(input, listId) {
+  const filter = input.value.toLowerCase();
+  const labels = document.getElementById(listId)?.getElementsByTagName('label') || [];
+  for (let i = 0; i < labels.length; i++) {
+    const text = labels[i].textContent || labels[i].innerText;
+    labels[i].style.display = text.toLowerCase().includes(filter) ? '' : 'none';
+  }
+}
 
-    // Show loading spinner
-    container.selectAll('*').remove();
-    container.append('div')
-      .style('display', 'flex')
-      .style('align-items', 'center')
-      .style('justify-content', 'center')
-      .style('height', '100%')
-      .style('color', 'var(--color-text-muted, #6C757D)')
-      .style('font-size', '0.875rem')
-      .text('Loading map…');
+function r1ToggleSettingsPopup() {
+  document.getElementById('menu-settings-popup')?.classList.toggle('show');
+  document.getElementById('btn-filter')?.classList.toggle('r1-btn-active-red');
+}
 
-    function doRender(geoData) {
-      // Wait one animation frame so the container has real pixel dimensions
-      requestAnimationFrame(function() {
-        _buildMapFromGeo(geoData);
-      });
-    }
+function r1ToggleSavePopup() {
+  document.getElementById('menu-save-popup')?.classList.toggle('show');
+  document.getElementById('btn-save')?.classList.toggle('r1-btn-active-blue');
+}
 
-    if (_geoDataCache) {
-      doRender(_geoDataCache);
-    } else {
-      d3.json('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
-        .then(function(geoData) {
-          _geoDataCache = geoData;
-          doRender(geoData);
-        })
-        .catch(function() {
-          var c = d3.select('#usa-choropleth');
-          c.selectAll('*').remove();
-          c.append('div')
-            .style('display', 'flex')
-            .style('flex-direction', 'column')
-            .style('align-items', 'center')
-            .style('justify-content', 'center')
-            .style('height', '100%')
-            .style('gap', '0.5rem')
-            .html('<span style="font-size:2rem">🗺️</span>' +
-                  '<p style="color:var(--color-text-muted);font-size:0.875rem;margin:0">Could not load map. Check your connection.</p>' +
-                  '<button onclick="_mapRendered=false;_renderD3Map();" class="btn-sm btn-sm-outline" style="margin-top:0.5rem">Retry</button>');
-        });
+// Close all dropdowns on outside click
+document.addEventListener('click', function(event) {
+  if (!event.target.closest('.r1-custom-dropdown')) {
+    document.querySelectorAll('.r1-custom-dropdown-menu').forEach(m => m.classList.remove('show'));
+    document.querySelectorAll('.r1-custom-dropdown-btn').forEach(b => b.classList.remove('open'));
+  }
+  if (!event.target.closest('#menu-settings-popup') && !event.target.closest('#btn-filter')) {
+    const popup = document.getElementById('menu-settings-popup');
+    const btn = document.getElementById('btn-filter');
+    if (popup?.classList.contains('show')) {
+      popup.classList.remove('show');
+      btn?.classList.remove('r1-btn-active-red');
     }
   }
-
-  function showStateBar(state, data) {
-    var bar      = document.getElementById('state-info-bar');
-    var barTitle = document.getElementById('bar-title');
-    var barMeta  = document.getElementById('bar-meta');
-
-    barTitle.textContent = state + ' — ' + data.count + ' auctions';
-    barMeta.innerHTML    = '<span>🏠 ' + data.total_parcels.toLocaleString() + ' total parcels</span>'
-      + (data.total_amount > 0 ? '<span>💰 ~$' + Math.round(data.total_amount).toLocaleString() + ' est.</span>' : '');
-
-    bar.style.display = 'block';
+  if (!event.target.closest('#menu-save-popup') && !event.target.closest('#btn-save')) {
+    const popup = document.getElementById('menu-save-popup');
+    const btn = document.getElementById('btn-save');
+    if (popup?.classList.contains('show')) {
+      popup.classList.remove('show');
+      btn?.classList.remove('r1-btn-active-blue');
+    }
   }
+});
 
-  // ── VIEW TOGGLE con persistencia localStorage ─────────────────────────────
-  function switchView(view) {
-    document.getElementById('map-view').style.display  = view === 'map'  ? 'block' : 'none';
-    document.getElementById('list-view').style.display = view === 'list' ? 'block' : 'none';
-    document.getElementById('btn-map').classList.toggle('active',  view === 'map');
-    document.getElementById('btn-list').classList.toggle('active', view === 'list');
-    if (view === 'map') _renderD3Map();
-    // Persistir preferencia del usuario
-    try { localStorage.setItem('auctions_view', view); } catch(e) {}
+// ─── SAVED SEARCHES (localStorage) ──────────────────────────────────────
+function r1SaveSearch() {
+  const nameInput = document.getElementById('r1-save-name');
+  const name = nameInput?.value?.trim();
+  if (!name) return;
+
+  try {
+    const saved = JSON.parse(localStorage.getItem('r1_saved_searches') || '[]');
+    saved.push({ name: name, url: window.location.href, date: new Date().toISOString() });
+    localStorage.setItem('r1_saved_searches', JSON.stringify(saved));
+    nameInput.value = '';
+    r1RenderSavedSearches();
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function r1DeleteSavedSearch(index) {
+  try {
+    const saved = JSON.parse(localStorage.getItem('r1_saved_searches') || '[]');
+    saved.splice(index, 1);
+    localStorage.setItem('r1_saved_searches', JSON.stringify(saved));
+    r1RenderSavedSearches();
+  } catch(e) {}
+}
+
+function r1RenderSavedSearches() {
+  const container = document.getElementById('r1-saved-list');
+  if (!container) return;
+  try {
+    const saved = JSON.parse(localStorage.getItem('r1_saved_searches') || '[]');
+    if (saved.length === 0) {
+      container.innerHTML = '<div style="text-align:center;color:var(--r1-color-text-muted);font-size:12px;padding:8px 0;">No saved searches yet</div>';
+      return;
+    }
+    container.innerHTML = saved.map((s, i) => `
+      <div class="r1-saved-search-item" style="margin-bottom:6px;">
+        <div class="r1-saved-search-name">
+          <i data-lucide="search" style="width:12px;height:12px;color:var(--r1-color-text-muted);"></i>
+          ${s.name}
+        </div>
+        <div class="r1-saved-search-actions">
+          <button class="r1-btn-edit" onclick="window.location.href='${s.url}'">Load</button>
+          <button class="r1-btn-delete" onclick="r1DeleteSavedSearch(${i})">✕</button>
+        </div>
+      </div>
+    `).join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  } catch(e) {}
+}
+
+// ─── INIT ───────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  r1RenderSavedSearches();
+
+  // Restore persisted view preference
+  try {
+    const savedView = localStorage.getItem('r1_view');
+    if (savedView && savedView !== 'map') {
+      r1SwitchView(savedView);
+    }
+  } catch(e) {}
+
+  // If on Prior tab, enforce list view only
+  if (r1CurrentSubTab === 'prior') {
+    document.getElementById('btn-map')?.style.setProperty('display', 'none');
+    document.getElementById('btn-calendar')?.style.setProperty('display', 'none');
+    document.getElementById('filter-status')?.style.setProperty('display', 'none');
+    r1SwitchView('list');
   }
-
-  document.addEventListener("DOMContentLoaded", function() {
-    // Restaurar vista persistida o mostrar mapa por defecto
-    var savedView = 'map';
-    try { savedView = localStorage.getItem('auctions_view') || 'map'; } catch(e) {}
-    switchView(savedView);
-  });
+});
 </script>

@@ -1,9 +1,16 @@
 <% content_for :title, "#{@parcel.address} — TaxDeed Lion" %>
 
+<%# ── Leaflet.js CDN — loaded inline so it works in BOTH full-layout and AJAX drawer renders -%>
+<%# NOTE: content_for :head is skipped by render(layout:false) in drawer mode.               -%>
+<%# These tags must appear in the main body flow for the GIS map in show.html to work.        -%>
+<% unless content_for?(:leaflet_loaded) %>
+  <% content_for :leaflet_loaded, true %>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<% end %>
+
 <% content_for :head do %>
-<%# Leaflet.js CDN for Regrid parcel boundary map %>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
   /* ─── Web Fonts ─────────────────────────────────────────────── */
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -332,6 +339,16 @@
     border-radius: 0 0 var(--ficha-radius-lg) var(--ficha-radius-lg);
     pointer-events: auto; cursor: not-allowed;
     z-index: 2;
+  }
+  /* Fix: prevent border-radius from clipping the ::after paywall overlay.
+     .ficha-card has overflow:hidden for aesthetics but that clips the locked overlay.
+     We override only for locked premium cards so the overlay reaches every corner. */
+  .ficha-premium.ficha-locked {
+    overflow: visible;
+  }
+  /* Ensure the card header retains its rounded top when the card itself is overflow:visible */
+  .ficha-premium.ficha-locked .ficha-card__hdr {
+    border-radius: var(--ficha-radius-lg) var(--ficha-radius-lg) 0 0;
   }
   .ficha-premium.ficha-unlocked .ficha-data-value,
   .ficha-premium.ficha-unlocked .ficha-badge,
@@ -990,15 +1007,20 @@
       .openPopup();
 
     <% if ENV['REGRID_API_KEY'].present? %>
-    // Regrid parcel boundary layer
-    fetch(`https://app.regrid.com/api/v1/parcel/query.geojson?lat=${lat}&lon=${lng}&token=<%= ENV['REGRID_API_KEY'] %>`)
-      .then(r => r.json())
+    // Regrid parcel boundary layer — proxied via server to keep API token off the client
+    // Route: /api/regrid/geojson?lat=&lng= → handled by Api::RegridTilesController or equiv.
+    // SECURITY: Token is NEVER interpolated here. Backend fetches from Regrid and forwards.
+    fetch(`/api/regrid/geojson?lat=${lat}&lng=${lng}`, {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(r => r.ok ? r.json() : null)
       .then(geojson => {
+        if (!geojson) return;
         L.geoJSON(geojson, {
           style: { color: '#E67E22', weight: 2, fillOpacity: 0.12, fillColor: '#E67E22' }
         }).addTo(map);
       })
-      .catch(() => {}); // silently ignore if Regrid unavailable
+      .catch(() => {}); // silently ignore if Regrid proxy unavailable
     <% end %>
   });
   <% end %>

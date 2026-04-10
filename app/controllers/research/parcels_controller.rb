@@ -99,6 +99,54 @@ module Research
              status: :unprocessable_entity
     end
 
+    # GET /research/parcels/county_overview.json
+    # Phase 1: Geographic Overview — aggregated county-level data for map pins
+    # Returns: [{ county, state, lat, lng, parcel_count, auction_count, total_amount }]
+    def county_overview
+      auctions = Auction.visible.includes(:parcels)
+
+      grouped = auctions.group_by { |a| [a.county, a.state] }
+
+      results = grouped.filter_map do |(county, state), auction_list|
+        parcel_count = auction_list.sum { |a| a.parcel_count || 0 }
+        total_amount = auction_list.sum { |a| a.total_amount.to_f }
+        auction_count = auction_list.size
+
+        # Coordenadas: usar las del auction si existen, o promedio de parcelas geocodificadas
+        lat, lng = nil, nil
+        auction_with_coords = auction_list.find { |a| a.latitude.present? && a.longitude.present? }
+        if auction_with_coords
+          lat = auction_with_coords.latitude.to_f
+          lng = auction_with_coords.longitude.to_f
+        else
+          # Fallback: promedio de parcelas con coordenadas
+          auction_ids = auction_list.map(&:id)
+          coords = Parcel.where(auction_id: auction_ids).has_coords
+                         .pluck(:latitude, :longitude)
+          if coords.any?
+            lat = coords.sum { |c| c[0].to_f } / coords.size
+            lng = coords.sum { |c| c[1].to_f } / coords.size
+          end
+        end
+
+        # Skip counties without any coordinates
+        next unless lat && lng
+
+        {
+          county:        county,
+          state:         state,
+          lat:           lat.round(6),
+          lng:           lng.round(6),
+          parcel_count:  parcel_count,
+          auction_count: auction_count,
+          total_amount:  total_amount.round(2),
+          sale_dates:    auction_list.filter_map { |a| a.sale_date&.strftime("%b %d, %Y") }
+        }
+      end
+
+      render json: results
+    end
+
     # GET /research/parcels/map_data.json
     # ⚠️ Soporta auction_id O state como parámetro
     def map_data
