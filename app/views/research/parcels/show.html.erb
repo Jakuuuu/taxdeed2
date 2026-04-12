@@ -1,13 +1,7 @@
 <% content_for :title, "#{@parcel.address} — TaxDeed Lion" %>
 
-<%# ── Leaflet.js CDN — loaded inline so it works in BOTH full-layout and AJAX drawer renders -%>
-<%# NOTE: content_for :head is skipped by render(layout:false) in drawer mode.               -%>
-<%# These tags must appear in the main body flow for the GIS map in show.html to work.        -%>
-<% unless content_for?(:leaflet_loaded) %>
-  <% content_for :leaflet_loaded, true %>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<% end %>
+<%# ── Google Maps API — loaded from research layout <head>. In AJAX drawer mode, -%>
+<%# the parent page already has Google Maps loaded via the layout.               -%>
 
 <% content_for :head do %>
 <style>
@@ -977,51 +971,99 @@
   }
 
   <% if @parcel.has_coords? %>
-  // ─── Leaflet GIS Map ──────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', function () {
-    const lat = <%= @parcel.latitude %>;
-    const lng = <%= @parcel.longitude %>;
+  // ─── Google Maps GIS Map ──────────────────────────────────────────
+  (function() {
+    // Guard: Google Maps must be loaded (from layout or parent page)
+    if (typeof google === 'undefined' || !google.maps) {
+      console.warn('Google Maps API not loaded — skipping ficha map init.');
+      return;
+    }
 
-    const map = L.map('ficha-map', {
-      center: [lat, lng],
+    var lat = <%= @parcel.latitude %>;
+    var lng = <%= @parcel.longitude %>;
+
+    var mapOptions = {
+      center: { lat: lat, lng: lng },
       zoom: 16,
-      scrollWheelZoom: false
+      scrollwheel: false,
+      gestureHandling: 'cooperative',
+      mapTypeId: 'roadmap',
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+      styles: [
+        { elementType: 'geometry', stylers: [{ color: '#1d2c4d' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#8ec3b9' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#1a3646' }] },
+        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] },
+        { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#304a7d' }] },
+        { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#255763' }] },
+        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+        { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+      ]
+    };
+    var mapIdMeta = document.querySelector('meta[name="google-maps-map-id"]');
+    if (mapIdMeta) mapOptions.mapId = mapIdMeta.content;
+
+    var map = new google.maps.Map(document.getElementById('ficha-map'), mapOptions);
+
+    // Parcel marker
+    var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
+    var marker;
+
+    if (useAdvanced) {
+      var markerEl = document.createElement('div');
+      markerEl.style.cssText = 'width:14px;height:14px;border-radius:50%;background:#E67E22;border:2px solid white;box-shadow:0 0 8px rgba(230,126,34,0.6);';
+      marker = new google.maps.marker.AdvancedMarkerElement({
+        map: map,
+        position: { lat: lat, lng: lng },
+        content: markerEl
+      });
+    } else {
+      marker = new google.maps.Marker({
+        map: map,
+        position: { lat: lat, lng: lng },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: '#E67E22',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2
+        }
+      });
+    }
+
+    // InfoWindow with parcel info
+    var infoWindow = new google.maps.InfoWindow({
+      content: '<strong><%= j @parcel.address %></strong><br>APN: <%= j @parcel.parcel_id.to_s %>'
     });
+    infoWindow.open({ anchor: marker, map: map });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© <a href="https://carto.com/">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(map);
-
-    const markerHtml = `<div style="
-      width:14px;height:14px;border-radius:50%;
-      background:#E67E22;border:2px solid white;
-      box-shadow:0 0 8px rgba(230,126,34,0.6);">
-    </div>`;
-    const icon = L.divIcon({ html: markerHtml, iconSize: [14, 14], className: '' });
-
-    L.marker([lat, lng], { icon })
-      .addTo(map)
-      .bindPopup(`<strong><%= j @parcel.address %></strong><br>APN: <%= j @parcel.parcel_id.to_s %>`)
-      .openPopup();
+    marker.addListener('click', function() {
+      infoWindow.open({ anchor: marker, map: map });
+    });
 
     <% if ENV['REGRID_API_KEY'].present? %>
     // Regrid parcel boundary layer — proxied via server to keep API token off the client
-    // Route: /api/regrid/geojson?lat=&lng= → handled by Api::RegridTilesController or equiv.
-    // SECURITY: Token is NEVER interpolated here. Backend fetches from Regrid and forwards.
-    fetch(`/api/regrid/geojson?lat=${lat}&lng=${lng}`, {
+    fetch('/api/regrid/geojson?lat=' + lat + '&lng=' + lng, {
       headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
     })
-      .then(r => r.ok ? r.json() : null)
-      .then(geojson => {
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(geojson) {
         if (!geojson) return;
-        L.geoJSON(geojson, {
-          style: { color: '#E67E22', weight: 2, fillOpacity: 0.12, fillColor: '#E67E22' }
-        }).addTo(map);
+        var dataLayer = new google.maps.Data({ map: map });
+        dataLayer.addGeoJson(geojson);
+        dataLayer.setStyle({
+          strokeColor: '#E67E22',
+          strokeWeight: 2,
+          fillColor: '#E67E22',
+          fillOpacity: 0.12
+        });
       })
-      .catch(() => {}); // silently ignore if Regrid proxy unavailable
+      .catch(function() {}); // silently ignore if Regrid proxy unavailable
     <% end %>
-  });
+  })();
   <% end %>
 </script>

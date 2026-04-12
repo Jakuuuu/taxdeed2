@@ -10,12 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <%# Leaflet.js — GIS Map engine for Rama 2 (parcels) and Ficha (parcel boundary) %>
-    <link rel="stylesheet" href="/leaflet/leaflet.css" />
-    <link rel="stylesheet" href="/leaflet/markercluster/MarkerCluster.css" />
-    <link rel="stylesheet" href="/leaflet/markercluster/MarkerCluster.Default.css" />
-    <script src="/leaflet/leaflet.js"></script>
-    <script src="/leaflet/markercluster/leaflet.markercluster.js"></script>
+    <%# Google Maps API — GIS engine for Rama 2 (parcels) and Ficha (parcel boundary) [PIVOT-02] %>
+    <%= google_maps_script_tag %>
+    <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
 
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>

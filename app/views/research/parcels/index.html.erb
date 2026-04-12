@@ -141,11 +141,11 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════════
-       PHASE 1: GEOGRAPHIC OVERVIEW — Full-screen Leaflet Map
+       PHASE 1: GEOGRAPHIC OVERVIEW — Full-screen Google Maps
        County pins with parcel count + heatmap radial
        ═══════════════════════════════════════════════════════════════════ -->
   <div class="r2-phase1-zone" id="r2-phase1" style="flex:1; position:relative; overflow:hidden;">
-    <!-- Leaflet map fills entire zone -->
+    <!-- Google Maps fills entire zone -->
     <div id="r2-overview-map" style="width:100%; height:100%; z-index:1;"></div>
 
     <!-- Loading overlay -->
@@ -458,11 +458,13 @@ function r2Init() {
   var eventsEl = document.getElementById('r2-events-count');
   if (!eventsEl) return; // Not on this page
 
-  // Clean up any existing Leaflet instances before re-init (Turbo navigation)
-  if (overviewMap) { try { overviewMap.remove(); } catch(e) {} }
-  if (phase2Map)   { try { phase2Map.remove(); }   catch(e) {} }
-  overviewMap    = null;
-  phase2Map      = null;
+  // Clean up any existing Google Maps instances before re-init (Turbo navigation)
+  if (overviewMap) { overviewMap = null; }
+  if (phase2Map)   { phase2Map = null; }
+  var ovDiv = document.getElementById('r2-overview-map');
+  if (ovDiv) ovDiv.innerHTML = '';
+  var p2Div = document.getElementById('parcels-map');
+  if (p2Div) { var gmEl = p2Div.querySelector('.gm-style'); if (gmEl) p2Div.innerHTML = ''; }
   mapInitialized = false;
 
   eventsEl.textContent = TOTAL_AUCTIONS;
@@ -500,13 +502,12 @@ function initOverviewMap() {
   var mapDiv = document.getElementById('r2-overview-map');
   if (!mapDiv) return;
 
-  // Wait for Leaflet to be available (it loads from CDN in <head>, but
-  // ES module scripts from importmap can execute before it's ready)
-  if (typeof L === 'undefined') {
+  // Wait for Google Maps API to be available (loads async from <head>)
+  if (typeof google === 'undefined' || !google.maps) {
     var attempts = 0;
     var poll = setInterval(function() {
       attempts++;
-      if (typeof L !== 'undefined') {
+      if (typeof google !== 'undefined' && google.maps) {
         clearInterval(poll);
         initOverviewMap();
       } else if (attempts >= 50) { // 5 second timeout
@@ -518,17 +519,29 @@ function initOverviewMap() {
     return;
   }
 
-  // Initialize Leaflet map — US centered
-  overviewMap = L.map(mapDiv, {
+  // Initialize Google Maps — US centered, clean light style
+  var mapOptions = {
+    center: { lat: 39.8, lng: -98.5 },
+    zoom: 5,
+    mapTypeId: 'roadmap',
     zoomControl: true,
-    attributionControl: false
-  }).setView([39.8, -98.5], 5);
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false,
+    styles: [
+      { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+      { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+      { featureType: 'water', stylers: [{ color: '#c9d6e5' }] },
+      { featureType: 'landscape', stylers: [{ color: '#f5f5f5' }] }
+    ]
+  };
+  var mapIdMeta = document.querySelector('meta[name="google-maps-map-id"]');
+  if (mapIdMeta) mapOptions.mapId = mapIdMeta.content;
 
-  // CartoDB light tile layer
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 18,
-    subdomains: 'abcd'
-  }).addTo(overviewMap);
+  overviewMap = new google.maps.Map(mapDiv, mapOptions);
+
+  // Shared InfoWindow (reused across markers)
+  var infoWindow = new google.maps.InfoWindow();
 
   // Fetch county overview data
   fetch(COUNTY_OVERVIEW_URL, { headers: { 'Accept': 'application/json' } })
@@ -543,44 +556,66 @@ function initOverviewMap() {
 
       if (!counties || !counties.length) return;
 
-      // ── Heatmap simulation: native Leaflet circles (no external plugin needed) ──
+      var bounds = new google.maps.LatLngBounds();
+
+      // ── Heatmap simulation: Google Maps circles ──
       counties.forEach(function(c) {
         var intensity = Math.min(c.parcel_count / 20, 1);
         var color = intensity < 0.3 ? '#3498DB' :
                     intensity < 0.6 ? '#1ABC9C' :
                     intensity < 0.8 ? '#F1C40F' : '#E67E22';
-        L.circle([c.lat, c.lng], {
+        new google.maps.Circle({
+          map: overviewMap,
+          center: { lat: c.lat, lng: c.lng },
           radius: 35000 + (intensity * 65000), // 35km–100km radius
-          color: color,
+          strokeColor: color,
+          strokeOpacity: 0.25,
+          strokeWeight: 1,
           fillColor: color,
           fillOpacity: 0.15,
-          opacity: 0.25,
-          weight: 1
-        }).addTo(overviewMap);
+          clickable: false
+        });
       });
 
-      // ── County pins ──
+      // ── County pins (Advanced Markers with custom HTML) ──
+      var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
+
       counties.forEach(function(county) {
         var count = county.parcel_count;
         var sizeClass = count < 10 ? 'r2-county-pin--sm' :
                         count < 50 ? 'r2-county-pin--md' :
                         count < 200 ? 'r2-county-pin--lg' : 'r2-county-pin--xl';
 
-        var size = count < 10 ? 36 : count < 50 ? 44 : count < 200 ? 54 : 64;
+        var position = { lat: county.lat, lng: county.lng };
+        bounds.extend(position);
 
-        var icon = L.divIcon({
-          className: '',
-          html: '<div class="r2-county-pin ' + sizeClass + '">' +
-                  count +
-                  '<span class="r2-county-pin__label">' + county.county + ', ' + county.state + '</span>' +
-                '</div>',
-          iconSize: [size, size],
-          iconAnchor: [size/2, size/2]
-        });
+        var marker;
+        if (useAdvanced) {
+          var pinEl = document.createElement('div');
+          pinEl.className = 'r2-county-pin ' + sizeClass;
+          pinEl.innerHTML = count + '<span class="r2-county-pin__label">' + county.county + ', ' + county.state + '</span>';
+          marker = new google.maps.marker.AdvancedMarkerElement({
+            map: overviewMap,
+            position: position,
+            content: pinEl
+          });
+        } else {
+          marker = new google.maps.Marker({
+            map: overviewMap,
+            position: position,
+            label: { text: String(count), color: '#fff', fontSize: '12px', fontWeight: '600' },
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: count < 10 ? 18 : count < 50 ? 22 : count < 200 ? 27 : 32,
+              fillColor: '#1B2A4A',
+              fillOpacity: 0.92,
+              strokeColor: 'rgba(52,152,219,0.5)',
+              strokeWeight: 2
+            }
+          });
+        }
 
-        var marker = L.marker([county.lat, county.lng], { icon: icon });
-
-        // Popup with county info
+        // InfoWindow with county info
         var dates = (county.sale_dates || []).join(', ') || '—';
         var amt = county.total_amount ? '$' + Math.round(county.total_amount).toLocaleString() : '—';
         var popupHtml =
@@ -592,14 +627,25 @@ function initOverviewMap() {
             '<div class="r2-popup-row"><span>Sale Dates</span><strong>' + dates + '</strong></div>' +
             '<button class="r2-popup-cta" onclick="selectCountyFromMap(\'' + encodeURIComponent(county.state) + '\')">View Parcels →</button>' +
           '</div>';
-        marker.bindPopup(popupHtml, { maxWidth: 280 });
-        marker.addTo(overviewMap);
+
+        marker.addListener('click', function() {
+          infoWindow.close();
+          infoWindow.setContent(popupHtml);
+          if (useAdvanced) {
+            infoWindow.open({ anchor: marker, map: overviewMap });
+          } else {
+            infoWindow.open(overviewMap, marker);
+          }
+        });
       });
 
       // Fit map to markers bounds
       try {
-        var bounds = counties.map(function(c) { return [c.lat, c.lng]; });
-        overviewMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
+        overviewMap.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+        var listener = google.maps.event.addListener(overviewMap, 'idle', function() {
+          if (overviewMap.getZoom() > 8) overviewMap.setZoom(8);
+          google.maps.event.removeListener(listener);
+        });
       } catch(e) { /* ignore fitBounds edge cases */ }
     })
     .catch(function(err) {
@@ -656,7 +702,7 @@ function applyView(view, loadMap) {
   }
 }
 
-// ── Phase 2 GIS Map (Leaflet — parcelas individuales) ────────
+// ── Phase 2 GIS Map (Google Maps — parcelas individuales) ────────
 function initPhase2Map() {
   if (mapInitialized) return;
 
@@ -690,26 +736,25 @@ function initPhase2Map() {
     'WI': [43.8,-88.8], 'WY': [43.1,-107.6], 'DC': [38.9,-77.0]
   };
 
-  var center = (SELECTED_STATE && STATE_CENTERS[SELECTED_STATE])
+  var stateCoords = (SELECTED_STATE && STATE_CENTERS[SELECTED_STATE])
     ? STATE_CENTERS[SELECTED_STATE]
     : [27.7, -81.5];
   var zoom = AUCTION_ID ? 10 : 7;
 
-  phase2Map = L.map(mapDiv, {
+  // Google Maps hybrid (satellite + labels) for Phase 2 GIS
+  var mapOptions = {
+    center: { lat: stateCoords[0], lng: stateCoords[1] },
+    zoom: zoom,
+    mapTypeId: 'hybrid',
     zoomControl: true,
-    attributionControl: false
-  }).setView(center, zoom);
+    mapTypeControl: true,
+    streetViewControl: false,
+    fullscreenControl: true
+  };
+  var mapIdMeta = document.querySelector('meta[name="google-maps-map-id"]');
+  if (mapIdMeta) mapOptions.mapId = mapIdMeta.content;
 
-  // Satellite/hybrid tile layer for Phase 2 GIS
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 19
-  }).addTo(phase2Map);
-
-  // Labels overlay
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19,
-    subdomains: 'abcd'
-  }).addTo(phase2Map);
+  phase2Map = new google.maps.Map(mapDiv, mapOptions);
 
   // Fetch parcel data
   var fetchUrl = MAP_DATA_URL;
@@ -729,20 +774,29 @@ function initPhase2Map() {
 
       // Center on first parcel if single auction
       if (AUCTION_ID && parcels[0]) {
-        phase2Map.setView([parcels[0].lat, parcels[0].lng], 12);
+        phase2Map.setCenter({ lat: parcels[0].lat, lng: parcels[0].lng });
+        phase2Map.setZoom(12);
       }
 
-      // MarkerCluster group
-      var clusterGroup = L.markerClusterGroup({
-        chunkedLoading: true,
-        maxClusterRadius: 50,
-        spiderfyOnMaxZoom: true
-      });
+      var infoWindow = new google.maps.InfoWindow();
+      var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
+      var markers = [];
 
       parcels.forEach(function(p) {
         if (!p.lat || !p.lng) return;
 
-        var marker = L.marker([p.lat, p.lng]);
+        var position = { lat: p.lat, lng: p.lng };
+        var marker;
+
+        if (useAdvanced) {
+          marker = new google.maps.marker.AdvancedMarkerElement({
+            position: position
+          });
+        } else {
+          marker = new google.maps.Marker({
+            position: position
+          });
+        }
 
         var bid = p.opening_bid ? '$' + Math.round(p.opening_bid).toLocaleString() : '—';
         var popupHtml =
@@ -753,11 +807,27 @@ function initPhase2Map() {
             '<button class="r2-popup-cta" onclick="openParcelDrawer(\'/research/parcels/' + p.id + '\')">View Property Card →</button>' +
           '</div>';
 
-        marker.bindPopup(popupHtml, { maxWidth: 280 });
-        clusterGroup.addLayer(marker);
+        marker.addListener('click', function() {
+          infoWindow.close();
+          infoWindow.setContent(popupHtml);
+          if (useAdvanced) {
+            infoWindow.open({ anchor: marker, map: phase2Map });
+          } else {
+            infoWindow.open(phase2Map, marker);
+          }
+        });
+
+        markers.push(marker);
       });
 
-      phase2Map.addLayer(clusterGroup);
+      // MarkerClusterer
+      if (typeof markerClusterer !== 'undefined' && markerClusterer.MarkerClusterer) {
+        new markerClusterer.MarkerClusterer({
+          map: phase2Map,
+          markers: markers
+        });
+      }
+
       mapInitialized = true;
     })
     .catch(function(err) {
@@ -781,7 +851,15 @@ function openParcelDrawer(url) {
 
   fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
     .then(function(r) { return r.text(); })
-    .then(function(html) { content.innerHTML = html; })
+    .then(function(html) {
+      content.innerHTML = html;
+      // Execute inline scripts (innerHTML doesn't auto-run them)
+      content.querySelectorAll('script').forEach(function(oldScript) {
+        var newScript = document.createElement('script');
+        newScript.textContent = oldScript.textContent;
+        oldScript.replaceWith(newScript);
+      });
+    })
     .catch(function(err) {
       content.innerHTML = '<div style="padding:2rem;color:var(--color-danger);text-align:center;">Failed to load property details. <br><button onclick="closeParcelDrawer()" class="btn-sm btn-sm-outline" style="margin-top:1rem;">Close</button></div>';
     });
