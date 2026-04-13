@@ -4,7 +4,8 @@
      RAMA 2: Geographic Search Module — Two-Phase Flow
      Phase 1: Geographic Overview (county pins + heatmap)
      Phase 2: County Detail (parcel sidebar + GIS map)
-     Migrated from approved prototype: rama2-internal-flow.html
+     ARCHITECTURE: Single Google Maps instance — NEVER create two maps.
+     Transitions are 100% async via marker swap, zero page reloads.
      ══════════════════════════════════════════════════════════════════════ %>
 
 <% content_for :head do %>
@@ -76,9 +77,12 @@
   .sidebar-clear { display: block; text-align: center; margin-top: 0.45rem; font-size: 0.75rem; color: var(--color-text-muted); cursor: pointer; }
   .sidebar-clear:hover { color: var(--color-danger); }
 
-  /* Zona GIS */
-  #parcels-map { width: 100%; height: 100%; display: none; }
-  #parcels-map.active { display: block; }
+  /* ── SINGLE MAP CONTAINER — shared across Phase 1 & Phase 2 ── */
+  #r2-map { width: 100%; height: 100%; }
+
+  /* Phase 2 map toggle visibility (List vs Map) */
+  #parcels-map-wrapper { width: 100%; height: 100%; display: none; }
+  #parcels-map-wrapper.active { display: block; }
 
   /* Tabla */
   #parcels-table-zone { height: 100%; overflow-y: auto; display: none; }
@@ -125,10 +129,18 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ── Phase visibility control ── */
-  .r2-phase1-zone { display: block; }
+  .r2-phase1-zone { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
   .r2-phase2-zone { display: none; }
   .r2-in-phase2 .r2-phase1-zone { display: none; }
   .r2-in-phase2 .r2-phase2-zone { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+  /* ── Phase 2 transition overlay ── */
+  .r2-transition-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(248,249,250,.92); z-index: 20; flex-direction: column; gap: .75rem;
+    font-size: .875rem; color: var(--color-text-muted);
+  }
 </style>
 <% end %>
 
@@ -143,10 +155,11 @@
   <!-- ═══════════════════════════════════════════════════════════════════
        PHASE 1: GEOGRAPHIC OVERVIEW — Full-screen Google Maps
        County pins with parcel count + heatmap radial
+       SINGLE MAP INSTANCE — this container holds the ONLY google.maps.Map
        ═══════════════════════════════════════════════════════════════════ -->
-  <div class="r2-phase1-zone" id="r2-phase1" style="flex:1; position:relative; overflow:hidden;">
-    <!-- Google Maps fills entire zone -->
-    <div id="r2-overview-map" style="width:100%; height:100%; z-index:1;"></div>
+  <div class="r2-phase1-zone" id="r2-phase1" style="position:relative; overflow:hidden;">
+    <!-- SINGLE Google Maps container — shared between Phase 1 and Phase 2 -->
+    <div id="r2-map" style="z-index:1;"></div>
 
     <!-- Loading overlay -->
     <div class="r2-loading" id="r2-phase1-loading">
@@ -164,6 +177,7 @@
   <!-- ═══════════════════════════════════════════════════════════════════
        PHASE 2: COUNTY DETAIL — Topbar + Filter Sidebar + Table/Map
        Activated when user selects a county (via pin click or auction picker)
+       Map instance is RELOCATED here from Phase 1 (not recreated)
        ═══════════════════════════════════════════════════════════════════ -->
   <div class="r2-phase2-zone" id="r2-phase2">
 
@@ -353,8 +367,8 @@
           <% end %>
         </div><!-- /#parcels-table-zone -->
 
-        <!-- ── Vista MAPA (Phase 2 GIS) ── -->
-        <div id="parcels-map"></div>
+        <!-- ── Vista MAPA (Phase 2 GIS) — map gets relocated here ── -->
+        <div id="parcels-map-wrapper"></div>
 
       </div><!-- /.parcels-results -->
     </div><!-- /.parcels-body -->
@@ -398,17 +412,18 @@
                   <h3 style="font-size:1rem;font-weight:700;color:var(--color-primary);margin:0;">
                     Tax Deed Auctions in <%= state %>
                   </h3>
-                  <a href="<%= research_parcels_path(state: state) %>"
+                  <button type="button"
                      class="btn-sm btn-sm-primary"
-                     style="font-size:.75rem;padding:.35rem .85rem;white-space:nowrap;text-decoration:none;">
+                     style="font-size:.75rem;padding:.35rem .85rem;white-space:nowrap;text-decoration:none;"
+                     onclick="selectStateFromPicker('<%= state %>')">
                     🗺 View All <%= auctions.sum { |a| a.parcel_count || 0 } %> Parcels →
-                  </a>
+                  </button>
                 </div>
                 <div class="picker-state-rows open">
                   <% auctions.each do |auction| %>
                     <div class="picker-auction-row"
                          data-auction-name="<%= auction.county.downcase %>"
-                         onclick="selectAuction(<%= auction.id %>)">
+                         onclick="selectAuction(<%= auction.id %>, '<%= auction.county.gsub("'", "\\\\'") %>', '<%= auction.state %>')">
                       <span class="picker-auction-row__name"><%= auction.county %></span>
                       <span class="picker-auction-row__date"><%= auction.sale_date&.strftime("%b %d, %Y") || '—' %></span>
                       <span class="picker-auction-row__count"><%= auction.parcel_count || 0 %> parcels</span>
@@ -433,48 +448,75 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// RAMA 2: Two-Phase Geographic Flow — JavaScript Controller
+// RAMA 2: Two-Phase Geographic Flow — SINGLE MAP INSTANCE
+// ══════════════════════════════════════════════════════════════
+// ARCHITECTURE RULE: Only ONE google.maps.Map is ever created.
+// Phase transitions swap markers/overlays on this single instance.
+// Zero page reloads. Zero double-init. 100% async.
 // ══════════════════════════════════════════════════════════════
 
 // ── Configuration ────────────────────────────────────────────
 var COUNTY_OVERVIEW_URL = '<%= county_overview_research_parcels_path(format: :json) %>';
 var MAP_DATA_URL        = '<%= map_data_research_parcels_path(format: :json) %>';
 var PARCELS_BASE_PATH   = '<%= research_parcels_path %>';
-var AUCTION_ID          = '<%= @auction&.id %>';
-var SELECTED_STATE      = '<%= @selected_state %>';
+var INITIAL_AUCTION_ID  = '<%= @auction&.id %>';
+var INITIAL_STATE       = '<%= @selected_state %>';
 var HAS_CONTEXT         = <%= @has_context ? 'true' : 'false' %>;
 var TOTAL_AUCTIONS      = <%= @auctions_by_state.values.flatten.size %>;
 
 // ── State ────────────────────────────────────────────────────
-var STORAGE_KEY     = 'parcels_view_toggle';
-var currentView     = localStorage.getItem(STORAGE_KEY) || 'list';
-var overviewMap     = null;
-var phase2Map       = null;
-var mapInitialized  = false;
-var currentPhase    = HAS_CONTEXT ? 2 : 1;
+var STORAGE_KEY      = 'parcels_view_toggle';
+var currentView      = localStorage.getItem(STORAGE_KEY) || 'list';
+var r2Map            = null;   // THE single google.maps.Map instance
+var r2InfoWindow     = null;   // Shared InfoWindow (reused everywhere)
+var currentPhase     = HAS_CONTEXT ? 2 : 1;
+var phase2MapLoaded  = false;  // Whether Phase 2 markers are loaded
 
-// ── INITIALIZATION — Turbo Drive compatible ───────────────────
+// ── Overlay tracking arrays (for cleanup) ────────────────────
+var phase1Markers = [];
+var phase1Circles = [];
+var phase2Markers = [];
+var phase2Cluster = null;
+
+// ── State Centers (for Phase 2 positioning) ──────────────────
+var STATE_CENTERS = {
+  'AL': [32.8,-86.8], 'AK': [64.2,-152.5], 'AZ': [34.0,-111.1],
+  'AR': [35.2,-91.8], 'CA': [36.8,-119.4], 'CO': [39.1,-105.4],
+  'CT': [41.6,-72.7], 'DE': [39.3,-75.5], 'FL': [27.7,-81.5],
+  'GA': [32.2,-83.6], 'HI': [19.9,-155.6], 'ID': [44.1,-114.7],
+  'IL': [40.3,-89.0], 'IN': [40.3,-86.1], 'IA': [42.0,-93.2],
+  'KS': [38.5,-98.8], 'KY': [37.8,-84.3], 'LA': [31.2,-92.0],
+  'ME': [45.3,-69.4], 'MD': [39.0,-76.6], 'MA': [42.4,-71.4],
+  'MI': [44.3,-85.6], 'MN': [46.7,-94.6], 'MS': [32.7,-89.7],
+  'MO': [37.9,-91.8], 'MT': [46.9,-110.4], 'NE': [41.1,-98.3],
+  'NV': [38.8,-116.4], 'NH': [43.2,-71.6], 'NJ': [40.1,-74.5],
+  'NM': [34.8,-106.2], 'NY': [43.0,-75.0], 'NC': [35.6,-79.8],
+  'ND': [47.5,-100.5], 'OH': [40.4,-82.9], 'OK': [35.0,-97.1],
+  'OR': [43.8,-120.6], 'PA': [41.2,-77.2], 'RI': [41.6,-71.5],
+  'SC': [33.8,-81.2], 'SD': [43.9,-99.4], 'TN': [35.5,-86.0],
+  'TX': [31.0,-100.0], 'UT': [39.3,-111.1], 'VT': [44.0,-72.7],
+  'VA': [37.8,-79.4], 'WA': [47.8,-120.7], 'WV': [38.6,-80.6],
+  'WI': [43.8,-88.8], 'WY': [43.1,-107.6], 'DC': [38.9,-77.0]
+};
+
+// ══════════════════════════════════════════════════════════════
+// INITIALIZATION — Turbo Drive compatible
+// ══════════════════════════════════════════════════════════════
 function r2Init() {
   var eventsEl = document.getElementById('r2-events-count');
   if (!eventsEl) return; // Not on this page
 
-  // Clean up any existing Google Maps instances before re-init (Turbo navigation)
-  if (overviewMap) { overviewMap = null; }
-  if (phase2Map)   { phase2Map = null; }
-  var ovDiv = document.getElementById('r2-overview-map');
-  if (ovDiv) ovDiv.innerHTML = '';
-  var p2Div = document.getElementById('parcels-map');
-  if (p2Div) { var gmEl = p2Div.querySelector('.gm-style'); if (gmEl) p2Div.innerHTML = ''; }
-  mapInitialized = false;
-
   eventsEl.textContent = TOTAL_AUCTIONS;
 
-  if (HAS_CONTEXT) {
-    enterPhase2();
-    applyView(currentView, true);
-  } else {
-    enterPhase1();
-  }
+  // Initialize the SINGLE map instance (only once, ever)
+  initSingleMap(function() {
+    if (HAS_CONTEXT) {
+      enterPhase2Async(INITIAL_AUCTION_ID, INITIAL_STATE);
+      applyView(currentView, true);
+    } else {
+      enterPhase1();
+    }
+  });
 }
 
 // Fire on initial load AND on every Turbo navigation
@@ -482,24 +524,17 @@ document.addEventListener('DOMContentLoaded', r2Init);
 document.addEventListener('turbo:load', r2Init);
 
 
-
-
-
 // ══════════════════════════════════════════════════════════════
-// PHASE 1: Geographic Overview
+// SINGLE MAP INSTANCE — created once, reused forever
 // ══════════════════════════════════════════════════════════════
-function enterPhase1() {
-  currentPhase = 1;
-  var shell = document.getElementById('r2-shell');
-  shell.classList.remove('r2-in-phase2');
-  initOverviewMap();
-}
+function initSingleMap(callback) {
+  // If map already exists, just call the callback
+  if (r2Map) {
+    callback();
+    return;
+  }
 
-
-function initOverviewMap() {
-  if (overviewMap) return; // already initialized
-
-  var mapDiv = document.getElementById('r2-overview-map');
+  var mapDiv = document.getElementById('r2-map');
   if (!mapDiv) return;
 
   // Wait for Google Maps API to be available (loads async from <head>)
@@ -509,7 +544,7 @@ function initOverviewMap() {
       attempts++;
       if (typeof google !== 'undefined' && google.maps) {
         clearInterval(poll);
-        initOverviewMap();
+        initSingleMap(callback);
       } else if (attempts >= 50) { // 5 second timeout
         clearInterval(poll);
         var loading = document.getElementById('r2-phase1-loading');
@@ -519,7 +554,7 @@ function initOverviewMap() {
     return;
   }
 
-  // Initialize Google Maps — US centered, clean light style
+  // Create the ONE AND ONLY map instance — US centered, clean light style
   var mapOptions = {
     center: { lat: 39.8, lng: -98.5 },
     zoom: 5,
@@ -538,25 +573,133 @@ function initOverviewMap() {
   var mapIdMeta = document.querySelector('meta[name="google-maps-map-id"]');
   if (mapIdMeta) mapOptions.mapId = mapIdMeta.content;
 
-  overviewMap = new google.maps.Map(mapDiv, mapOptions);
+  r2Map = new google.maps.Map(mapDiv, mapOptions);
+  r2InfoWindow = new google.maps.InfoWindow();
 
-  // Shared InfoWindow (reused across markers)
-  var infoWindow = new google.maps.InfoWindow();
+  callback();
+}
 
-  // Fetch county overview data
+
+// ══════════════════════════════════════════════════════════════
+// OVERLAY CLEANUP — remove markers/circles/clusters from map
+// ══════════════════════════════════════════════════════════════
+function clearPhase1Overlays() {
+  phase1Markers.forEach(function(m) {
+    if (m.setMap) m.setMap(null);       // Legacy Marker
+    if (m.map !== undefined) m.map = null; // AdvancedMarkerElement
+  });
+  phase1Markers = [];
+
+  phase1Circles.forEach(function(c) { c.setMap(null); });
+  phase1Circles = [];
+}
+
+function clearPhase2Overlays() {
+  if (phase2Cluster) {
+    phase2Cluster.clearMarkers();
+    phase2Cluster.setMap(null);
+    phase2Cluster = null;
+  }
+  phase2Markers.forEach(function(m) {
+    if (m.setMap) m.setMap(null);
+    if (m.map !== undefined) m.map = null;
+  });
+  phase2Markers = [];
+  phase2MapLoaded = false;
+}
+
+function clearAllOverlays() {
+  if (r2InfoWindow) r2InfoWindow.close();
+  clearPhase1Overlays();
+  clearPhase2Overlays();
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// MAP CONTAINER RELOCATION — move the single #r2-map div
+// between Phase 1 zone and Phase 2 zone
+// ══════════════════════════════════════════════════════════════
+function relocateMapToPhase1() {
+  var mapEl = document.getElementById('r2-map');
+  var phase1Zone = document.getElementById('r2-phase1');
+  if (mapEl && phase1Zone && mapEl.parentElement !== phase1Zone) {
+    phase1Zone.insertBefore(mapEl, phase1Zone.firstChild);
+  }
+}
+
+function relocateMapToPhase2() {
+  var mapEl = document.getElementById('r2-map');
+  var wrapper = document.getElementById('parcels-map-wrapper');
+  if (mapEl && wrapper && mapEl.parentElement !== wrapper) {
+    wrapper.appendChild(mapEl);
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// PHASE 1: Geographic Overview — county pins + heatmap circles
+// ══════════════════════════════════════════════════════════════
+function enterPhase1() {
+  currentPhase = 1;
+  var shell = document.getElementById('r2-shell');
+  shell.classList.remove('r2-in-phase2');
+
+  // Clean Phase 2 overlays, relocate map, then load Phase 1 data
+  clearAllOverlays();
+  relocateMapToPhase1();
+
+  // Reset map to US overview position + roadmap style
+  if (r2Map) {
+    r2Map.setCenter({ lat: 39.8, lng: -98.5 });
+    r2Map.setZoom(5);
+    r2Map.setMapTypeId('roadmap');
+    // Restore clean Phase 1 styles
+    r2Map.setOptions({
+      mapTypeControl: false,
+      fullscreenControl: false,
+      styles: [
+        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+        { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+        { featureType: 'water', stylers: [{ color: '#c9d6e5' }] },
+        { featureType: 'landscape', stylers: [{ color: '#f5f5f5' }] }
+      ]
+    });
+  }
+
+  // Update URL without reload
+  var cleanUrl = new URL(window.location.origin + PARCELS_BASE_PATH);
+  window.history.pushState({}, '', cleanUrl.href);
+
+  loadPhase1Data();
+}
+
+function loadPhase1Data() {
+  if (!r2Map) return;
+
+  // Show loading spinner
+  var loadingEl = document.getElementById('r2-phase1-loading');
+  if (!loadingEl) {
+    loadingEl = document.createElement('div');
+    loadingEl.className = 'r2-loading';
+    loadingEl.id = 'r2-phase1-loading';
+    loadingEl.innerHTML = '<div class="r2-spinner"></div><span>Loading geographic overview…</span>';
+    var phase1Zone = document.getElementById('r2-phase1');
+    if (phase1Zone) phase1Zone.appendChild(loadingEl);
+  }
+
   fetch(COUNTY_OVERVIEW_URL, { headers: { 'Accept': 'application/json' } })
     .then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     })
     .then(function(counties) {
-      // Always remove loading spinner first
       var loading = document.getElementById('r2-phase1-loading');
       if (loading) loading.remove();
 
       if (!counties || !counties.length) return;
 
       var bounds = new google.maps.LatLngBounds();
+      var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
 
       // ── Heatmap simulation: Google Maps circles ──
       counties.forEach(function(c) {
@@ -564,10 +707,10 @@ function initOverviewMap() {
         var color = intensity < 0.3 ? '#3498DB' :
                     intensity < 0.6 ? '#1ABC9C' :
                     intensity < 0.8 ? '#F1C40F' : '#E67E22';
-        new google.maps.Circle({
-          map: overviewMap,
+        var circle = new google.maps.Circle({
+          map: r2Map,
           center: { lat: c.lat, lng: c.lng },
-          radius: 35000 + (intensity * 65000), // 35km–100km radius
+          radius: 35000 + (intensity * 65000),
           strokeColor: color,
           strokeOpacity: 0.25,
           strokeWeight: 1,
@@ -575,11 +718,10 @@ function initOverviewMap() {
           fillOpacity: 0.15,
           clickable: false
         });
+        phase1Circles.push(circle);
       });
 
       // ── County pins (Advanced Markers with custom HTML) ──
-      var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
-
       counties.forEach(function(county) {
         var count = county.parcel_count;
         var sizeClass = count < 10 ? 'r2-county-pin--sm' :
@@ -595,13 +737,13 @@ function initOverviewMap() {
           pinEl.className = 'r2-county-pin ' + sizeClass;
           pinEl.innerHTML = count + '<span class="r2-county-pin__label">' + county.county + ', ' + county.state + '</span>';
           marker = new google.maps.marker.AdvancedMarkerElement({
-            map: overviewMap,
+            map: r2Map,
             position: position,
             content: pinEl
           });
         } else {
           marker = new google.maps.Marker({
-            map: overviewMap,
+            map: r2Map,
             position: position,
             label: { text: String(count), color: '#fff', fontSize: '12px', fontWeight: '600' },
             icon: {
@@ -615,7 +757,7 @@ function initOverviewMap() {
           });
         }
 
-        // InfoWindow with county info
+        // InfoWindow with county info + ASYNC drill-down CTA
         var dates = (county.sale_dates || []).join(', ') || '—';
         var amt = county.total_amount ? '$' + Math.round(county.total_amount).toLocaleString() : '—';
         var popupHtml =
@@ -625,25 +767,27 @@ function initOverviewMap() {
             '<div class="r2-popup-row"><span>Auctions</span><strong>' + county.auction_count + '</strong></div>' +
             '<div class="r2-popup-row"><span>Total Amount</span><strong>' + amt + '</strong></div>' +
             '<div class="r2-popup-row"><span>Sale Dates</span><strong>' + dates + '</strong></div>' +
-            '<button class="r2-popup-cta" onclick="selectCountyFromMap(\'' + encodeURIComponent(county.state) + '\')">View Parcels →</button>' +
+            '<button class="r2-popup-cta" onclick="drillDownToCounty(\'' + county.state + '\')">View Parcels →</button>' +
           '</div>';
 
         marker.addListener('click', function() {
-          infoWindow.close();
-          infoWindow.setContent(popupHtml);
+          r2InfoWindow.close();
+          r2InfoWindow.setContent(popupHtml);
           if (useAdvanced) {
-            infoWindow.open({ anchor: marker, map: overviewMap });
+            r2InfoWindow.open({ anchor: marker, map: r2Map });
           } else {
-            infoWindow.open(overviewMap, marker);
+            r2InfoWindow.open(r2Map, marker);
           }
         });
+
+        phase1Markers.push(marker);
       });
 
       // Fit map to markers bounds
       try {
-        overviewMap.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
-        var listener = google.maps.event.addListener(overviewMap, 'idle', function() {
-          if (overviewMap.getZoom() > 8) overviewMap.setZoom(8);
+        r2Map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+        var listener = google.maps.event.addListener(r2Map, 'idle', function() {
+          if (r2Map.getZoom() > 8) r2Map.setZoom(8);
           google.maps.event.removeListener(listener);
         });
       } catch(e) { /* ignore fitBounds edge cases */ }
@@ -651,141 +795,103 @@ function initOverviewMap() {
     .catch(function(err) {
       console.error('County overview load failed:', err);
       var loading = document.getElementById('r2-phase1-loading');
-      if (loading) loading.innerHTML = '<span style="color:var(--color-danger);">⚠️ Failed to load geographic data. <button onclick="initOverviewMap()" style="text-decoration:underline;background:none;border:none;cursor:pointer;">Retry</button></span>';
+      if (loading) loading.innerHTML = '<span style="color:var(--color-danger);">⚠️ Failed to load geographic data. <button onclick="loadPhase1Data()" style="text-decoration:underline;background:none;border:none;cursor:pointer;">Retry</button></span>';
     });
 }
 
 
-// Navigate from Phase 1 pin → Phase 2
-function selectCountyFromMap(encodedState) {
-  window.location.href = PARCELS_BASE_PATH + '?state=' + encodedState;
+// ══════════════════════════════════════════════════════════════
+// PHASE TRANSITION: Phase 1 → Phase 2 (ASYNC, no page reload)
+// ══════════════════════════════════════════════════════════════
+
+// Called from county pin popup CTA — 100% async, no reload
+function drillDownToCounty(state) {
+  r2InfoWindow.close();
+  enterPhase2Async(null, state);
 }
 
-function backToPhase1() {
-  window.location.href = PARCELS_BASE_PATH;
+// Called from auction picker — async, no reload
+function selectAuction(auctionId, county, state) {
+  closeAuctionPickerDirect();
+  enterPhase2Async(String(auctionId), state);
 }
 
-// ══════════════════════════════════════════════════════════════
-// PHASE 2: County Detail (Table + GIS Map)
-// ══════════════════════════════════════════════════════════════
-function enterPhase2() {
+// Called from "View All X Parcels" in picker — async, no reload
+function selectStateFromPicker(state) {
+  closeAuctionPickerDirect();
+  enterPhase2Async(null, state);
+}
+
+// ── Core Phase 2 entry (async) ──────────────────────────────
+function enterPhase2Async(auctionId, state) {
   currentPhase = 2;
   var shell = document.getElementById('r2-shell');
   shell.classList.add('r2-in-phase2');
-}
 
-// ── TOGGLE VISTA LISTA / MAPA ────────────────────────────────
-function setView(view) {
-  currentView = view;
-  localStorage.setItem(STORAGE_KEY, view);
-  applyView(view, true);
-}
+  // Clear Phase 1 overlays (markers + circles) from the single map
+  clearAllOverlays();
 
-function applyView(view, loadMap) {
-  var tableZone = document.getElementById('parcels-table-zone');
-  var mapZone   = document.getElementById('parcels-map');
-  var btnList   = document.getElementById('toggle-list');
-  var btnMap    = document.getElementById('toggle-map');
-  if (!tableZone || !mapZone) return;
+  // Relocate the map to Phase 2's wrapper (for List/Map toggle)
+  relocateMapToPhase2();
 
-  if (view === 'map') {
-    tableZone.classList.remove('active');
-    mapZone.classList.add('active');
-    if (btnList) btnList.classList.remove('active');
-    if (btnMap)  btnMap.classList.add('active');
-    if (loadMap && HAS_CONTEXT && !mapInitialized) initPhase2Map();
-  } else {
-    mapZone.classList.remove('active');
-    tableZone.classList.add('active');
-    if (btnMap)  btnMap.classList.remove('active');
-    if (btnList) btnList.classList.add('active');
+  // Configure map for Phase 2 — satellite hybrid + controls
+  if (r2Map) {
+    r2Map.setMapTypeId('hybrid');
+    r2Map.setOptions({
+      mapTypeControl: true,
+      fullscreenControl: true,
+      styles: [] // Reset to default for satellite
+    });
+
+    // Center on state
+    var coords = (state && STATE_CENTERS[state]) ? STATE_CENTERS[state] : [27.7, -81.5];
+    var zoom = auctionId ? 10 : 7;
+    r2Map.setCenter({ lat: coords[0], lng: coords[1] });
+    r2Map.setZoom(zoom);
   }
+
+  // Update URL without page reload
+  var newUrl = new URL(window.location.origin + PARCELS_BASE_PATH);
+  if (auctionId) {
+    newUrl.searchParams.set('auction_id', auctionId);
+  } else if (state) {
+    newUrl.searchParams.set('state', state);
+  }
+  window.history.pushState({}, '', newUrl.href);
+
+  // Load Phase 2 parcel markers
+  loadPhase2Markers(auctionId, state);
 }
 
-// ── Phase 2 GIS Map (Google Maps — parcelas individuales) ────────
-function initPhase2Map() {
-  if (mapInitialized) return;
 
-  var mapDiv = document.getElementById('parcels-map');
+// ══════════════════════════════════════════════════════════════
+// PHASE 2: Load parcel markers into the SINGLE map instance
+// ══════════════════════════════════════════════════════════════
+function loadPhase2Markers(auctionId, state) {
+  if (!r2Map || phase2MapLoaded) return;
 
-  // Loading overlay
-  var overlay = document.createElement('div');
-  overlay.className = 'r2-loading';
-  overlay.id = 'r2-phase2-loading';
-  overlay.innerHTML = '<div class="r2-spinner"></div><span>Loading parcels map…</span>';
-  mapDiv.appendChild(overlay);
-
-  // State centers for initial positioning
-  var STATE_CENTERS = {
-    'AL': [32.8,-86.8], 'AK': [64.2,-152.5], 'AZ': [34.0,-111.1],
-    'AR': [35.2,-91.8], 'CA': [36.8,-119.4], 'CO': [39.1,-105.4],
-    'CT': [41.6,-72.7], 'DE': [39.3,-75.5], 'FL': [27.7,-81.5],
-    'GA': [32.2,-83.6], 'HI': [19.9,-155.6], 'ID': [44.1,-114.7],
-    'IL': [40.3,-89.0], 'IN': [40.3,-86.1], 'IA': [42.0,-93.2],
-    'KS': [38.5,-98.8], 'KY': [37.8,-84.3], 'LA': [31.2,-92.0],
-    'ME': [45.3,-69.4], 'MD': [39.0,-76.6], 'MA': [42.4,-71.4],
-    'MI': [44.3,-85.6], 'MN': [46.7,-94.6], 'MS': [32.7,-89.7],
-    'MO': [37.9,-91.8], 'MT': [46.9,-110.4], 'NE': [41.1,-98.3],
-    'NV': [38.8,-116.4], 'NH': [43.2,-71.6], 'NJ': [40.1,-74.5],
-    'NM': [34.8,-106.2], 'NY': [43.0,-75.0], 'NC': [35.6,-79.8],
-    'ND': [47.5,-100.5], 'OH': [40.4,-82.9], 'OK': [35.0,-97.1],
-    'OR': [43.8,-120.6], 'PA': [41.2,-77.2], 'RI': [41.6,-71.5],
-    'SC': [33.8,-81.2], 'SD': [43.9,-99.4], 'TN': [35.5,-86.0],
-    'TX': [31.0,-100.0], 'UT': [39.3,-111.1], 'VT': [44.0,-72.7],
-    'VA': [37.8,-79.4], 'WA': [47.8,-120.7], 'WV': [38.6,-80.6],
-    'WI': [43.8,-88.8], 'WY': [43.1,-107.6], 'DC': [38.9,-77.0]
-  };
-
-  var stateCoords = (SELECTED_STATE && STATE_CENTERS[SELECTED_STATE])
-    ? STATE_CENTERS[SELECTED_STATE]
-    : [27.7, -81.5];
-  var zoom = AUCTION_ID ? 10 : 7;
-
-  // Google Maps hybrid (satellite + labels) for Phase 2 GIS
-  var mapOptions = {
-    center: { lat: stateCoords[0], lng: stateCoords[1] },
-    zoom: zoom,
-    mapTypeId: 'hybrid',
-    zoomControl: true,
-    mapTypeControl: true,
-    streetViewControl: false,
-    fullscreenControl: true
-  };
-  var mapIdMeta = document.querySelector('meta[name="google-maps-map-id"]');
-  if (mapIdMeta) mapOptions.mapId = mapIdMeta.content;
-
-  phase2Map = new google.maps.Map(mapDiv, mapOptions);
-
-  // Fetch parcel data
   var fetchUrl = MAP_DATA_URL;
-  if (AUCTION_ID) {
-    fetchUrl += '?auction_id=' + AUCTION_ID;
-  } else if (SELECTED_STATE) {
-    fetchUrl += '?state=' + SELECTED_STATE;
+  if (auctionId) {
+    fetchUrl += '?auction_id=' + auctionId;
+  } else if (state) {
+    fetchUrl += '?state=' + state;
+  } else {
+    return; // No context
   }
 
   fetch(fetchUrl, { headers: { 'Accept': 'application/json' } })
     .then(function(r) { return r.json(); })
     .then(function(parcels) {
-      var loadEl = document.getElementById('r2-phase2-loading');
-      if (loadEl) loadEl.remove();
+      if (!parcels || !parcels.length) return;
 
-      if (!parcels.length) return;
-
-      // Center on first parcel if single auction
-      if (AUCTION_ID && parcels[0]) {
-        phase2Map.setCenter({ lat: parcels[0].lat, lng: parcels[0].lng });
-        phase2Map.setZoom(12);
-      }
-
-      var infoWindow = new google.maps.InfoWindow();
       var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
-      var markers = [];
+      var bounds = new google.maps.LatLngBounds();
 
       parcels.forEach(function(p) {
         if (!p.lat || !p.lng) return;
 
         var position = { lat: p.lat, lng: p.lng };
+        bounds.extend(position);
         var marker;
 
         if (useAdvanced) {
@@ -808,34 +914,90 @@ function initPhase2Map() {
           '</div>';
 
         marker.addListener('click', function() {
-          infoWindow.close();
-          infoWindow.setContent(popupHtml);
+          r2InfoWindow.close();
+          r2InfoWindow.setContent(popupHtml);
           if (useAdvanced) {
-            infoWindow.open({ anchor: marker, map: phase2Map });
+            r2InfoWindow.open({ anchor: marker, map: r2Map });
           } else {
-            infoWindow.open(phase2Map, marker);
+            r2InfoWindow.open(r2Map, marker);
           }
         });
 
-        markers.push(marker);
+        phase2Markers.push(marker);
       });
 
       // MarkerClusterer
       if (typeof markerClusterer !== 'undefined' && markerClusterer.MarkerClusterer) {
-        new markerClusterer.MarkerClusterer({
-          map: phase2Map,
-          markers: markers
+        phase2Cluster = new markerClusterer.MarkerClusterer({
+          map: r2Map,
+          markers: phase2Markers
+        });
+      } else {
+        // Fallback: add markers directly to map
+        phase2Markers.forEach(function(m) {
+          if (m.setMap) m.setMap(r2Map);
+          else m.map = r2Map;
         });
       }
 
-      mapInitialized = true;
+      // Fit bounds to parcel markers
+      try {
+        r2Map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+      } catch(e) { /* ignore */ }
+
+      phase2MapLoaded = true;
     })
     .catch(function(err) {
       console.error('Phase 2 map load failed:', err);
-      var loadEl = document.getElementById('r2-phase2-loading');
-      if (loadEl) loadEl.innerHTML = '<span style="color:var(--color-danger);">⚠️ Failed to load parcel map data.</span>';
     });
 }
+
+
+// ══════════════════════════════════════════════════════════════
+// PHASE 2: Back to Phase 1 (ASYNC — NO page reload)
+// ══════════════════════════════════════════════════════════════
+function backToPhase1() {
+  enterPhase1();
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// PHASE 2: Toggle List / Map views
+// ══════════════════════════════════════════════════════════════
+function setView(view) {
+  currentView = view;
+  localStorage.setItem(STORAGE_KEY, view);
+  applyView(view, true);
+}
+
+function applyView(view, loadMap) {
+  var tableZone = document.getElementById('parcels-table-zone');
+  var mapZone   = document.getElementById('parcels-map-wrapper');
+  var btnList   = document.getElementById('toggle-list');
+  var btnMap    = document.getElementById('toggle-map');
+  if (!tableZone || !mapZone) return;
+
+  if (view === 'map') {
+    tableZone.classList.remove('active');
+    mapZone.classList.add('active');
+    if (btnList) btnList.classList.remove('active');
+    if (btnMap)  btnMap.classList.add('active');
+
+    // Ensure the map container is in the Phase 2 wrapper
+    relocateMapToPhase2();
+
+    // Trigger resize so Google Maps recalculates viewport
+    if (r2Map) {
+      google.maps.event.trigger(r2Map, 'resize');
+    }
+  } else {
+    mapZone.classList.remove('active');
+    tableZone.classList.add('active');
+    if (btnMap)  btnMap.classList.remove('active');
+    if (btnList) btnList.classList.add('active');
+  }
+}
+
 
 // ── PARCEL DRAWER (Overlay) ──────────────────────────────────
 function openParcelDrawer(url) {
@@ -874,7 +1036,7 @@ function closeParcelDrawer() {
   // Restore URL: keep auction_id / state params but remove any parcel-specific path/params
   var cleanUrl = new URL(window.location);
   cleanUrl.pathname = PARCELS_BASE_PATH;
-  cleanUrl.searchParams.delete('parcel_id'); // scrub parcel context; keep auction_id / state
+  cleanUrl.searchParams.delete('parcel_id');
   window.history.pushState({}, '', cleanUrl.href);
 }
 
@@ -907,10 +1069,6 @@ function closeAuctionPickerBackdrop(e) {
 function closeAuctionPickerDirect() {
   document.getElementById('auction-picker-modal').classList.remove('open');
   document.body.style.overflow = '';
-}
-function selectAuction(id) {
-  closeAuctionPickerDirect();
-  window.location.href = PARCELS_BASE_PATH + '?auction_id=' + id;
 }
 function showStateAuctions(event, stateId) {
   document.querySelectorAll('.master-col-item').forEach(function(el) { el.classList.remove('active'); });
