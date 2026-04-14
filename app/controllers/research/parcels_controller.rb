@@ -148,7 +148,7 @@ module Research
     end
 
     # GET /research/parcels/map_data.json
-    # ⚠️ Soporta auction_id O state como parámetro
+    # Supports auction_id, state, or county+state as parameters
     def map_data
       if params[:auction_id].present?
         auction = Auction.find_by(id: params[:auction_id])
@@ -157,12 +157,18 @@ module Research
         end
         parcels = Parcel.for_auction(auction.id).has_coords
 
+      elsif params[:county].present? && params[:state].present?
+        # County-level drill-down: only parcels for this specific county
+        auction_ids = Auction.visible.by_state(params[:state])
+                             .where(county: params[:county]).pluck(:id)
+        parcels = Parcel.where(auction_id: auction_ids).has_coords
+
       elsif params[:state].present?
         auction_ids = Auction.visible.by_state(params[:state]).pluck(:id)
         parcels = Parcel.where(auction_id: auction_ids).has_coords
 
       else
-        render json: { error: "auction_id or state is required" }, status: :bad_request and return
+        render json: { error: "auction_id, state, or county+state is required" }, status: :bad_request and return
       end
 
       parcels = parcels.select(
@@ -185,6 +191,60 @@ module Research
           land_use:      p.land_use,
           lat:           p.latitude.to_f,
           lng:           p.longitude.to_f
+        }
+      }
+    end
+
+    # GET /research/parcels/parcels_list.json
+    # Phase 2 async parcel list — paginated, filterable
+    # Returns parcels + pagination meta for the split-screen list panel
+    def parcels_list
+      per_page = PER_PAGE_OPTIONS.include?(params[:per_page].to_i) ? params[:per_page].to_i : 25
+
+      if params[:auction_id].present?
+        auction = Auction.find_by(id: params[:auction_id])
+        scope = auction ? Parcel.for_auction(auction.id) : Parcel.none
+      elsif params[:county].present? && params[:state].present?
+        auction_ids = Auction.visible.by_state(params[:state])
+                             .where(county: params[:county]).pluck(:id)
+        scope = Parcel.where(auction_id: auction_ids)
+      elsif params[:state].present?
+        auction_ids = Auction.visible.by_state(params[:state]).pluck(:id)
+        scope = Parcel.where(auction_id: auction_ids)
+      else
+        render json: { parcels: [], meta: { total: 0, page: 1, pages: 0 } } and return
+      end
+
+      scope = apply_parcel_filters(scope)
+      paginated = scope.includes(:auction).order(created_at: :desc).page(params[:page]).per(per_page)
+
+      render json: {
+        parcels: paginated.map { |p|
+          {
+            id:              p.id,
+            address:         p.address || '—',
+            city:            p.city,
+            county:          p.county,
+            state:           p.state,
+            zip:             p.zip_code,
+            parcel_id:       p.parcel_id,
+            opening_bid:     p.opening_bid&.to_f,
+            assessed_value:  p.assessed_value&.to_f,
+            max_bid_30:      p.max_bid_30&.to_f,
+            delinquent_amount: p.delinquent_amount&.to_f,
+            property_type:   p.property_type,
+            sale_date:       p.auction&.sale_date&.strftime("%b %d, %Y"),
+            has_coords:      p.has_coords?,
+            show_path:       "/research/parcels/#{p.id}"
+          }
+        },
+        meta: {
+          total:     paginated.total_count,
+          page:      paginated.current_page,
+          pages:     paginated.total_pages,
+          per_page:  per_page,
+          from:      [paginated.offset_value + 1, paginated.total_count].min,
+          to:        [paginated.offset_value + paginated.length, paginated.total_count].min
         }
       }
     end

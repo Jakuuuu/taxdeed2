@@ -3,7 +3,7 @@
 <%# ══════════════════════════════════════════════════════════════════════
      RAMA 2: Geographic Search Module — Two-Phase Flow
      Phase 1: Geographic Overview (county pins + heatmap)
-     Phase 2: County Detail (parcel sidebar + GIS map)
+     Phase 2: Split-Screen (map top 50% + parcel list bottom 50%)
      ARCHITECTURE: Single Google Maps instance — NEVER create two maps.
      Transitions are 100% async via marker swap, zero page reloads.
      ══════════════════════════════════════════════════════════════════════ %>
@@ -44,52 +44,231 @@
     transition: border-color 0.15s;
   }
   .topbar-search input:focus { border-color: var(--color-primary); }
-  .per-page-sel {
-    padding: 0.42rem 0.6rem; border: 1.5px solid var(--color-border);
-    border-radius: 8px; font-size: 0.8rem; font-family: var(--font);
-    background: #fff; color: var(--color-text); outline: none;
-  }
   .results-meta { font-size: 0.78rem; color: var(--color-text-muted); white-space: nowrap; }
 
-  /* Body con sidebar - Phase 2 only */
-  .parcels-body { display: flex; flex: 1; overflow: hidden; }
-
-  /* Sidebar de filtros */
-  .parcels-sidebar {
-    width: 220px; flex-shrink: 0; background: #F8F9FA;
-    border-right: 1px solid var(--color-border); overflow-y: auto; padding: 1rem;
+  /* ── Topbar inline filters ── */
+  .topbar-filter-group {
+    display: flex; align-items: center; gap: 0.5rem;
   }
-  .sidebar-section-title {
-    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: var(--color-text-muted);
-    margin: 1rem 0 0.45rem; padding-top: 0.75rem;
-    border-top: 1px solid var(--color-border);
+  .topbar-filter-input {
+    width: 80px; padding: 0.38rem 0.5rem;
+    border: 1.5px solid var(--color-border); border-radius: 7px;
+    font-size: 0.78rem; font-family: var(--font); outline: none;
+    transition: border-color 0.15s; background: #fff;
   }
-  .sidebar-section-title:first-child { margin-top: 0; border-top: none; padding-top: 0; }
-  .sidebar-input {
-    width: 100%; padding: 0.42rem 0.65rem; border: 1.5px solid var(--color-border);
-    border-radius: 7px; font-size: 0.8rem; font-family: var(--font);
-    background: #fff; outline: none; transition: border-color .15s; box-sizing: border-box;
+  .topbar-filter-input:focus { border-color: var(--color-primary); }
+  .topbar-filter-select {
+    padding: 0.38rem 0.5rem; border: 1.5px solid var(--color-border);
+    border-radius: 7px; font-size: 0.78rem; font-family: var(--font);
+    background: #fff; outline: none; cursor: pointer;
+    appearance: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236c757d'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 8px; padding-right: 1.5rem;
   }
-  .sidebar-input:focus { border-color: var(--color-primary); }
-  .sidebar-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236c757d'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.6rem center; background-size: 8px; padding-right: 1.8rem; }
-  .sidebar-apply { width: 100%; margin-top: 1rem; padding: 0.5rem; border-radius: 8px; background: var(--color-primary); color: #fff; border: none; font-size: 0.8125rem; font-family: var(--font); font-weight: 600; cursor: pointer; }
-  .sidebar-clear { display: block; text-align: center; margin-top: 0.45rem; font-size: 0.75rem; color: var(--color-text-muted); cursor: pointer; }
-  .sidebar-clear:hover { color: var(--color-danger); }
+  .topbar-filter-label {
+    font-size: 0.72rem; color: var(--color-text-muted); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .topbar-filter-apply {
+    padding: 0.38rem 0.7rem; border-radius: 7px; border: none;
+    background: var(--color-primary); color: #fff; font-size: 0.78rem;
+    font-family: var(--font); font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .topbar-filter-apply:hover { opacity: 0.85; }
+  .topbar-filter-clear {
+    padding: 0.38rem 0.6rem; border-radius: 7px; border: 1.5px solid var(--color-border);
+    background: #fff; color: var(--color-text-muted); font-size: 0.78rem;
+    font-family: var(--font); cursor: pointer; transition: all 0.15s;
+  }
+  .topbar-filter-clear:hover { border-color: var(--color-danger); color: var(--color-danger); }
 
   /* ── SINGLE MAP CONTAINER — shared across Phase 1 & Phase 2 ── */
   #r2-map { width: 100%; height: 100%; }
 
-  /* Phase 2 map toggle visibility (List vs Map) */
-  #parcels-map-wrapper { width: 100%; height: 100%; display: none; }
-  #parcels-map-wrapper.active { display: block; }
+  /* Loading/spinner */
+  .map-loading-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(248,249,250,.88); z-index: 10; flex-direction: column; gap: .75rem;
+    font-size: .875rem; color: var(--color-text-muted);
+  }
+  .map-spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Tabla */
-  #parcels-table-zone { height: 100%; overflow-y: auto; display: none; }
-  #parcels-table-zone.active { display: block; }
+  /* ── Phase visibility control ── */
+  .r2-phase1-zone { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+  .r2-phase2-zone { display: none; }
+  .r2-in-phase2 .r2-phase1-zone { display: none; }
+  .r2-in-phase2 .r2-phase2-zone { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
 
-  /* Zona de resultados */
-  .parcels-results { flex: 1; overflow: hidden; position: relative; }
+  /* ── Phase 2 transition overlay ── */
+  .r2-transition-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(248,249,250,.92); z-index: 20; flex-direction: column; gap: .75rem;
+    font-size: .875rem; color: var(--color-text-muted);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SPLIT-SCREEN LAYOUT — Phase 2 (Map top 50%, List bottom 50%)
+     ═══════════════════════════════════════════════════════════ */
+  .r2-split-container {
+    display: flex; flex-direction: column;
+    flex: 1; overflow: hidden;
+  }
+
+  /* Map panel (top half) */
+  .r2-split-map {
+    flex: 1; min-height: 0;
+    position: relative; overflow: hidden;
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  /* List panel (bottom half) */
+  .r2-split-list {
+    flex: 1; min-height: 0;
+    overflow-y: auto; background: #F8F9FA;
+  }
+
+  /* ── View modes ── */
+  .r2-split-container[data-view="list"] .r2-split-map { display: none; }
+  .r2-split-container[data-view="list"] .r2-split-list { flex: 1; }
+  .r2-split-container[data-view="map"] .r2-split-list { display: none; }
+  .r2-split-container[data-view="map"] .r2-split-map { flex: 1; }
+
+  /* ══════════════════════════════════════════════════════════
+     PARCEL DATA TABLE — sortable columns, checkboxes, hover
+     ══════════════════════════════════════════════════════════ */
+  .r2-table-wrap {
+    width: 100%; overflow-x: auto;
+  }
+  .r2-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.8125rem; font-family: var(--font);
+    table-layout: fixed;
+  }
+  .r2-table thead {
+    position: sticky; top: 0; z-index: 5;
+    background: #F5F7FA;
+    border-bottom: 2px solid var(--color-border);
+  }
+  .r2-table th {
+    padding: 0.55rem 0.65rem;
+    text-align: left; font-weight: 700;
+    font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #455A64;
+    user-select: none; cursor: pointer;
+    white-space: nowrap; border-bottom: 2px solid var(--color-border);
+    transition: background 0.12s;
+  }
+  .r2-table th:hover { background: #E8EDF2; }
+  .r2-table th.col-checkbox { width: 36px; cursor: default; }
+  .r2-table th.col-checkbox:hover { background: #F5F7FA; }
+  .r2-table th .sort-arrows {
+    display: inline-flex; flex-direction: column;
+    margin-left: 0.3rem; vertical-align: middle;
+    font-size: 0.55rem; line-height: 0.55rem; color: #90A4AE;
+  }
+  .r2-table th.sorted-asc .arrow-up,
+  .r2-table th.sorted-desc .arrow-down { color: var(--color-primary); font-weight: 900; }
+  .r2-table td {
+    padding: 0.5rem 0.65rem; border-bottom: 1px solid #ECEFF1;
+    color: var(--color-text); vertical-align: middle;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .r2-table tbody tr { cursor: pointer; transition: background 0.1s; }
+  .r2-table tbody tr:hover { background: #E3F2FD; }
+  .r2-table tbody tr:nth-child(even) { background: #FAFBFC; }
+  .r2-table tbody tr:nth-child(even):hover { background: #E3F2FD; }
+  .r2-table .td-address {
+    color: var(--color-primary); font-weight: 600;
+    max-width: 280px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .r2-table .td-address:hover { text-decoration: underline; }
+  .r2-table .td-bid {
+    text-align: right; font-weight: 700; color: #2E7D32;
+    font-variant-numeric: tabular-nums;
+  }
+  .r2-table .td-value {
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
+  .r2-table .td-parcel {
+    font-family: 'Roboto Mono', monospace; font-size: 0.72rem; color: #607D8B;
+    max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .r2-table input[type='checkbox'] {
+    width: 15px; height: 15px; accent-color: var(--color-primary);
+    cursor: pointer;
+  }
+  /* Column widths */
+  .r2-table .col-checkbox { width: 36px; text-align: center; }
+  .r2-table .col-address  { width: 26%; }
+  .r2-table .col-city     { width: 12%; }
+  .r2-table .col-zip      { width: 7%; }
+  .r2-table .col-parcel   { width: 18%; }
+  .r2-table .col-type     { width: 16%; }
+  .r2-table .col-bid      { width: 10%; text-align: right; }
+  .r2-table .col-value    { width: 10%; text-align: right; }
+
+  /* ── Pagination bar ── */
+  .r2-list-pagination {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.25rem; padding: 0.65rem 1rem;
+    border-top: 1px solid var(--color-border); background: #fff;
+    flex-wrap: wrap;
+  }
+  .r2-list-pagination__info {
+    font-size: 0.78rem; color: var(--color-text-muted);
+    margin-right: 0.75rem;
+  }
+  .r2-list-pagination__btn {
+    min-width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: 6px; background: #fff; font-size: 0.78rem;
+    font-family: var(--font); cursor: pointer; color: var(--color-text);
+    transition: all 0.12s; padding: 0 0.5rem;
+  }
+  .r2-list-pagination__btn:hover:not(:disabled):not(.r2-list-pagination__btn--active) {
+    border-color: var(--color-primary); color: var(--color-primary);
+    background: #EBF5FB;
+  }
+  .r2-list-pagination__btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .r2-list-pagination__btn--active {
+    background: var(--color-primary); color: #fff;
+    border-color: var(--color-primary); font-weight: 700;
+  }
+  .r2-list-pagination__ellipsis {
+    min-width: 28px; display: inline-flex; align-items: center;
+    justify-content: center; font-size: 0.78rem; color: #90A4AE;
+  }
+
+  /* ── List loading / empty states ── */
+  .r2-list-loading {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 3rem; gap: 0.75rem;
+    color: var(--color-text-muted); font-size: 0.875rem;
+  }
+  .r2-list-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 3rem; gap: 0.75rem; text-align: center;
+  }
+  .r2-list-empty__icon { font-size: 2.5rem; }
+  .r2-list-empty__title { font-size: 1rem; font-weight: 700; color: var(--color-text); margin: 0; }
+  .r2-list-empty__desc { font-size: 0.8125rem; color: var(--color-text-muted); margin: 0; }
+
+  /* ── County header badge ── */
+  .r2-county-badge {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.35rem 0.8rem; background: #EBF5FB;
+    border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+    color: var(--color-primary);
+  }
+  .r2-county-badge__count {
+    background: var(--color-primary); color: #fff;
+    padding: 0.1rem 0.45rem; border-radius: 12px;
+    font-size: 0.7rem; font-weight: 700;
+  }
 
   /* Auction picker modal */
   .picker-state-group { border-bottom: 1px solid var(--color-border); }
@@ -118,29 +297,6 @@
   }
   .picker-search input:focus { border-color: var(--color-primary); }
 
-  /* Loading/spinner */
-  .map-loading-overlay {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(248,249,250,.88); z-index: 10; flex-direction: column; gap: .75rem;
-    font-size: .875rem; color: var(--color-text-muted);
-  }
-  .map-spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── Phase visibility control ── */
-  .r2-phase1-zone { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-  .r2-phase2-zone { display: none; }
-  .r2-in-phase2 .r2-phase1-zone { display: none; }
-  .r2-in-phase2 .r2-phase2-zone { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-
-  /* ── Phase 2 transition overlay ── */
-  .r2-transition-overlay {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(248,249,250,.92); z-index: 20; flex-direction: column; gap: .75rem;
-    font-size: .875rem; color: var(--color-text-muted);
-  }
 </style>
 <% end %>
 
@@ -175,203 +331,78 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════════
-       PHASE 2: COUNTY DETAIL — Topbar + Filter Sidebar + Table/Map
+       PHASE 2: SPLIT-SCREEN — Map (top 50%) + Parcel List (bottom 50%)
        Activated when user selects a county (via pin click or auction picker)
        Map instance is RELOCATED here from Phase 1 (not recreated)
        ═══════════════════════════════════════════════════════════════════ -->
   <div class="r2-phase2-zone" id="r2-phase2">
 
     <!-- ── TOP BAR ─────────────────────────────────────────── -->
-    <%= form_with url: research_parcels_path, method: :get, local: true, id: "parcel-filter-form" do |f| %>
-      <%= f.hidden_field :auction_id, value: params[:auction_id] if params[:auction_id].present? %>
-      <%= f.hidden_field :state,      value: params[:state] if params[:state].present? && params[:auction_id].blank? %>
-      <%= f.hidden_field :county,     value: params[:county], id: "filter_county" %>
-      <%= f.hidden_field :min_bid,    value: params[:min_bid], id: "filter_min_bid" %>
-      <%= f.hidden_field :max_bid,    value: params[:max_bid], id: "filter_max_bid" %>
-      <%= f.hidden_field :property_type, value: params[:property_type], id: "filter_property_type" %>
+    <div class="parcels-topbar">
+      <!-- County/Auction badge -->
+      <button type="button"
+              class="auction-selector-btn has-auction"
+              onclick="openAuctionPicker()"
+              id="r2-phase2-county-btn">
+        🏛 <span id="r2-phase2-county-label">Select Auction</span>
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+      </button>
 
-      <div class="parcels-topbar">
-        <!-- Selector de subasta / estado -->
-        <button type="button"
-                class="auction-selector-btn <%= 'has-auction' if @has_context %>"
-                onclick="openAuctionPicker()">
-          🏛
-          <% if @auction %>
-            <%= @auction.county %>, <%= @auction.state %>
-          <% elsif @selected_state && !@auction %>
-            All auctions in <%= @selected_state %>
-          <% else %>
-            Select Auction
-          <% end %>
-          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-        </button>
+      <!-- Back to Phase 1 -->
+      <button type="button" class="auction-selector-btn" onclick="backToPhase1()" style="border-color:#6C757D; color:#6C757D;" title="Back to Geographic Overview">
+        ← Overview
+      </button>
 
-        <!-- Back to Phase 1 -->
-        <button type="button" class="auction-selector-btn" onclick="backToPhase1()" style="border-color:#6C757D; color:#6C757D;" title="Back to Geographic Overview">
-          ← Overview
-        </button>
-
-        <!-- Búsqueda inline -->
-        <% if @has_context %>
-          <div class="topbar-search">
-            <%= f.text_field :q, value: params[:q], placeholder: "Search address, parcel ID…",
-                id: "parcel-search", autocomplete: "off" %>
-          </div>
-        <% end %>
-
-        <!-- Toggle List / Map -->
-        <div class="toggle-view-group">
-          <button type="button" class="toggle-view-btn active" id="toggle-list" onclick="setView('list')">☰ List</button>
-          <button type="button" class="toggle-view-btn" id="toggle-map" onclick="setView('map')">🗺 Map</button>
-        </div>
-
-        <% if @has_context %>
-          <span class="results-meta">
-            <%= @parcels.total_count %> parcels
-          </span>
-        <% end %>
-
-        <!-- Per-page selector -->
-        <select class="per-page-sel" onchange="document.getElementById('filter_per_page').value=this.value; document.getElementById('parcel-filter-form').submit();">
-          <% [25, 50, 100].each do |n| %>
-            <option value="<%= n %>" <%= 'selected' if @per_page == n %>><%= n %>/page</option>
-          <% end %>
-        </select>
-        <%= f.hidden_field :per_page, id: "filter_per_page", value: @per_page %>
+      <!-- Inline search -->
+      <div class="topbar-search">
+        <input type="text" id="r2-topbar-search" placeholder="Search address, parcel ID…" autocomplete="off" oninput="debounceSearch()">
       </div>
-    <% end %>
 
-    <!-- ── BODY: Sidebar + Results ──────────────────────────── -->
-    <div class="parcels-body">
+      <!-- Inline filters -->
+      <div class="topbar-filter-group">
+        <span class="topbar-filter-label">Bid:</span>
+        <input type="number" class="topbar-filter-input" id="r2-filter-min-bid" placeholder="Min">
+        <input type="number" class="topbar-filter-input" id="r2-filter-max-bid" placeholder="Max">
+        <select class="topbar-filter-select" id="r2-filter-property-type">
+          <option value="">All Types</option>
+          <option value="Residential">Residential</option>
+          <option value="Commercial">Commercial</option>
+          <option value="Vacant Land">Vacant Land</option>
+        </select>
+        <button type="button" class="topbar-filter-apply" onclick="applyInlineFilters()">Apply</button>
+        <button type="button" class="topbar-filter-clear" onclick="clearInlineFilters()">Clear</button>
+      </div>
 
-      <!-- FILTER SIDEBAR -->
-      <% if @has_context %>
-        <aside class="parcels-sidebar">
-          <div class="sidebar-section-title">County / State</div>
-          <input type="text" class="sidebar-input" value="<%= @auction&.county || @selected_state %>" readonly
-                 style="background:#F0F0F0; cursor:not-allowed;">
+      <!-- Toggle: List / Map / Split -->
+      <div class="toggle-view-group">
+        <button type="button" class="toggle-view-btn" id="toggle-list" onclick="setView('list')">☰ List</button>
+        <button type="button" class="toggle-view-btn active" id="toggle-split" onclick="setView('split')">⬜ Split</button>
+        <button type="button" class="toggle-view-btn" id="toggle-map" onclick="setView('map')">🗺 Map</button>
+      </div>
 
-          <div class="sidebar-section-title">Bid Range</div>
-          <div style="display:flex; gap:6px; margin-bottom:4px;">
-            <input type="number" class="sidebar-input" placeholder="Min" id="sb_min_bid" value="<%= params[:min_bid] %>">
-            <input type="number" class="sidebar-input" placeholder="Max" id="sb_max_bid" value="<%= params[:max_bid] %>">
-          </div>
+      <!-- Results count badge -->
+      <span class="results-meta" id="r2-results-meta"></span>
+    </div>
 
-          <div class="sidebar-section-title">Property Type</div>
-          <select class="sidebar-input sidebar-select" id="sb_property_type">
-            <option value="">All</option>
-            <option value="Residential" <%= 'selected' if params[:property_type] == 'Residential' %>>Residential</option>
-            <option value="Commercial" <%= 'selected' if params[:property_type] == 'Commercial' %>>Commercial</option>
-            <option value="Vacant Land" <%= 'selected' if params[:property_type] == 'Vacant Land' %>>Vacant Land</option>
-          </select>
+    <!-- ── SPLIT CONTAINER ─────────────────────────────────── -->
+    <div class="r2-split-container" id="r2-split-container" data-view="split">
 
-          <button type="button" class="sidebar-apply" onclick="applySidebarFilters()">Apply Filters</button>
-          <% clear_path = @auction ? research_parcels_path(auction_id: @auction.id) : research_parcels_path(state: @selected_state) %>
-          <a href="<%= clear_path %>" class="sidebar-clear">Clear Filters</a>
-        </aside>
-      <% end %>
+      <!-- TOP HALF: Map -->
+      <div class="r2-split-map" id="r2-split-map">
+        <!-- r2-map is relocated here in Phase 2 -->
+      </div>
 
-      <!-- RESULTS ZONE -->
-      <div class="parcels-results">
+      <!-- BOTTOM HALF: Parcel list (async loaded) -->
+      <div class="r2-split-list" id="r2-split-list">
+        <div class="r2-list-loading" id="r2-list-loading">
+          <div class="map-spinner"></div>
+          <span>Loading properties…</span>
+        </div>
+        <div id="r2-list-content"></div>
+        <div id="r2-list-pagination" class="r2-list-pagination" style="display:none;"></div>
+      </div>
 
-        <!-- ── Vista TABLA ── -->
-        <div id="parcels-table-zone" class="active">
-          <% if !@has_context %>
-            <div class="empty-auction-state">
-              <div class="empty-auction-state__icon">🏛</div>
-              <h2 class="empty-auction-state__title">Select a county from the map</h2>
-              <p class="empty-auction-state__desc">Click a county pin on the geographic overview or use the Auction Picker to begin.</p>
-              <button type="button" class="btn-sm btn-sm-primary" onclick="backToPhase1()">← Back to Overview</button>
-            </div>
-
-          <% elsif @parcels.blank? || @parcels.total_count == 0 %>
-            <div class="empty-auction-state">
-              <div class="empty-auction-state__icon">🔍</div>
-              <h2 class="empty-auction-state__title">No parcels match</h2>
-              <p class="empty-auction-state__desc">Try adjusting your filters or clearing the search terms.</p>
-              <% clear_path = @auction ? research_parcels_path(auction_id: @auction.id) : research_parcels_path(state: @selected_state) %>
-              <%= link_to "Clear Filters", clear_path, class: "btn-sm btn-sm-outline" %>
-            </div>
-
-          <% else %>
-            <div class="data-table-wrap" style="border-radius:0;border-left:0;border-right:0;border-top:0;">
-              <table class="data-table" id="parcels-table">
-                <thead>
-                  <tr>
-                    <th>Address</th>
-                    <th>Parcel ID</th>
-                    <th>County / State</th>
-                    <th>Opening Bid</th>
-                    <th>Assessed Value</th>
-                    <th>Max Bid (30%)</th>
-                    <th>Delinquent</th>
-                    <th>Sale Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% @parcels.each do |parcel| %>
-                    <tr style="cursor:pointer;"
-                        onclick="openParcelDrawer('<%= research_parcel_path(parcel) %>')">
-                      <td>
-                        <div style="font-weight:600;color:var(--color-accent);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                          <%= parcel.address || '—' %>
-                        </div>
-                        <div style="font-size:.75rem;color:var(--color-text-muted);">
-                          <%= [parcel.city, parcel.zip_code].compact.join(' ') %>
-                        </div>
-                      </td>
-                      <td style="font-family:monospace;font-size:.8rem;"><%= parcel.parcel_id || '—' %></td>
-                      <td>
-                        <div><%= parcel.county %></div>
-                        <div style="font-size:.75rem;color:var(--color-text-muted);"><%= parcel.state %></div>
-                      </td>
-                      <td><strong><% if parcel.opening_bid %>$<%= number_with_delimiter(parcel.opening_bid.to_i) %><% else %>—<% end %></strong></td>
-                      <td><% if parcel.assessed_value %>$<%= number_with_delimiter(parcel.assessed_value.to_i) %><% else %>—<% end %></td>
-                      <td>
-                        <% if parcel.max_bid_30 %>
-                          <span style="color:var(--color-success);font-weight:600;">$<%= number_with_delimiter(parcel.max_bid_30.to_i) %></span>
-                        <% else %>—<% end %>
-                      </td>
-                      <td>
-                        <% if parcel.delinquent_amount %>
-                          <span style="color:var(--color-danger);">$<%= number_with_delimiter(parcel.delinquent_amount.to_f.round(2)) %></span>
-                        <% else %>—<% end %>
-                      </td>
-                      <td style="white-space:nowrap;font-size:.8rem;"><%= parcel.auction&.sale_date&.strftime("%b %d, %Y") || '—' %></td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-
-              <!-- Paginación -->
-              <div class="pagination">
-                <span>
-                  Showing <%= [@parcels.offset_value + 1, @parcels.total_count].min %>–<%= [@parcels.offset_value + @parcels.length, @parcels.total_count].min %>
-                  of <%= @parcels.total_count %> parcels
-                </span>
-                <div class="pagination__btns">
-                  <% if @parcels.current_page > 1 %>
-                    <%= link_to "← Prev", research_parcels_path(request.query_parameters.merge(page: @parcels.current_page - 1)), class: "pagination__btn" %>
-                  <% else %>
-                    <button class="pagination__btn" disabled>← Prev</button>
-                  <% end %>
-                  <span class="pagination__btn active"><%= @parcels.current_page %></span>
-                  <% if @parcels.current_page < @parcels.total_pages %>
-                    <%= link_to "Next →", research_parcels_path(request.query_parameters.merge(page: @parcels.current_page + 1)), class: "pagination__btn" %>
-                  <% else %>
-                    <button class="pagination__btn" disabled>Next →</button>
-                  <% end %>
-                </div>
-              </div>
-            </div>
-          <% end %>
-        </div><!-- /#parcels-table-zone -->
-
-        <!-- ── Vista MAPA (Phase 2 GIS) — map gets relocated here ── -->
-        <div id="parcels-map-wrapper"></div>
-
-      </div><!-- /.parcels-results -->
-    </div><!-- /.parcels-body -->
+    </div><!-- /.r2-split-container -->
   </div><!-- /#r2-phase2 -->
 
 </div><!-- /.parcels-shell -->
@@ -453,11 +484,15 @@
 // ARCHITECTURE RULE: Only ONE google.maps.Map is ever created.
 // Phase transitions swap markers/overlays on this single instance.
 // Zero page reloads. Zero double-init. 100% async.
+//
+// Phase 2 = SPLIT-SCREEN: Map (top 50%) + Parcel list (bottom 50%)
+// Toggle: List | Split | Map — default is Split
 // ══════════════════════════════════════════════════════════════
 
 // ── Configuration ────────────────────────────────────────────
 var COUNTY_OVERVIEW_URL = '<%= county_overview_research_parcels_path(format: :json) %>';
 var MAP_DATA_URL        = '<%= map_data_research_parcels_path(format: :json) %>';
+var PARCELS_LIST_URL    = '<%= parcels_list_research_parcels_path(format: :json) %>';
 var PARCELS_BASE_PATH   = '<%= research_parcels_path %>';
 var INITIAL_AUCTION_ID  = '<%= @auction&.id %>';
 var INITIAL_STATE       = '<%= @selected_state %>';
@@ -466,11 +501,16 @@ var TOTAL_AUCTIONS      = <%= @auctions_by_state.values.flatten.size %>;
 
 // ── State ────────────────────────────────────────────────────
 var STORAGE_KEY      = 'parcels_view_toggle';
-var currentView      = localStorage.getItem(STORAGE_KEY) || 'list';
+var currentView      = localStorage.getItem(STORAGE_KEY) || 'split';
 var r2Map            = null;   // THE single google.maps.Map instance
 var r2InfoWindow     = null;   // Shared InfoWindow (reused everywhere)
 var currentPhase     = HAS_CONTEXT ? 2 : 1;
 var phase2MapLoaded  = false;  // Whether Phase 2 markers are loaded
+var r2Initialized    = false;  // Guard: prevent double-init from multiple events
+
+// Phase 2 context (for async list loading)
+var p2Context = { auctionId: null, county: null, state: null, page: 1 };
+var searchDebounce = null;
 
 // ── Overlay tracking arrays (for cleanup) ────────────────────
 var phase1Markers = [];
@@ -478,7 +518,10 @@ var phase1Circles = [];
 var phase2Markers = [];
 var phase2Cluster = null;
 
-// ── State Centers (for Phase 2 positioning) ──────────────────
+// ── County centroids cache (populated from county_overview) ──
+var countyData = {};
+
+// ── State Centers (for Phase 2 fallback positioning) ─────────
 var STATE_CENTERS = {
   'AL': [32.8,-86.8], 'AK': [64.2,-152.5], 'AZ': [34.0,-111.1],
   'AR': [35.2,-91.8], 'CA': [36.8,-119.4], 'CO': [39.1,-105.4],
@@ -500,18 +543,57 @@ var STATE_CENTERS = {
 };
 
 // ══════════════════════════════════════════════════════════════
-// INITIALIZATION — Turbo Drive compatible
+// INITIALIZATION — Turbo Drive + Google Maps lifecycle safe
 // ══════════════════════════════════════════════════════════════
 function r2Init() {
   var eventsEl = document.getElementById('r2-events-count');
-  if (!eventsEl) return; // Not on this page
+  if (!eventsEl) return; // Not on the parcels page — abort
+
+  // Guard: don't double-init if turbo:load fires twice (back/forward cache)
+  if (r2Initialized && r2Map) {
+    google.maps.event.trigger(r2Map, 'resize');
+    return;
+  }
 
   eventsEl.textContent = TOTAL_AUCTIONS;
 
-  // Initialize the SINGLE map instance (only once, ever)
+  // Try to create the map immediately if Google Maps is ready
+  if (window.google && window.google.maps) {
+    createMapAndEnterPhase();
+    return;
+  }
+
+  // Google Maps not loaded yet — wait for the helper's 'google-maps:ready' event
+  var readyHandler = function() {
+    document.removeEventListener('google-maps:ready', readyHandler);
+    createMapAndEnterPhase();
+  };
+  document.addEventListener('google-maps:ready', readyHandler);
+
+  // Fallback: poll briefly as a safety net
+  var safetyAttempts = 0;
+  var safetyPoll = setInterval(function() {
+    safetyAttempts++;
+    if (window.google && window.google.maps) {
+      clearInterval(safetyPoll);
+      document.removeEventListener('google-maps:ready', readyHandler);
+      createMapAndEnterPhase();
+    } else if (safetyAttempts >= 80) { // 8 second timeout
+      clearInterval(safetyPoll);
+      var loading = document.getElementById('r2-phase1-loading');
+      if (loading) loading.innerHTML = '<span style="color:var(--color-danger);">⚠️ Map library failed to load. <a href="" style="text-decoration:underline;">Refresh</a></span>';
+    }
+  }, 100);
+}
+
+// Creates the map instance and enters the correct phase
+function createMapAndEnterPhase() {
+  if (r2Initialized && r2Map) return; // Already initialized
+
   initSingleMap(function() {
+    r2Initialized = true;
     if (HAS_CONTEXT) {
-      enterPhase2Async(INITIAL_AUCTION_ID, INITIAL_STATE);
+      enterPhase2Async(INITIAL_AUCTION_ID, null, INITIAL_STATE);
       applyView(currentView, true);
     } else {
       enterPhase1();
@@ -519,42 +601,59 @@ function r2Init() {
   });
 }
 
-// Fire on initial load AND on every Turbo navigation
-document.addEventListener('DOMContentLoaded', r2Init);
-document.addEventListener('turbo:load', r2Init);
+// ── Turbo lifecycle events ──────────────────────────────────
+document.addEventListener('turbo:load', function() {
+  r2Initialized = false;
+  r2Map = null;
+  r2InfoWindow = null;
+  phase1Markers = [];
+  phase1Circles = [];
+  phase2Markers = [];
+  phase2Cluster = null;
+  phase2MapLoaded = false;
+  countyData = {};
+  p2Context = { auctionId: null, county: null, state: null, page: 1 };
+  r2Init();
+});
+
+document.addEventListener('turbo:before-cache', function() {
+  clearAllOverlays();
+  var mapDiv = document.getElementById('r2-map');
+  if (mapDiv) mapDiv.innerHTML = '';
+  r2Map = null;
+  r2InfoWindow = null;
+  r2Initialized = false;
+});
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', r2Init);
+} else {
+  r2Init();
+}
 
 
 // ══════════════════════════════════════════════════════════════
-// SINGLE MAP INSTANCE — created once, reused forever
+// SINGLE MAP INSTANCE — created once per page visit, reused
 // ══════════════════════════════════════════════════════════════
 function initSingleMap(callback) {
-  // If map already exists, just call the callback
   if (r2Map) {
-    callback();
-    return;
+    try {
+      google.maps.event.trigger(r2Map, 'resize');
+      callback();
+      return;
+    } catch(e) {
+      r2Map = null;
+    }
   }
 
   var mapDiv = document.getElementById('r2-map');
   if (!mapDiv) return;
 
-  // Wait for Google Maps API to be available (loads async from <head>)
   if (typeof google === 'undefined' || !google.maps) {
-    var attempts = 0;
-    var poll = setInterval(function() {
-      attempts++;
-      if (typeof google !== 'undefined' && google.maps) {
-        clearInterval(poll);
-        initSingleMap(callback);
-      } else if (attempts >= 50) { // 5 second timeout
-        clearInterval(poll);
-        var loading = document.getElementById('r2-phase1-loading');
-        if (loading) loading.innerHTML = '<span style="color:var(--color-danger);">⚠️ Map library failed to load. <a href="" style="text-decoration:underline;">Refresh</a></span>';
-      }
-    }, 100);
+    console.error('[R2] initSingleMap called but google.maps not available');
     return;
   }
 
-  // Create the ONE AND ONLY map instance — US centered, clean light style
   var mapOptions = {
     center: { lat: 39.8, lng: -98.5 },
     zoom: 5,
@@ -585,8 +684,8 @@ function initSingleMap(callback) {
 // ══════════════════════════════════════════════════════════════
 function clearPhase1Overlays() {
   phase1Markers.forEach(function(m) {
-    if (m.setMap) m.setMap(null);       // Legacy Marker
-    if (m.map !== undefined) m.map = null; // AdvancedMarkerElement
+    if (m.setMap) m.setMap(null);
+    if (m.map !== undefined) m.map = null;
   });
   phase1Markers = [];
 
@@ -617,7 +716,7 @@ function clearAllOverlays() {
 
 // ══════════════════════════════════════════════════════════════
 // MAP CONTAINER RELOCATION — move the single #r2-map div
-// between Phase 1 zone and Phase 2 zone
+// between Phase 1 zone and Phase 2 split-map panel
 // ══════════════════════════════════════════════════════════════
 function relocateMapToPhase1() {
   var mapEl = document.getElementById('r2-map');
@@ -629,9 +728,9 @@ function relocateMapToPhase1() {
 
 function relocateMapToPhase2() {
   var mapEl = document.getElementById('r2-map');
-  var wrapper = document.getElementById('parcels-map-wrapper');
-  if (mapEl && wrapper && mapEl.parentElement !== wrapper) {
-    wrapper.appendChild(mapEl);
+  var splitMap = document.getElementById('r2-split-map');
+  if (mapEl && splitMap && mapEl.parentElement !== splitMap) {
+    splitMap.appendChild(mapEl);
   }
 }
 
@@ -644,16 +743,13 @@ function enterPhase1() {
   var shell = document.getElementById('r2-shell');
   shell.classList.remove('r2-in-phase2');
 
-  // Clean Phase 2 overlays, relocate map, then load Phase 1 data
   clearAllOverlays();
   relocateMapToPhase1();
 
-  // Reset map to US overview position + roadmap style
   if (r2Map) {
     r2Map.setCenter({ lat: 39.8, lng: -98.5 });
     r2Map.setZoom(5);
     r2Map.setMapTypeId('roadmap');
-    // Restore clean Phase 1 styles
     r2Map.setOptions({
       mapTypeControl: false,
       fullscreenControl: false,
@@ -664,6 +760,7 @@ function enterPhase1() {
         { featureType: 'landscape', stylers: [{ color: '#f5f5f5' }] }
       ]
     });
+    google.maps.event.trigger(r2Map, 'resize');
   }
 
   // Update URL without reload
@@ -676,7 +773,6 @@ function enterPhase1() {
 function loadPhase1Data() {
   if (!r2Map) return;
 
-  // Show loading spinner
   var loadingEl = document.getElementById('r2-phase1-loading');
   if (!loadingEl) {
     loadingEl = document.createElement('div');
@@ -697,6 +793,12 @@ function loadPhase1Data() {
       if (loading) loading.remove();
 
       if (!counties || !counties.length) return;
+
+      // Cache county data for drill-down centroid lookup
+      counties.forEach(function(c) {
+        var key = (c.county + '|' + c.state).toLowerCase();
+        countyData[key] = { lat: c.lat, lng: c.lng, count: c.parcel_count };
+      });
 
       var bounds = new google.maps.LatLngBounds();
       var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
@@ -758,6 +860,8 @@ function loadPhase1Data() {
         }
 
         // InfoWindow with county info + ASYNC drill-down CTA
+        // NOW passes county name + state for county-level drill-down
+        var safeCounty = county.county.replace(/'/g, "\\'");
         var dates = (county.sale_dates || []).join(', ') || '—';
         var amt = county.total_amount ? '$' + Math.round(county.total_amount).toLocaleString() : '—';
         var popupHtml =
@@ -767,7 +871,7 @@ function loadPhase1Data() {
             '<div class="r2-popup-row"><span>Auctions</span><strong>' + county.auction_count + '</strong></div>' +
             '<div class="r2-popup-row"><span>Total Amount</span><strong>' + amt + '</strong></div>' +
             '<div class="r2-popup-row"><span>Sale Dates</span><strong>' + dates + '</strong></div>' +
-            '<button class="r2-popup-cta" onclick="drillDownToCounty(\'' + county.state + '\')">View Parcels →</button>' +
+            '<button class="r2-popup-cta" onclick="drillDownToCounty(\'' + safeCounty + '\', \'' + county.state + '\')">View Parcels →</button>' +
           '</div>';
 
         marker.addListener('click', function() {
@@ -804,35 +908,54 @@ function loadPhase1Data() {
 // PHASE TRANSITION: Phase 1 → Phase 2 (ASYNC, no page reload)
 // ══════════════════════════════════════════════════════════════
 
-// Called from county pin popup CTA — 100% async, no reload
-function drillDownToCounty(state) {
+// Called from county pin popup CTA — county-level drill-down
+function drillDownToCounty(county, state) {
   r2InfoWindow.close();
-  enterPhase2Async(null, state);
+  enterPhase2Async(null, county, state);
 }
 
-// Called from auction picker — async, no reload
+// Called from auction picker — drill-down to specific auction
 function selectAuction(auctionId, county, state) {
   closeAuctionPickerDirect();
-  enterPhase2Async(String(auctionId), state);
+  enterPhase2Async(String(auctionId), county, state);
 }
 
-// Called from "View All X Parcels" in picker — async, no reload
+// Called from "View All X Parcels" in picker — state-level
 function selectStateFromPicker(state) {
   closeAuctionPickerDirect();
-  enterPhase2Async(null, state);
+  enterPhase2Async(null, null, state);
 }
 
 // ── Core Phase 2 entry (async) ──────────────────────────────
-function enterPhase2Async(auctionId, state) {
+function enterPhase2Async(auctionId, county, state) {
   currentPhase = 2;
+
+  // Store context for list loading and filters
+  p2Context = { auctionId: auctionId, county: county, state: state, page: 1 };
+
   var shell = document.getElementById('r2-shell');
   shell.classList.add('r2-in-phase2');
 
-  // Clear Phase 1 overlays (markers + circles) from the single map
+  // Clear Phase 1 overlays from the single map
   clearAllOverlays();
 
-  // Relocate the map to Phase 2's wrapper (for List/Map toggle)
+  // Relocate the map to the split-screen top panel
   relocateMapToPhase2();
+
+  // Update topbar county label
+  var label = document.getElementById('r2-phase2-county-label');
+  if (label) {
+    if (county && state) {
+      label.textContent = county + ', ' + state;
+    } else if (state) {
+      label.textContent = 'All auctions in ' + state;
+    } else {
+      label.textContent = 'Auction #' + auctionId;
+    }
+  }
+
+  // Apply view toggle FIRST — so split-screen CSS is active
+  applyView(currentView, false);
 
   // Configure map for Phase 2 — satellite hybrid + controls
   if (r2Map) {
@@ -842,42 +965,64 @@ function enterPhase2Async(auctionId, state) {
       fullscreenControl: true,
       styles: [] // Reset to default for satellite
     });
-
-    // Center on state
-    var coords = (state && STATE_CENTERS[state]) ? STATE_CENTERS[state] : [27.7, -81.5];
-    var zoom = auctionId ? 10 : 7;
-    r2Map.setCenter({ lat: coords[0], lng: coords[1] });
-    r2Map.setZoom(zoom);
   }
 
   // Update URL without page reload
   var newUrl = new URL(window.location.origin + PARCELS_BASE_PATH);
   if (auctionId) {
     newUrl.searchParams.set('auction_id', auctionId);
-  } else if (state) {
-    newUrl.searchParams.set('state', state);
+  } else {
+    if (county) newUrl.searchParams.set('county', county);
+    if (state) newUrl.searchParams.set('state', state);
   }
   window.history.pushState({}, '', newUrl.href);
 
-  // Load Phase 2 parcel markers
-  loadPhase2Markers(auctionId, state);
+  // CRITICAL: Wait for the DOM to fully render the split layout before
+  // touching map geometry. Without this, the map container has 0 height
+  // and fitBounds/setCenter produce world-level zoom.
+  requestAnimationFrame(function() {
+    setTimeout(function() {
+      if (r2Map) {
+        google.maps.event.trigger(r2Map, 'resize');
+
+        // Set initial center while markers load
+        var centroidKey = county && state ? (county + '|' + state).toLowerCase() : null;
+        var centroid = centroidKey ? countyData[centroidKey] : null;
+        if (centroid) {
+          r2Map.setCenter({ lat: centroid.lat, lng: centroid.lng });
+          r2Map.setZoom(11);
+        } else {
+          var coords = (state && STATE_CENTERS[state]) ? STATE_CENTERS[state] : [27.7, -81.5];
+          var zoom = auctionId ? 10 : 7;
+          r2Map.setCenter({ lat: coords[0], lng: coords[1] });
+          r2Map.setZoom(zoom);
+        }
+      }
+
+      // Load markers + list AFTER map is positioned correctly
+      loadPhase2Markers(auctionId, county, state);
+      loadParcelsList(1);
+    }, 100); // 100ms to let CSS flex/height calculations complete
+  });
 }
 
 
 // ══════════════════════════════════════════════════════════════
 // PHASE 2: Load parcel markers into the SINGLE map instance
 // ══════════════════════════════════════════════════════════════
-function loadPhase2Markers(auctionId, state) {
+function loadPhase2Markers(auctionId, county, state) {
   if (!r2Map || phase2MapLoaded) return;
 
   var fetchUrl = MAP_DATA_URL;
+  var params = [];
   if (auctionId) {
-    fetchUrl += '?auction_id=' + auctionId;
-  } else if (state) {
-    fetchUrl += '?state=' + state;
+    params.push('auction_id=' + auctionId);
   } else {
-    return; // No context
+    if (county) params.push('county=' + encodeURIComponent(county));
+    if (state) params.push('state=' + encodeURIComponent(state));
   }
+  if (!params.length) return;
+  fetchUrl += '?' + params.join('&');
 
   fetch(fetchUrl, { headers: { 'Accept': 'application/json' } })
     .then(function(r) { return r.json(); })
@@ -933,22 +1078,221 @@ function loadPhase2Markers(auctionId, state) {
           markers: phase2Markers
         });
       } else {
-        // Fallback: add markers directly to map
         phase2Markers.forEach(function(m) {
           if (m.setMap) m.setMap(r2Map);
           else m.map = r2Map;
         });
       }
 
-      // Fit bounds to parcel markers
-      try {
-        r2Map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
-      } catch(e) { /* ignore */ }
-
+      // Fit bounds to parcel markers — ensure map has real dimensions first
       phase2MapLoaded = true;
+      try {
+        google.maps.event.trigger(r2Map, 'resize');
+        requestAnimationFrame(function() {
+          try {
+            r2Map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+          } catch(e2) { /* ignore */ }
+        });
+      } catch(e) { /* ignore */ }
     })
     .catch(function(err) {
       console.error('Phase 2 map load failed:', err);
+    });
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// TABLE HELPERS — sort state, column builder, pagination math
+// ══════════════════════════════════════════════════════════════
+var currentSortBy  = 'address';
+var currentSortDir = 'asc';
+
+function buildSortTh(field, label, cssClass) {
+  var cls = cssClass;
+  if (field === currentSortBy) {
+    cls += currentSortDir === 'asc' ? ' sorted-asc' : ' sorted-desc';
+  }
+  return '<th class="' + cls + '" onclick="sortColumn(\'' + field + '\')">' +
+    label +
+    '<span class="sort-arrows"><span class="arrow-up">▲</span><span class="arrow-down">▼</span></span>' +
+  '</th>';
+}
+
+function updateSortArrows() {
+  var ths = document.querySelectorAll('.r2-table th[onclick]');
+  ths.forEach(function(th) {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+  });
+  // Find the current sorted th by field
+  var allThs = document.querySelectorAll('.r2-table th');
+  allThs.forEach(function(th) {
+    var onclick = th.getAttribute('onclick');
+    if (onclick && onclick.indexOf("'" + currentSortBy + "'") !== -1) {
+      th.classList.add(currentSortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+    }
+  });
+}
+
+function sortColumn(field) {
+  if (currentSortBy === field) {
+    currentSortDir = (currentSortDir === 'asc') ? 'desc' : 'asc';
+  } else {
+    currentSortBy = field;
+    currentSortDir = 'asc';
+  }
+  loadParcelsList(1);
+}
+
+function toggleSelectAll(master) {
+  var checks = document.querySelectorAll('.r2-row-check');
+  checks.forEach(function(cb) { cb.checked = master.checked; });
+}
+
+// Smart page numbers: 1 2 3 ... 10 11 12 ... 56 57
+function buildPageNumbers(current, total) {
+  if (total <= 7) {
+    var arr = [];
+    for (var i = 1; i <= total; i++) arr.push(i);
+    return arr;
+  }
+  var pages = [];
+  pages.push(1);
+  if (current > 4) pages.push('...');
+  var start = Math.max(2, current - 2);
+  var end   = Math.min(total - 1, current + 2);
+  for (var j = start; j <= end; j++) pages.push(j);
+  if (current < total - 3) pages.push('...');
+  pages.push(total);
+  return pages;
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// PHASE 2: Load parcel LIST into the bottom panel (async JSON)
+// ══════════════════════════════════════════════════════════════
+function loadParcelsList(page) {
+  var listContent    = document.getElementById('r2-list-content');
+  var listPagination = document.getElementById('r2-list-pagination');
+  var listLoading    = document.getElementById('r2-list-loading');
+  var resultsMeta    = document.getElementById('r2-results-meta');
+
+  if (!listContent) return;
+
+  // Show loading
+  if (listLoading) listLoading.style.display = 'flex';
+  listContent.innerHTML = '';
+  if (listPagination) listPagination.style.display = 'none';
+
+  // Build URL with params
+  var params = [];
+  if (p2Context.auctionId) {
+    params.push('auction_id=' + p2Context.auctionId);
+  } else {
+    if (p2Context.county) params.push('county=' + encodeURIComponent(p2Context.county));
+    if (p2Context.state) params.push('state=' + encodeURIComponent(p2Context.state));
+  }
+  params.push('page=' + page);
+  params.push('sort_by=' + currentSortBy);
+  params.push('sort_dir=' + currentSortDir);
+
+  // Inline filters
+  var minBid = document.getElementById('r2-filter-min-bid');
+  var maxBid = document.getElementById('r2-filter-max-bid');
+  var propType = document.getElementById('r2-filter-property-type');
+  var search = document.getElementById('r2-topbar-search');
+  if (minBid && minBid.value) params.push('min_bid=' + minBid.value);
+  if (maxBid && maxBid.value) params.push('max_bid=' + maxBid.value);
+  if (propType && propType.value) params.push('property_type=' + encodeURIComponent(propType.value));
+  if (search && search.value.trim()) params.push('q=' + encodeURIComponent(search.value.trim()));
+
+  var url = PARCELS_LIST_URL + '?' + params.join('&');
+
+  fetch(url, { headers: { 'Accept': 'application/json' } })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (listLoading) listLoading.style.display = 'none';
+
+      var parcels = data.parcels || [];
+      var meta = data.meta || {};
+
+      // Update results meta
+      if (resultsMeta) {
+        resultsMeta.textContent = meta.total ? (meta.total + ' parcels') : '0 parcels';
+      }
+
+      if (!parcels.length) {
+        listContent.innerHTML =
+          '<div class="r2-list-empty">' +
+            '<div class="r2-list-empty__icon">🔍</div>' +
+            '<h3 class="r2-list-empty__title">No parcels found</h3>' +
+            '<p class="r2-list-empty__desc">Try adjusting your filters or clearing the search terms.</p>' +
+          '</div>';
+        return;
+      }
+
+      // ── Render data table ──
+      var html = '<div class="r2-table-wrap"><table class="r2-table">';
+      html += '<thead><tr>';
+      html += '<th class="col-checkbox"><input type="checkbox" id="r2-select-all" onchange="toggleSelectAll(this)"></th>';
+      html += buildSortTh('address',       'Address',       'col-address');
+      html += buildSortTh('city',          'City',          'col-city');
+      html += buildSortTh('zip',           'Zip',           'col-zip');
+      html += buildSortTh('parcel_id',     'Parcel',        'col-parcel');
+      html += buildSortTh('property_type', 'Property Type', 'col-type');
+      html += buildSortTh('opening_bid',   'Opening Bid',   'col-bid');
+      html += '</tr></thead>';
+
+      html += '<tbody>';
+      parcels.forEach(function(p) {
+        var bid = p.opening_bid
+          ? '$' + Number(p.opening_bid).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})
+          : '—';
+        html += '<tr onclick="openParcelDrawer(\'' + p.show_path + '\')">';
+        html += '<td class="col-checkbox" onclick="event.stopPropagation()"><input type="checkbox" class="r2-row-check" value="' + p.id + '"></td>';
+        html += '<td class="td-address">' + (p.address || '—') + '</td>';
+        html += '<td>' + (p.city || '—') + '</td>';
+        html += '<td>' + (p.zip || '—') + '</td>';
+        html += '<td class="td-parcel">' + (p.parcel_id || '—') + '</td>';
+        html += '<td>' + (p.property_type || '—') + '</td>';
+        html += '<td class="td-bid">' + bid + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+      listContent.innerHTML = html;
+
+      updateSortArrows();
+
+      // ── Render numbered pagination ──
+      if (meta.pages > 1 && listPagination) {
+        listPagination.style.display = 'flex';
+        var pagHtml = '';
+        pagHtml += '<span class="r2-list-pagination__info">Displaying parcels ' + meta.from + ' – ' + meta.to + ' of ' + meta.total + ' in total</span>';
+        pagHtml += '<button class="r2-list-pagination__btn" onclick="loadParcelsList(' + (meta.page - 1) + ')"' + (meta.page <= 1 ? ' disabled' : '') + '>‹</button>';
+
+        var pageNumbers = buildPageNumbers(meta.page, meta.pages);
+        pageNumbers.forEach(function(pg) {
+          if (pg === '...') {
+            pagHtml += '<span class="r2-list-pagination__ellipsis">…</span>';
+          } else {
+            var act = (pg === meta.page) ? ' r2-list-pagination__btn--active' : '';
+            pagHtml += '<button class="r2-list-pagination__btn' + act + '" onclick="loadParcelsList(' + pg + ')">' + pg + '</button>';
+          }
+        });
+
+        pagHtml += '<button class="r2-list-pagination__btn" onclick="loadParcelsList(' + (meta.page + 1) + ')"' + (meta.page >= meta.pages ? ' disabled' : '') + '>Next →</button>';
+        listPagination.innerHTML = pagHtml;
+      }
+    })
+    .catch(function(err) {
+      console.error('Parcel list load failed:', err);
+      if (listLoading) listLoading.style.display = 'none';
+      listContent.innerHTML =
+        '<div class="r2-list-empty">' +
+          '<div class="r2-list-empty__icon">⚠️</div>' +
+          '<h3 class="r2-list-empty__title">Failed to load parcels</h3>' +
+          '<p class="r2-list-empty__desc">Please try again.</p>' +
+          '<button class="topbar-filter-apply" onclick="loadParcelsList(1)">Retry</button>' +
+        '</div>';
     });
 }
 
@@ -962,7 +1306,7 @@ function backToPhase1() {
 
 
 // ══════════════════════════════════════════════════════════════
-// PHASE 2: Toggle List / Map views
+// PHASE 2: Toggle List / Split / Map views
 // ══════════════════════════════════════════════════════════════
 function setView(view) {
   currentView = view;
@@ -970,32 +1314,60 @@ function setView(view) {
   applyView(view, true);
 }
 
-function applyView(view, loadMap) {
-  var tableZone = document.getElementById('parcels-table-zone');
-  var mapZone   = document.getElementById('parcels-map-wrapper');
-  var btnList   = document.getElementById('toggle-list');
-  var btnMap    = document.getElementById('toggle-map');
-  if (!tableZone || !mapZone) return;
+function applyView(view, resizeMap) {
+  var splitContainer = document.getElementById('r2-split-container');
+  var btnList  = document.getElementById('toggle-list');
+  var btnSplit = document.getElementById('toggle-split');
+  var btnMap   = document.getElementById('toggle-map');
+  if (!splitContainer) return;
 
-  if (view === 'map') {
-    tableZone.classList.remove('active');
-    mapZone.classList.add('active');
-    if (btnList) btnList.classList.remove('active');
-    if (btnMap)  btnMap.classList.add('active');
+  // Set data-view attribute (CSS handles visibility)
+  splitContainer.setAttribute('data-view', view);
 
-    // Ensure the map container is in the Phase 2 wrapper
+  // Update toggle button active states
+  if (btnList)  btnList.classList.toggle('active', view === 'list');
+  if (btnSplit) btnSplit.classList.toggle('active', view === 'split');
+  if (btnMap)   btnMap.classList.toggle('active', view === 'map');
+
+  // Ensure map is in the right container
+  if (view === 'map' || view === 'split') {
     relocateMapToPhase2();
-
-    // Trigger resize so Google Maps recalculates viewport
-    if (r2Map) {
-      google.maps.event.trigger(r2Map, 'resize');
+    if (resizeMap && r2Map) {
+      setTimeout(function() { google.maps.event.trigger(r2Map, 'resize'); }, 50);
     }
-  } else {
-    mapZone.classList.remove('active');
-    tableZone.classList.add('active');
-    if (btnMap)  btnMap.classList.remove('active');
-    if (btnList) btnList.classList.add('active');
   }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// INLINE FILTERS — applied to the async parcel list
+// ══════════════════════════════════════════════════════════════
+function applyInlineFilters() {
+  // Reset to page 1 and reload list
+  loadParcelsList(1);
+
+  // Also reload map markers with filters (re-fetch)
+  clearPhase2Overlays();
+  loadPhase2Markers(p2Context.auctionId, p2Context.county, p2Context.state);
+}
+
+function clearInlineFilters() {
+  var minBid = document.getElementById('r2-filter-min-bid');
+  var maxBid = document.getElementById('r2-filter-max-bid');
+  var propType = document.getElementById('r2-filter-property-type');
+  var search = document.getElementById('r2-topbar-search');
+  if (minBid) minBid.value = '';
+  if (maxBid) maxBid.value = '';
+  if (propType) propType.value = '';
+  if (search) search.value = '';
+  applyInlineFilters();
+}
+
+function debounceSearch() {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(function() {
+    loadParcelsList(1);
+  }, 400);
 }
 
 
@@ -1045,18 +1417,6 @@ window.addEventListener('popstate', function(e) {
     closeParcelDrawer();
   }
 });
-
-// ── SIDEBAR FILTERS ──────────────────────────────────────────
-function applySidebarFilters() {
-  var form       = document.getElementById('parcel-filter-form');
-  var minBid     = document.getElementById('sb_min_bid');
-  var maxBid     = document.getElementById('sb_max_bid');
-  var propType   = document.getElementById('sb_property_type');
-  if (minBid)   document.getElementById('filter_min_bid').value = minBid.value;
-  if (maxBid)   document.getElementById('filter_max_bid').value = maxBid.value;
-  if (propType) document.getElementById('filter_property_type').value = propType.value;
-  form.submit();
-}
 
 // ── AUCTION PICKER ────────────────────────────────────────────
 function openAuctionPicker() {

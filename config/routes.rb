@@ -22,6 +22,7 @@ Rails.application.routes.draw do
       collection do
         get :map_data           # GET /research/parcels/map_data.json
         get :county_overview    # GET /research/parcels/county_overview.json — Phase 1 county pins
+        get :parcels_list       # GET /research/parcels/parcels_list.json — Phase 2 async parcel list
       end
     end
 

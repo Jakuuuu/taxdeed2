@@ -12,7 +12,7 @@ Rails.application.configure do
     # Fuentes por defecto: solo el propio origen
     policy.default_src :self
 
-    # Scripts: propio dominio + Google Maps JS + Stripe.js + Leaflet CDN
+    # Scripts: propio dominio + Google Maps JS + Stripe.js + MarkerClusterer
     # 'unsafe-inline' NO necesario gracias a nonces
     policy.script_src  :self,
                        "https://maps.googleapis.com",
@@ -20,7 +20,7 @@ Rails.application.configure do
                        "https://js.stripe.com",
                        "https://unpkg.com"
 
-    # Estilos: propio dominio + Google Fonts + Leaflet CDN
+    # Estilos: propio dominio + Google Fonts
     policy.style_src   :self,
                        "https://fonts.googleapis.com",
                        "https://unpkg.com"
@@ -30,14 +30,12 @@ Rails.application.configure do
                        "https://fonts.gstatic.com",
                        :data
 
-    # Imágenes: propio dominio + Google Maps tiles + OpenStreetMap tiles + CartoDB tiles + data URIs + GCS
+    # Imágenes: propio dominio + Google Maps tiles + data URIs + GCS
     policy.img_src     :self,
                        "https://maps.googleapis.com",
                        "https://maps.gstatic.com",
                        "https://streetviewpixels-pa.googleapis.com",
                        "https://storage.googleapis.com",
-                       "https://*.tile.openstreetmap.org",
-                       "https://*.basemaps.cartocdn.com",
                        :data,
                        :blob
 

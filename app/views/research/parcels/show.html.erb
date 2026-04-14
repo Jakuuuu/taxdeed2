@@ -3,7 +3,7 @@
 <%# ── Google Maps API — loaded from research layout <head>. In AJAX drawer mode, -%>
 <%# the parent page already has Google Maps loaded via the layout.               -%>
 
-<% content_for :head do %>
+<%# Styles are inline (not in content_for :head) so they work in AJAX drawer mode (layout: false) %>
 <style>
   /* ─── Web Fonts ─────────────────────────────────────────────── */
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -333,6 +333,12 @@
     border-radius: 0 0 var(--ficha-radius-lg) var(--ficha-radius-lg);
     pointer-events: auto; cursor: not-allowed;
     z-index: 2;
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .ficha-premium.ficha-unlocked .ficha-card__body::after,
+  .ficha-premium.ficha-unlocked .ficha-premium-body::after {
+    opacity: 0;
+    pointer-events: none;
   }
   /* Fix: prevent border-radius from clipping the ::after paywall overlay.
      .ficha-card has overflow:hidden for aesthetics but that clips the locked overlay.
@@ -456,7 +462,6 @@
     .ficha-data-grid > div:nth-child(even) { border-bottom: 2px solid rgba(0,0,0,0.3); }
   }
 </style>
-<% end %>
 
 <!-- ── Page ──────────────────────────────────────────────────────────── -->
 <div class="ficha-page">
