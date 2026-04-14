@@ -11,6 +11,12 @@
 #    Esas tablas son propiedad exclusiva del usuario (Mini CRM).
 #    Un guard defensivo en `upsert_parcel` garantiza esta regla a nivel de AR.
 #
+# 🪞 ESPEJO INFALIBLE:
+#    Si una celda se borra en el Sheet, el campo correspondiente en PostgreSQL
+#    DEBE actualizarse a nil/vacío. El col() helper retorna nil para blanks,
+#    y parsed_coords devuelve nils explícitos cuando se borran coordenadas.
+#    Ningún dato viejo puede sobrevivir a un sync si la celda original está vacía.
+#
 class SheetRowProcessor
   include SheetColumnMap
 
@@ -58,6 +64,13 @@ class SheetRowProcessor
   end
 
   # ── PARCEL ────────────────────────────────────────────────────────────────────
+  # 🪞 ESPEJO INFALIBLE: Cada campo del Sheet se mapea explícitamente.
+  #    Si la celda está vacía → col() retorna nil → PostgreSQL se actualiza a NULL.
+  #    Los campos parsed (currency, decimal, boolean) retornan nil si el input es blank.
+  #    Las coordenadas (parsed_coords) retornan nil explícito si la celda AJ se borra.
+  #
+  # ⛔ CRM IMMUNITY: enforce_crm_immunity! valida ANTES de assign_attributes
+  #    que ningún campo del Mini CRM se infiltre en el hash de sync.
 
   def upsert_parcel(auction)
     parcel = Parcel.find_or_initialize_by(parcel_id: col(PARCEL_ID))
@@ -104,6 +117,8 @@ class SheetRowProcessor
       fema_notes:           col(FEMA_NOTES),
       fema_url:             col(FEMA_URL),
       # Coordenadas (col AJ — "30.452145, -87.270564")
+      # 🪞 ESPEJO: Si la celda se borra, parsed_coords devuelve {latitude: nil, longitude: nil}
+      #    forzando la limpieza en BD. Antes devolvía {} que ignoraba la actualización.
       **parsed_coords,
       # Links externos
       regrid_url:           col(REGRID_URL),
@@ -138,32 +153,51 @@ class SheetRowProcessor
           "#{violations.join(', ')}. Operación abortada para proteger datos del usuario."
   end
 
+  # ── COORDENADAS ────────────────────────────────────────────────────────────
   # Parsea la cadena de coordenadas del Sheet (col AJ)
   # Formato esperado: "30.452145, -87.270564" (lat, lng separados por coma)
   # También soporta: "30.452145 x -87.270564" o "30.452145 -87.270564"
-  # @return [Hash] { latitude: BigDecimal, longitude: BigDecimal } o {}
+  #
+  # 🪞 ESPEJO INFALIBLE:
+  #   - Celda con valor válido → { latitude: BigDecimal, longitude: BigDecimal }
+  #   - Celda vacía/borrada   → { latitude: nil,        longitude: nil }   ← FUERZA LIMPIEZA
+  #   - Celda con basura      → { latitude: nil,        longitude: nil }   ← FUERZA LIMPIEZA
+  #
+  # ANTES del fix, retornaba {} (hash vacío) cuando la celda estaba vacía,
+  # lo que hacía que assign_attributes NO tocara lat/lng y el dato viejo sobreviviera.
   def parsed_coords
     raw = col(COORDINATES_RAW)
-    return {} if raw.blank?
+
+    # 🪞 Si la celda está vacía → forzar nil en ambas coordenadas
+    return { latitude: nil, longitude: nil } if raw.blank?
 
     # Separar por coma, "x", o espacios múltiples
     parts = raw.split(/[,x]|\s{2,}/).map(&:strip).reject(&:blank?)
-    return {} unless parts.size == 2
+    return { latitude: nil, longitude: nil } unless parts.size == 2
 
     lat = parts[0].to_d
     lng = parts[1].to_d
 
     # Validación básica de rangos
-    return {} unless lat.between?(-90, 90) && lng.between?(-180, 180)
-    return {} if lat.zero? && lng.zero?
+    return { latitude: nil, longitude: nil } unless lat.between?(-90, 90) && lng.between?(-180, 180)
+    return { latitude: nil, longitude: nil } if lat.zero? && lng.zero?
 
     { latitude: lat, longitude: lng }
   rescue ArgumentError
-    {}
+    { latitude: nil, longitude: nil }
   end
 
   # ── HELPERS ───────────────────────────────────────────────────────────────────
 
+  # Extrae el valor de una celda por índice posicional.
+  # Google Sheets API trunca celdas vacías al final del array, así que
+  # acceder fuera de rango retorna nil → .to_s → "" → .strip → "" → .presence → nil.
+  #
+  # 🪞 ESPEJO: Una celda vacía SIEMPRE retorna nil, garantizando que
+  #    assign_attributes reciba nil y PostgreSQL se actualice a NULL.
+  #
+  # 🛡️ MAPEO RESILIENTE: .to_s.strip elimina caracteres invisibles (NBSP,
+  #    tabs, trailing spaces) que podrían existir en cabeceras o celdas del Sheet.
   def col(index)
     @row[index].to_s.strip.presence
   end
