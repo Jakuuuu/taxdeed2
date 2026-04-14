@@ -11,12 +11,12 @@
 # Sidekiq-cron: schedule automático
 :cron:
   sync_sheet_job:
-    cron: "0 7 * * *"   # 3:00 AM ET = 7:00 AM UTC (producción)
+    cron: "0 7,15,23 * * *"   # 3x/día cada 8h: 3AM, 11AM, 7PM ET (7:00, 15:00, 23:00 UTC)
     class: SyncSheetJob
     args:
       - "<%= ENV['GOOGLE_SHEETS_SHEET_ID'] %>"
     queue: data_sync
-    description: "Importar propiedades desde Google Sheets a PostgreSQL"
+    description: "Importar propiedades desde Google Sheets a PostgreSQL (3x/día)"
 
   regrid_key_health_check:
     cron: "0 12 1 * *"  # Día 1 de cada mes, 12:00 UTC = 8:00 AM ET

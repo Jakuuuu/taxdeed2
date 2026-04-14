@@ -6,8 +6,24 @@
 # Si la fila no tiene parcel_id ni address, se ignora silenciosamente.
 # Los errores de fila individual son rescatados en SyncSheetJob (no paran el batch).
 #
+# ⛔ REGLA CRÍTICA — INMUNIDAD DEL MINI CRM:
+#    Este procesador NUNCA toca `parcel_user_tags` ni `parcel_user_notes`.
+#    Esas tablas son propiedad exclusiva del usuario (Mini CRM).
+#    Un guard defensivo en `upsert_parcel` garantiza esta regla a nivel de AR.
+#
 class SheetRowProcessor
   include SheetColumnMap
+
+  # ── CRM IMMUNITY ─────────────────────────────────────────────────────────────
+  # Columnas/atributos que el sync masivo NUNCA debe tocar.
+  # Si algún atributo de esta lista aparece en el hash de assign_attributes,
+  # el procesador levanta un error inmediato para prevenir corrupción de datos CRM.
+  CRM_IMMUNE_COLUMNS = %w[
+    parcel_user_tags
+    parcel_user_notes
+    user_tags
+    user_notes
+  ].freeze
 
   def self.process(row)
     new(row).call
@@ -46,7 +62,7 @@ class SheetRowProcessor
   def upsert_parcel(auction)
     parcel = Parcel.find_or_initialize_by(parcel_id: col(PARCEL_ID))
 
-    parcel.assign_attributes(
+    attrs = {
       auction_id:           auction.id,
       # Identificación
       address:              col(ADDRESS),
@@ -99,9 +115,27 @@ class SheetRowProcessor
       # Metadata de sync
       data_source:          "google_sheets",
       last_synced_at:       Time.current
-    )
+    }
 
+    # ── GUARD: CRM IMMUNITY CHECK ────────────────────────────────────────────
+    # Barrera defensiva: si por error de refactor alguien inyecta campos CRM
+    # en el hash de atributos, el procesador falla ANTES de tocar la BD.
+    enforce_crm_immunity!(attrs)
+
+    parcel.assign_attributes(attrs)
     parcel.save!
+  end
+
+  # Levanta un error fatal si el hash de atributos contiene campos protegidos
+  # del Mini CRM. Esto previene que un sync masivo corrompa datos del usuario.
+  def enforce_crm_immunity!(attributes)
+    attr_keys = attributes.keys.map(&:to_s)
+    violations = attr_keys & CRM_IMMUNE_COLUMNS
+    return if violations.empty?
+
+    raise ActiveRecord::RecordNotSaved,
+          "[CRM IMMUNITY VIOLATION] SyncSheetJob intentó escribir columnas protegidas del Mini CRM: " \
+          "#{violations.join(', ')}. Operación abortada para proteger datos del usuario."
   end
 
   # Parsea la cadena de coordenadas del Sheet (col AJ)
