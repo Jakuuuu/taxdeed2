@@ -68,6 +68,27 @@ class Admin::UsersController < Admin::BaseController
     end
   end
 
+  # POST /admin/users/:id/toggle_admin
+  # Promotes member → admin or demotes admin → member.
+  # Guard: an admin cannot remove their own admin access.
+  def toggle_admin
+    if @user == current_user
+      return redirect_to admin_user_path(@user),
+                         alert: "You cannot change your own admin access."
+    end
+
+    new_value = !@user.admin
+    action    = new_value ? "granted" : "revoked"
+
+    if @user.update(admin: new_value)
+      redirect_to admin_user_path(@user),
+                  notice: "Admin access #{action} for #{@user.email}."
+    else
+      redirect_to admin_user_path(@user),
+                  alert: "Could not update admin access."
+    end
+  end
+
   private
 
   def set_user

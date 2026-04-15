@@ -249,7 +249,30 @@
         </div>
         <div class="admin-detail-item" style="margin-bottom:0.5rem;">
           <div class="admin-detail-item__label">Admin Access</div>
-          <div class="admin-detail-item__value"><%= @user.admin? ? "✅ Yes" : "❌ No" %></div>
+          <div class="admin-detail-item__value" style="display:flex;align-items:center;gap:0.75rem;">
+            <% if @user.admin? %>
+              <span style="font-weight:700;color:#065F46;">✅ Admin</span>
+            <% else %>
+              <span style="color:#6C757D;">❌ Member</span>
+            <% end %>
+
+            <% if @user == current_user %>
+              <span style="font-size:0.72rem;color:#9CA3AF;font-style:italic;">Cannot edit own access</span>
+            <% else %>
+              <%= form_with url: toggle_admin_admin_user_path(@user), method: :post, local: true, style: "margin:0;" do |f| %>
+                <% label  = @user.admin? ? "Revoke Admin" : "Grant Admin" %>
+                <% confirm = @user.admin? \
+                     ? "Revoke admin access from #{@user.email}? They will lose access to /admin." \
+                     : "Grant admin access to #{@user.email}? They will have full /admin access." %>
+                <button type="submit"
+                        class="btn-sm btn-sm-outline"
+                        style="font-size:0.72rem;padding:0.2rem 0.65rem;<%= @user.admin? ? 'color:#DC2626;border-color:#DC2626;' : '' %>"
+                        onclick="return confirm('<%= confirm %>')">
+                  <%= label %>
+                </button>
+              <% end %>
+            <% end %>
+          </div>
         </div>
         <div class="admin-detail-item">
           <div class="admin-detail-item__label">Last Sign In</div>

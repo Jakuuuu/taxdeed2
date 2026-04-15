@@ -1,0 +1,163 @@
+<% content_for :title, "Report ##{@report.id}" %>
+
+<div class="admin-breadcrumb">
+  <%= link_to "Reports", admin_reports_path %>
+  <span class="admin-breadcrumb__sep">›</span>
+  <span>Report #<%= @report.id %></span>
+</div>
+
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">
+      Report Detail
+      <span class="badge badge-<%= @report.status %>" style="font-size:0.8rem;padding:0.2rem 0.7rem;border-radius:20px;vertical-align:middle;margin-left:0.5rem;">
+        <%= @report.status.capitalize %>
+      </span>
+    </h1>
+    <p class="admin-page-subtitle">
+      <%= @report.report_type&.gsub("_", " ")&.titleize %> · Created <%= time_ago_in_words(@report.created_at) %> ago · ID: <%= @report.id %>
+    </p>
+  </div>
+  <div class="admin-page-actions">
+    <%= link_to "← Back to Reports", admin_reports_path, class: "btn-sm btn-sm-outline" %>
+  </div>
+</div>
+
+<% if @report.title_search? %>
+  <%# Title Searches are managed from the dedicated panel — redirect notice %>
+  <div class="admin-card" style="border-left:4px solid #C9A84C;padding:1.5rem;">
+    <p style="margin:0;font-weight:600;color:#1E3A5F;">
+      ℹ️ This is a Title Search report.
+      <%= link_to "Manage it from the Title Searches panel →", admin_title_search_path(@report), style: "color:#1E3A5F;" %>
+    </p>
+  </div>
+<% else %>
+
+<div style="display:grid;grid-template-columns:1fr 340px;gap:1.25rem;align-items:start;">
+
+  <%# ── Left Column ──────────────────────────────────────────────── %>
+  <div>
+
+    <%# Property Info %>
+    <div class="admin-card" style="margin-bottom:1.25rem;">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">🏠 Property</h2>
+      </div>
+      <div class="admin-card__body">
+        <div class="admin-detail-grid">
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Address</div>
+            <div class="admin-detail-item__value"><%= @report.parcel&.address || "—" %></div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Parcel ID</div>
+            <div class="admin-detail-item__value"><%= @report.parcel&.parcel_id || "—" %></div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">County</div>
+            <div class="admin-detail-item__value"><%= @report.parcel&.county || "—" %></div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">State</div>
+            <div class="admin-detail-item__value"><%= @report.parcel&.state || "—" %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Timestamps %>
+    <div class="admin-card" style="margin-bottom:1.25rem;">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">📅 Timeline</h2>
+      </div>
+      <div class="admin-card__body">
+        <div class="admin-detail-grid">
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Requested At</div>
+            <div class="admin-detail-item__value">
+              <%= @report.created_at.strftime("%m/%d/%Y %H:%M UTC") %>
+            </div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Ordered At</div>
+            <div class="admin-detail-item__value">
+              <%= @report.ordered_at ? @report.ordered_at.strftime("%m/%d/%Y %H:%M UTC") : "—" %>
+            </div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Generated At</div>
+            <div class="admin-detail-item__value">
+              <%= @report.generated_at ? @report.generated_at.strftime("%m/%d/%Y %H:%M UTC") : "—" %>
+            </div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Last Updated</div>
+            <div class="admin-detail-item__value">
+              <%= @report.updated_at.strftime("%m/%d/%Y %H:%M UTC") %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <%# ── Right Column ─────────────────────────────────────────────── %>
+  <div>
+
+    <%# User info %>
+    <div class="admin-card" style="margin-bottom:1.25rem;">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">👤 User</h2>
+      </div>
+      <div class="admin-card__body">
+        <div style="font-weight:700;font-size:1rem;color:#1E3A5F;margin-bottom:0.25rem;">
+          <%= @report.user&.full_name %>
+        </div>
+        <div style="font-size:0.875rem;color:#6C757D;margin-bottom:1rem;">
+          <%= @report.user&.email %>
+        </div>
+        <% if @report.user&.subscription %>
+          <div class="admin-detail-item" style="margin-bottom:0.5rem;">
+            <div class="admin-detail-item__label">Plan</div>
+            <div class="admin-detail-item__value"><%= @report.user.subscription.plan_name&.capitalize %></div>
+          </div>
+        <% end %>
+        <div style="margin-top:0.75rem;">
+          <%= link_to "View User →", admin_user_path(@report.user), class: "btn-sm btn-sm-outline" if @report.user %>
+        </div>
+      </div>
+    </div>
+
+    <%# Actions %>
+    <div class="admin-card" style="border-top:3px solid #6C757D;">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">⚡ Actions</h2>
+      </div>
+      <div class="admin-card__body" style="display:flex;flex-direction:column;gap:0.65rem;">
+
+        <% if @report.failed? %>
+          <%= form_with url: retry_admin_report_path(@report), method: :post, local: true do |f| %>
+            <button type="submit" class="btn-sm btn-sm-success" style="width:100%;justify-content:center;"
+                    onclick="return confirm('Re-queue this report for generation?')">
+              ↩ Retry Generation
+            </button>
+          <% end %>
+        <% end %>
+
+        <% unless @report.failed? %>
+          <%= form_with url: mark_failed_admin_report_path(@report), method: :patch, local: true do |f| %>
+            <button type="submit" class="btn-sm btn-sm-outline" style="width:100%;justify-content:center;color:#DC2626;border-color:#DC2626;"
+                    onclick="return confirm('Mark this report as failed?')">
+              ✖ Mark as Failed
+            </button>
+          <% end %>
+        <% end %>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<% end %>

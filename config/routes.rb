@@ -71,6 +71,7 @@ Rails.application.routes.draw do
       member do
         post :reset_usage
         post :cancel_subscription
+        post :toggle_admin
       end
     end
 
