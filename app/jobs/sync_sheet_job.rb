@@ -9,7 +9,7 @@
 # Diseño:
 #   - Fila que falla → se loguea y continúa (no para el batch)
 #   - Error de red Google API → job falla completo → Sidekiq retry automático (max 3)
-#   - Idempotente: upsert por parcel_id, auction por (county+state+sale_date)
+#   - Idempotente: upsert por (state+county+parcel_id), auction por (county+state+sale_date)
 #   - Registra resultado en SyncLog para el Sync Dashboard del admin
 #   - Post-sync: encola geocodificación para parcelas sin coordenadas (Regrid API)
 #   - Procesamiento en lotes de BATCH_SIZE filas para controlar memoria en Render
@@ -21,6 +21,11 @@
 # 🛡️ MAPEO RESILIENTE:
 #   Cabeceras del Sheet se normalizan (.strip) para proteger contra
 #   caracteres invisibles. Se logea la fila de cabeceras para auditoría.
+#
+# 🛡️ BLINDAJE PostgreSQL:
+#   SheetRowProcessor usa find_or_initialize_by(state, county, parcel_id)
+#   alineado con UNIQUE INDEX idx_parcels_unique_state_county_pid.
+#   Tracking preciso: added vs updated vs skipped vs failed.
 #
 # ⛔ CRM IMMUNITY:
 #   parcel_user_tags y parcel_user_notes JAMÁS se tocan.
@@ -75,7 +80,8 @@ class SyncSheetJob < ApplicationJob
 
     elapsed = (Time.current - started_at).round(1)
     Rails.logger.info "[SyncSheetJob] Completado en #{elapsed}s. " \
-                      "Procesadas: #{results[:ok]} | Ignoradas: #{results[:skipped]} | Fallidas: #{results[:failed]}"
+                      "Added: #{results[:added]} | Updated: #{results[:updated]} | " \
+                      "Skipped: #{results[:skipped]} | Failed: #{results[:failed]}"
 
     sync_log.update!(
       status:           "success",
@@ -129,8 +135,14 @@ class SyncSheetJob < ApplicationJob
   #   1. Controlar presión de memoria (objetos AR temporales se liberan entre lotes)
   #   2. Dar visibilidad de progreso en los logs
   #   3. Permitir GC entre lotes para evitar OOM en Render Starter plan
+  #
+  # 🛡️ TRACKING PRECISO:
+  #   SheetRowProcessor.process(row) retorna:
+  #     :added   → parcela nueva creada
+  #     :updated → parcela existente actualizada
+  #     :skipped → fila vacía (sin parcel_id ni address)
   def process_rows_in_batches(rows)
-    ok = added = updated = skipped = failed = 0
+    added = updated = skipped = failed = 0
     total_rows = rows.size
     total_batches = (total_rows.to_f / BATCH_SIZE).ceil
 
@@ -139,9 +151,13 @@ class SyncSheetJob < ApplicationJob
     rows.each_slice(BATCH_SIZE).with_index do |batch, batch_idx|
       batch.each_with_index do |row, row_in_batch|
         global_row = (batch_idx * BATCH_SIZE) + row_in_batch
-        SheetRowProcessor.process(row)
-        ok += 1
-        added += 1
+        result = SheetRowProcessor.process(row)
+
+        case result
+        when :added   then added   += 1
+        when :updated then updated += 1
+        when :skipped then skipped += 1
+        end
       rescue ActiveRecord::RecordInvalid => e
         failed += 1
         Rails.logger.warn "[SyncSheetJob] Fila #{global_row + 2} inválida: #{e.message}"
@@ -159,7 +175,7 @@ class SyncSheetJob < ApplicationJob
       GC.start if batch_idx < total_batches - 1 # No GC en el último lote (innecesario)
     end
 
-    { ok: ok, added: added, updated: updated, skipped: skipped, failed: failed }
+    { added: added, updated: updated, skipped: skipped, failed: failed }
   end
 
   def refresh_auction_counts

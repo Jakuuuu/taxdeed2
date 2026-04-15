@@ -18,7 +18,9 @@ services:
       - key: GOOGLE_SHEETS_SHEET_ID
         sync: false
       - key: GOOGLE_MAPS_API_KEY
-        value: AIzaSyBpP3B3FTvqXYMoPs0vMdQfQPK8HUHn4OU
+        sync: false
+      - key: GOOGLE_MAPS_MAP_ID
+        sync: false
       - key: REGRID_API_TOKEN
         sync: false
       - key: RAILS_SERVE_STATIC_FILES
@@ -45,6 +47,10 @@ services:
       - key: RAILS_ENV
         value: production
       - key: RAILS_MASTER_KEY
+        sync: false
+      - key: GOOGLE_SHEETS_SHEET_ID
+        sync: false
+      - key: GOOGLE_MAPS_MAP_ID
         sync: false
       - key: REGRID_API_TOKEN
         sync: false

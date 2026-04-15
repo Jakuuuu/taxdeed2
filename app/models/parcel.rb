@@ -10,6 +10,11 @@ class Parcel < ApplicationRecord
   has_many :parcel_user_tags,  dependent: :destroy
   has_many :parcel_user_notes, dependent: :destroy
 
+  # ── Identidad compuesta (blindaje: UNIQUE INDEX + NOT NULL + validación AR)
+  # Alineado con idx_parcels_unique_state_county_pid en PostgreSQL.
+  # Triple capa: constraint BD (NOT NULL + UNIQUE) + validación modelo.
+  validates :state, :county, :parcel_id, presence: true
+
   # ── Alias: nombres usados en vistas → columnas reales en BD ─────
   alias_attribute :zip_code,         :zip           # vista usa zip_code, BD tiene zip
   alias_attribute :living_area_sqft, :sqft_living   # vista usa living_area_sqft, BD tiene sqft_living
