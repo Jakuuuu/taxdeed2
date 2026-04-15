@@ -7,8 +7,8 @@
 # Sheet tab:     "Properties" (fila 1 = encabezado, fila 2+ = datos)
 #
 # Timeouts:
-#   - open_timeout_sec: 30s  — máximo para establecer conexión con Google
-#   - timeout_sec:      120s — máximo para recibir la respuesta completa
+#   Configurados globalmente en config/initializers/google_sheets.rb
+#   via Google::Apis::RequestOptions.default.timeout_sec = 120
 #   Esto evita que el job quede colgado si Google no responde,
 #   previniendo que Render mate el proceso por inactividad.
 #
@@ -62,13 +62,8 @@ class GoogleSheetsImporter
   def self.build_service
     service = Google::Apis::SheetsV4::SheetsService.new
     service.authorization = google_credentials
-
-    # ── TIMEOUTS: Prevenir hang indefinido en Render ──────────────────────
-    # Si Google Sheets no responde dentro de estos límites, el job falla
-    # limpiamente y Sidekiq reintenta con backoff (retry_on en SyncSheetJob).
-    service.request_options.open_timeout_sec = 30   # Conexión TCP
-    service.request_options.timeout_sec      = 120  # Respuesta completa
-
+    # Timeouts configurados globalmente en config/initializers/google_sheets.rb
+    # Google::Apis::RequestOptions.default.timeout_sec = 120
     service
   end
   private_class_method :build_service
