@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require "google/apis/sheets_v4"
-require "googleauth"
-
 # Configuración global de la API de Google
-# Aplica a TODAS las llamadas — no poner timeouts individuales en build_service
-# (open_timeout_sec= no existe en versiones recientes de google-apis-core)
-Google::Apis::RequestOptions.default.retries     = 3
-Google::Apis::RequestOptions.default.timeout_sec = 120  # 2 min máximo para recibir respuesta
+# NOTA: google-apis-core en Render no expone timeout_sec= ni open_timeout_sec=
+# como setters en RequestOptions.default. Solo configuramos retries que sí existe.
+begin
+  Google::Apis::RequestOptions.default.retries = 3
+rescue NoMethodError
+  # Versión antigua de google-apis-core — ignorar
+end
