@@ -6,53 +6,41 @@
 #   1. Sidekiq-cron: cada 12h (3:00 AM + 3:00 PM ET = "0 7,19 * * *" UTC)
 #   2. Admin manual: POST /admin/sync/run_now
 #
-# Diseño:
-#   - Fila que falla → se loguea y continúa (no para el batch)
-#   - 🛡️ SheetSchemaError → job ABORTA completo (headers maestros ausentes)
-#   - Error de red Google API → job falla → Sidekiq retry automático (max 3)
-#   - Idempotente: upsert por (state+county+parcel_id)
-#   - Registra resultado en SyncLog para el Sync Dashboard del admin
-#   - Post-sync: encola geocodificación para parcelas sin coordenadas
-#   - Procesamiento en lotes de BATCH_SIZE filas para controlar memoria
-#
-# ⛔ CRM IMMUNITY: parcel_user_tags y parcel_user_notes JAMÁS se tocan.
-# 🧹 SANITIZACIÓN: Todos los campos pasan por el módulo Sanitize.
-#
-# 🛡️ BLINDAJE ANTI-ZOMBIE (v2):
-#   El bloque begin/rescue StandardError/ensure garantiza que el SyncLog
-#   NUNCA quede en estado "running" perpetuamente. Cualquier excepción
-#   no prevista (caída API Google, timeout, OOM parcial, error de BD)
-#   es atrapada y el SyncLog se marca como "failed" con el mensaje de error.
-#   El bloque ensure actúa como última línea de defensa contra SIGKILL/OOM.
+# 🛡️ BLINDAJE ANTI-ZOMBIE (v3):
+#   @sync_log se asigna ANTES de cualquier validación para asegurar que
+#   absolutamente CUALQUIER error (incluso falta de credenciales)
+#   pueda ser capturado y registrado.
 #
 class SyncSheetJob < ApplicationJob
   queue_as :data_sync
 
-  # Lote de procesamiento para controlar memoria (OOM) en Render
   BATCH_SIZE = 100
 
   retry_on Google::Apis::ServerError, wait: :polynomially_longer, attempts: 3
   retry_on Google::Apis::TransmissionError, wait: :polynomially_longer, attempts: 3
 
   def perform(sheet_id = nil, sync_log_id = nil)
-    sheet_id ||= ENV.fetch("GOOGLE_SHEETS_SHEET_ID") {
-      Rails.application.credentials.dig(:google_sheets, :sheet_id)
-    }
-
-    raise ArgumentError, "sheet_id is required" if sheet_id.blank?
-
+    # ── 1. Asignar SyncLog ANTES que nada para garantizar el ensure ─────────
     @sync_log = SyncLog.find_by(id: sync_log_id) if sync_log_id.present?
-    @sync_log ||= SyncLog.create!(status: "running", started_at: Time.current)
-
-    Rails.logger.info "[SyncSheetJob] Iniciando sync de Sheet: #{sheet_id} (log_id: #{@sync_log.id})"
-    @started_at = Time.current
 
     # ═══════════════════════════════════════════════════════════════════════════
     # 🛡️ BLINDAJE ABSOLUTO: begin / rescue StandardError / ensure
     # ═══════════════════════════════════════════════════════════════════════════
     begin
-      # 🛡️ fetch_headers_and_rows incluye validate_headers!
-      # Si headers maestros faltan → SheetSchemaError → rescue específico abajo
+      @sync_log ||= SyncLog.create!(status: "running", started_at: Time.current)
+      @started_at = Time.current
+
+      # ── 2. Validaciones (si fallan, el catch las marca en el SyncLog) ───────
+      sheet_id ||= ENV.fetch("GOOGLE_SHEETS_SHEET_ID") {
+        Rails.application.credentials.dig(:google_sheets, :sheet_id)
+      }
+      sheet_id = "mock" if sheet_id.blank? && Rails.env.development?
+
+      raise ArgumentError, "La variable GOOGLE_SHEETS_SHEET_ID o las credenciales no están configuradas." if sheet_id.blank?
+
+      Rails.logger.info "[SyncSheetJob] Iniciando sync de Sheet: #{sheet_id} (log_id: #{@sync_log.id})"
+
+      # ── 3. Extracción e importación ──────────────────────────────────────────
       data    = GoogleSheetsImporter.fetch_headers_and_rows(sheet_id)
       headers = data[:headers]
       rows    = data[:rows]
@@ -62,7 +50,7 @@ class SyncSheetJob < ApplicationJob
       results = process_rows_in_batches(rows)
       refresh_auction_counts
 
-      # ── POST-SYNC: Geocodificación automática ──────────────────────────────
+      # ── 4. Geocodificación fallback ──────────────────────────────────────────
       enqueue_geocoding(@started_at)
 
       elapsed = (Time.current - @started_at).round(1)
@@ -83,59 +71,39 @@ class SyncSheetJob < ApplicationJob
       )
 
     rescue GoogleSheetsImporter::SheetSchemaError => e
-      # 🛡️ Header failsafe — abort total
       mark_sync_failed!(e, prefix: "SheetSchemaError")
-      raise # Re-raise para que Sidekiq registre el fallo
+      raise
 
     rescue StandardError => e
-      # 🛡️ BLINDAJE: Atrapa CUALQUIER error no previsto:
-      #   - Google::Apis::ClientError, Google::Apis::AuthorizationError
-      #   - Net::OpenTimeout, Errno::ECONNREFUSED
-      #   - ActiveRecord::StatementInvalid (BD caída)
-      #   - NoMethodError, TypeError (bugs en código)
-      #   - Cualquier otro StandardError imprevisto
       mark_sync_failed!(e, prefix: "UnexpectedError")
-      raise # Re-raise para que Sidekiq registre y potencialmente reintente
+      raise
 
     ensure
-      # ═══════════════════════════════════════════════════════════════════════
-      # 🛡️ ÚLTIMA LÍNEA DE DEFENSA (ensure)
-      # Si el proceso fue matado por SIGKILL, OOM killer, o cualquier crash
-      # que bypaseó los rescue blocks, este ensure marca el SyncLog como failed.
-      # Usa update_columns (sin callbacks/validaciones) para máxima resiliencia.
-      # Esto previene el bloqueo permanente del botón "Run Sync Now".
-      # ═══════════════════════════════════════════════════════════════════════
+      # 🛡️ Última línea de defensa
       force_fail_orphaned_log!
     end
   end
 
   private
 
-  # ── Forzar el estado "failed" si el SyncLog sigue en "running" ────────────
-  # Esto solo actúa si los rescue blocks no pudieron ejecutarse (crash extremo).
   def force_fail_orphaned_log!
     return unless @sync_log&.persisted?
 
-    # Reload para verificar el estado actual en BD (otro proceso pudo haberlo actualizado)
     @sync_log.reload
     return unless @sync_log.running?
 
     elapsed = (Time.current - (@started_at || @sync_log.started_at || Time.current)).round(1)
     @sync_log.update_columns(
       status:           "failed",
-      error_message:    "Job terminated unexpectedly (process killed or out of memory). " \
-                        "Check Render logs for the worker service.",
+      error_message:    "Job terminated unexpectedly (process killed or out of memory).",
       duration_seconds: elapsed,
       completed_at:     Time.current
     )
     Rails.logger.error "[SyncSheetJob] 🚨 ENSURE: Force-failed orphaned SyncLog ##{@sync_log.id}"
   rescue => e
-    # Si incluso el update_columns falla (BD desconectada), no podemos hacer nada más.
-    # Al menos logueamos para diagnóstico en Render/Papertrail.
-    Rails.logger.fatal "[SyncSheetJob] 🔥 ENSURE: Could not force-fail SyncLog: #{e.class}: #{e.message}"
+    Rails.logger.fatal "[SyncSheetJob] 🔥 ENSURE failed: #{e.class}: #{e.message}"
   end
 
-  # ── Helper: Marcar SyncLog como failed con contexto ─────────────────────────
   def mark_sync_failed!(exception, prefix: "Error")
     elapsed = (Time.current - (@started_at || Time.current)).round(1)
     @sync_log&.update!(
@@ -147,17 +115,15 @@ class SyncSheetJob < ApplicationJob
       records_failed:   0
     )
     Rails.logger.error "[SyncSheetJob] 🚨 #{prefix}: #{exception.class}: #{exception.message}"
-  rescue => update_error
-    # Si el update! falla, intentamos update_columns como fallback
+  rescue StandardError => update_error
     Rails.logger.fatal "[SyncSheetJob] 🔥 Could not update SyncLog via update!: #{update_error.message}"
     @sync_log&.update_columns(
       status:        "failed",
-      error_message: "[#{prefix}] #{exception.class}: #{exception.message} (update! also failed: #{update_error.message})",
+      error_message: "[#{prefix}] #{exception.class}: #{exception.message} (update! failed: #{update_error.message})",
       completed_at:  Time.current
     )
   end
 
-  # ── Procesamiento en lotes ─────────────────────────────────────────────────
   def process_rows_in_batches(rows)
     added = updated = skipped = failed = 0
     total_rows = rows.size
@@ -198,29 +164,20 @@ class SyncSheetJob < ApplicationJob
     Auction.find_each do |auction|
       auction.update_column(:parcel_count, auction.parcels.count)
     end
-
-    # Purga de caché post-sync: fuerza que county_overview.json y fragments
-    # sirvan datos frescos en la próxima petición del frontend
     Rails.cache.clear
-    Rails.logger.info "[SyncSheetJob] ✅ Cache purgado post-sync"
   rescue StandardError => e
     Rails.logger.error "[SyncSheetJob] Error al actualizar parcel_count: #{e.message}"
   end
 
-  # ── Geocodificación post-sync (FALLBACK) ──────────────────────────────────
   def enqueue_geocoding(sync_started_at)
     return unless ENV["REGRID_API_TOKEN"].present?
 
     synced = Parcel.where("last_synced_at >= ?", sync_started_at)
-    total  = synced.count
-    with_coords    = synced.where.not(latitude: nil).count
+    with_coords = synced.where.not(latitude: nil).count
     without_coords = synced.where(latitude: nil).pluck(:id)
-
-    Rails.logger.info "[SyncSheetJob] 📊 Coords: #{with_coords}/#{total} from Sheet, #{without_coords.size} need Regrid fallback"
 
     return if without_coords.empty?
 
-    Rails.logger.info "[SyncSheetJob] 🌐 Enqueuing Regrid geocoding for #{without_coords.size} parcels"
     GeocodeParcelsBatchJob.perform_later(without_coords)
   rescue StandardError => e
     Rails.logger.warn "[SyncSheetJob] Geocoding enqueue failed (non-fatal): #{e.message}"
