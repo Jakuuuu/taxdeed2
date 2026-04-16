@@ -49,6 +49,7 @@ class SyncSheetJob < ApplicationJob
 
       results = process_rows_in_batches(rows)
       refresh_auction_counts
+      cleanup_empty_auctions
 
       # ── 4. Geocodificación fallback ──────────────────────────────────────────
       enqueue_geocoding(@started_at)
@@ -167,6 +168,24 @@ class SyncSheetJob < ApplicationJob
     Rails.cache.clear
   rescue StandardError => e
     Rails.logger.error "[SyncSheetJob] Error al actualizar parcel_count: #{e.message}"
+  end
+
+  # 🧹 GARBAGE COLLECTOR — Purga Auctions huérfanas (0 parcels)
+  # Previene duplicación visual de condados en Rama 1.
+  # Seguro: solo elimina auctions sin ninguna parcela asociada.
+  def cleanup_empty_auctions
+    orphaned = Auction.left_joins(:parcels)
+                      .group("auctions.id")
+                      .having("COUNT(parcels.id) = 0")
+    count = orphaned.count.size
+    if count > 0
+      orphaned.destroy_all
+      Rails.logger.info "[SyncSheetJob] \xF0\x9F\xA7\xB9 Cleaned #{count} empty auction records (0 parcels)"
+    end
+    count
+  rescue StandardError => e
+    Rails.logger.error "[SyncSheetJob] Error cleaning empty auctions: #{e.message}"
+    0
   end
 
   def enqueue_geocoding(sync_started_at)

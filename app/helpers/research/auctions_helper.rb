@@ -47,5 +47,37 @@ module Research
 
       pages.uniq
     end
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # DRY — Shared county-grouped auction data builder.
+    # Used by BOTH the US Overview (Rama 1) table AND the "Seleccionar
+    # condado" picker in the Search module (Rama 2).
+    #
+    # Returns: { "FL" => [ { county:, state:, parcel_count:, total_amount:,
+    #            sale_dates:, auction_ids:, bidding_url: }, ... ], ... }
+    #
+    # Each entry is ONE county row (multiple auction events consolidated).
+    # ═══════════════════════════════════════════════════════════════════════
+    def counties_with_auctions_grouped(auctions_scope = Auction.visible)
+      all = auctions_scope.order(state: :asc, county: :asc)
+      grouped_by_state = {}
+
+      all.group_by(&:state).each do |state, state_auctions|
+        by_county = state_auctions.group_by(&:county)
+        grouped_by_state[state] = by_county.map do |county, auctions|
+          {
+            county:       county,
+            state:        state,
+            auction_ids:  auctions.map(&:id),
+            parcel_count: auctions.sum { |a| a.parcel_count || 0 },
+            total_amount: auctions.sum { |a| a.total_amount&.to_f || 0 },
+            sale_dates:   auctions.filter_map(&:sale_date).sort,
+            bidding_url:  auctions.find { |a| a.bidding_url.present? }&.bidding_url
+          }
+        end.sort_by { |c| c[:county] || "" }
+      end
+
+      grouped_by_state
+    end
   end
 end

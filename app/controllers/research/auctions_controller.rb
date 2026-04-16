@@ -9,6 +9,10 @@ module Research
 
     # GET /research/auctions
     # GET /research/auctions.json
+    #
+    # REGLA DE NEGOCIO: La tabla muestra UNA fila por condado (county, state),
+    # consolidando todas las subastas de ese condado en una sola fila.
+    # Cada fila agrega: parcel_count, total_amount, sale_dates, auction_ids.
     def index
       # ── Base scope: apply filters from params ──────────────────────────────
       base_scope = apply_filters(Auction.all)
@@ -18,27 +22,55 @@ module Research
         base_scope = base_scope.where(status: "completed")
       end
 
+      # ── Group auctions by (county, state) → 1 row per county ─────────────
+      all_auctions = base_scope.order(sale_date: :asc)
+      grouped = all_auctions.group_by { |a| [a.county, a.state] }
+
+      # Build county rows with aggregated data
+      @county_rows = grouped.map do |(county, state), auctions|
+        next_date = auctions.select { |a| a.sale_date && a.sale_date >= Date.current }
+                            .min_by(&:sale_date)&.sale_date
+        {
+          county:        county,
+          state:         state,
+          auction_ids:   auctions.map(&:id),
+          parcel_count:  auctions.sum { |a| a.parcel_count || 0 },
+          total_amount:  auctions.sum { |a| a.total_amount&.to_f || 0 },
+          sale_dates:    auctions.filter_map { |a| a.sale_date }.sort,
+          next_sale_date: next_date,
+          display_date:  next_date || auctions.filter_map(&:sale_date).max,
+          statuses:      auctions.map(&:status).uniq,
+          bidding_url:   auctions.find { |a| a.bidding_url.present? }&.bidding_url,
+          notes:         auctions.filter_map(&:notes).compact.first
+        }
+      end.compact
+
       # ── Sortable columns (whitelisted) ──────────────────────────────────
-      sort_column = %w[county state sale_date parcel_count total_amount].include?(params[:sort]) ? params[:sort] : "sale_date"
-      sort_dir    = params[:dir] == "desc" ? :desc : :asc
-      @auctions_scope = base_scope.order(sort_column => sort_dir)
+      sort_column = params[:sort] || "sale_date"
+      sort_dir    = params[:dir] == "desc" ? -1 : 1
+
+      @county_rows.sort_by! do |r|
+        val = case sort_column
+              when "county"       then r[:county] || ""
+              when "state"        then r[:state] || ""
+              when "sale_date"    then r[:display_date] || Date.new(2099, 1, 1)
+              when "parcel_count" then r[:parcel_count]
+              when "total_amount" then r[:total_amount]
+              else                     r[:display_date] || Date.new(2099, 1, 1)
+              end
+        val
+      end
+      @county_rows.reverse! if sort_dir == -1
 
       # ── Server-side pagination ─────────────────────────────────────────────
-      @page       = [ params[:page].to_i, 1 ].max
-      @total_count = @auctions_scope.count
-      @total_pages = [ (@total_count.to_f / PER_PAGE).ceil, 1 ].max
-      @page        = [ @page, @total_pages ].min
-      @auctions    = @auctions_scope.offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
+      @page        = [params[:page].to_i, 1].max
+      @total_count = @county_rows.size
+      @total_pages = [(@total_count.to_f / PER_PAGE).ceil, 1].max
+      @page        = [@page, @total_pages].min
+      @county_rows_page = @county_rows.slice((@page - 1) * PER_PAGE, PER_PAGE) || []
 
-      # ── Map: all visible filtered auctions for the choropleth heatmap ───────
-      # NOTE: We do NOT restrict by lat/lng here — Florida has 64 auctions with
-      # no coordinates but they should still color the state on the choropleth.
-      @choropleth_auctions = apply_filters(Auction.visible)
-
-      # Subset with coordinates for potential point-marker overlays (future use)
-      @map_auctions = @choropleth_auctions
-                        .where.not(latitude: nil)
-                        .where.not(longitude: nil)
+      # ── Legacy @auctions_scope for summary counts ──────────────────────────
+      @auctions_scope = base_scope
 
       # ── Summary counts via SQL (no N+1 iteration in Ruby) ──────────────────
       @count_upcoming      = @auctions_scope.where(status: "upcoming").count
@@ -46,6 +78,12 @@ module Research
       @count_total         = @total_count
       @count_total_parcels = @auctions_scope.sum(:parcel_count)
       @total_amount        = @auctions_scope.sum(:total_amount)
+
+      # ── Map: all visible filtered auctions for the choropleth heatmap ───────
+      @choropleth_auctions = apply_filters(Auction.visible)
+      @map_auctions = @choropleth_auctions
+                        .where.not(latitude: nil)
+                        .where.not(longitude: nil)
 
       # ── State dropdown badges — count per state ────────────────────────────
       @states_with_counts = Auction.visible

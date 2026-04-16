@@ -10,6 +10,11 @@ module Research
       @auctions_by_state = Auction.visible
                                   .order(state: :asc, sale_date: :asc)
                                   .group_by(&:state)
+
+      # DRY — Unified county-grouped data for the "Seleccionar condado" picker.
+      # Same data structure as the US Overview table (Rama 1).
+      @picker_counties_by_state = helpers.counties_with_auctions_grouped
+
       @per_page = PER_PAGE_OPTIONS.include?(params[:per_page].to_i) ? params[:per_page].to_i : 25
       @available_states = Auction.visible.distinct.pluck(:state).compact.sort
 

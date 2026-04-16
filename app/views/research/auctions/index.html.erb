@@ -1,5 +1,5 @@
 <%#
-  Rama 1: Auctions Index — Production View
+  Rama 1: US Overview — Condados con Subastas (Production View)
   Migrated from approved prototype: rama1-auctions-test.html
   ──────────────────────────────────────────────────────────────
   ARCHITECTURE RULES:
@@ -186,7 +186,7 @@
       <div class="r1-stat-card">
         <div class="r1-stat-label">Properties Up for Bid</div>
         <div class="r1-stat-value"><%= number_with_delimiter(@count_total_parcels) %></div>
-        <div class="r1-stat-sub">Individual parcels</div>
+        <div class="r1-stat-sub">Individual properties</div>
       </div>
       <div class="r1-stat-card">
         <div class="r1-stat-label">Est. Aggregate Value</div>
@@ -251,7 +251,7 @@
                 <th><div class="r1-th-inner" onclick="r1SortRedirect('state')">State <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
                 <th><div class="r1-th-inner" onclick="r1SortRedirect('county')">Jurisdiction <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
                 <th>Auction</th>
-                <th><div class="r1-th-inner" onclick="r1SortRedirect('parcel_count')"># of Parcels <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+                <th># of Properties</th>
                 <th>Raw Sale Results</th>
               </tr>
             <% else %>
@@ -262,23 +262,31 @@
                 <th>Sale Type</th>
                 <th>Sale Venue</th>
                 <th>Bidding Procedures</th>
-                <th><div class="r1-th-inner" onclick="r1SortRedirect('parcel_count')"># of Parcels <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+                <th><div class="r1-th-inner" onclick="r1SortRedirect('parcel_count')"># of Properties <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
                 <th><div class="r1-th-inner" onclick="r1SortRedirect('total_amount')">Aggregate Amount <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
               </tr>
             <% end %>
           </thead>
           <tbody id="r1-auction-tbody">
-            <% @auctions.each do |auction| %>
-              <%# ⚠️ RULE 16: Row click → Rama 2 parcels list (auction context) %>
-              <tr onclick="window.location.href='<%= research_parcels_path(auction_id: auction.id) %>'"
-                  title="Click to view parcels for <%= auction.jurisdiction %> in Rama 2"
+            <% @county_rows_page.each do |row| %>
+              <%# ⚠️ RULE 16: Row click → Rama 2 parcels list (county context) %>
+              <tr onclick="window.location.href='<%= research_parcels_path(county: row[:county], state: row[:state]) %>'"
+                  title="Click to view properties for <%= row[:county] %>, <%= row[:state] %> in Rama 2"
                   style="cursor:pointer;">
                 <% if params[:sub_tab] == 'prior' %>
-                  <td class="r1-td-date" style="font-weight:700;color:var(--r1-color-primary);"><%= auction.sale_date&.strftime('%m/%d/%Y') %></td>
-                  <td class="r1-td-state" style="font-weight:700;"><%= auction.state %></td>
-                  <td class="r1-td-jurisdiction" style="font-weight:700;"><%= auction.county %></td>
+                  <td class="r1-td-date" style="font-weight:700;color:var(--r1-color-primary);">
+                    <% if row[:sale_dates].size > 1 %>
+                      <%= row[:sale_dates].first.strftime('%m/%d/%Y') %> – <%= row[:sale_dates].last.strftime('%m/%d/%Y') %>
+                    <% elsif row[:sale_dates].any? %>
+                      <%= row[:sale_dates].first.strftime('%m/%d/%Y') %>
+                    <% else %>
+                      —
+                    <% end %>
+                  </td>
+                  <td class="r1-td-state" style="font-weight:700;"><%= row[:state] %></td>
+                  <td class="r1-td-jurisdiction" style="font-weight:700;"><%= row[:county] %></td>
                   <td><span class="r1-td-badge r1-badge-deed">Deed</span></td>
-                  <td><%= auction.parcel_count %></td>
+                  <td><%= number_with_delimiter(row[:parcel_count]) %></td>
                   <td>
                     <button style="background:var(--r1-color-primary);color:#fff;border:none;padding:6px 16px;border-radius:4px;font-weight:700;font-size:12px;cursor:pointer;"
                             onclick="event.stopPropagation(); alert('Buy now clicked');">
@@ -286,17 +294,28 @@
                     </button>
                   </td>
                 <% else %>
-                  <td class="r1-td-jurisdiction"><%= auction.county %></td>
-                  <td class="r1-td-state"><%= auction.state %></td>
-                  <td class="r1-td-date"><%= auction.sale_date&.strftime('%m/%d/%Y') %></td>
+                  <td class="r1-td-jurisdiction"><%= row[:county] %></td>
+                  <td class="r1-td-state"><%= row[:state] %></td>
+                  <td class="r1-td-date">
+                    <% if row[:display_date] %>
+                      <%= row[:display_date].strftime('%m/%d/%Y') %>
+                      <% if row[:sale_dates].size > 1 %>
+                        <span style="font-size:10px;color:var(--r1-color-text-muted);margin-left:4px;" title="<%= row[:sale_dates].map { |d| d.strftime('%m/%d/%Y') }.join(', ') %>">
+                          (+<%= row[:sale_dates].size - 1 %>)
+                        </span>
+                      <% end %>
+                    <% else %>
+                      —
+                    <% end %>
+                  </td>
                   <td><span class="r1-td-badge r1-badge-deed">Deed</span></td>
                   <td>
-                    <% venue = auction.bidding_url.present? ? 'Online' : 'In Person' %>
+                    <% venue = row[:bidding_url].present? ? 'Online' : 'In Person' %>
                     <span class="r1-td-badge <%= venue == 'Online' ? 'r1-badge-online' : 'r1-badge-inperson' %>"><%= venue %></span>
                   </td>
-                  <td style="font-size:var(--r1-text-xs);color:var(--r1-color-text-secondary);"><%= auction.notes.present? ? auction.notes.truncate(40) : '—' %></td>
-                  <td class="r1-parcels-count"><%= number_with_delimiter(auction.parcel_count || 0) %></td>
-                  <td class="r1-agg-amount"><%= auction.formatted_amount || '—' %></td>
+                  <td style="font-size:var(--r1-text-xs);color:var(--r1-color-text-secondary);"><%= row[:notes].present? ? row[:notes].truncate(40) : '—' %></td>
+                  <td class="r1-parcels-count"><%= number_with_delimiter(row[:parcel_count]) %></td>
+                  <td class="r1-agg-amount"><%= row[:total_amount] > 0 ? number_to_currency(row[:total_amount]) : '—' %></td>
                 <% end %>
               </tr>
             <% end %>
@@ -307,7 +326,7 @@
       <%# Server-side Pagination %>
       <div class="r1-pagination-wrap">
         <div class="r1-pagination-info">
-          Displaying auctions
+          Displaying condados
           <strong><%= ((@page - 1) * 25) + 1 %></strong> –
           <strong><%= [(@page * 25), @total_count].min %></strong>
           of <strong><%= number_with_delimiter(@total_count) %></strong>
@@ -601,7 +620,7 @@ function r1RenderCalendar() {
       const evEl = document.createElement('div');
       evEl.className = 'r1-cal-event type-deed';
       evEl.textContent = ev.jurisdiction;
-      evEl.title = `Click to view parcels for this auction in Rama 2`;
+      evEl.title = `Click to view properties for this auction in Rama 2`;
       // ⚠️ RULE 16: Click goes to Rama 2 parcels list, NOT individual parcel
       evEl.onclick = (e) => {
         e.stopPropagation();

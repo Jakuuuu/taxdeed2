@@ -344,7 +344,7 @@
               class="auction-selector-btn has-auction"
               onclick="openAuctionPicker()"
               id="r2-phase2-county-btn">
-        🏛 <span id="r2-phase2-county-label">Select Auction</span>
+        🏛 <span id="r2-phase2-county-label">Seleccionar condado</span>
         <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
       </button>
 
@@ -408,26 +408,26 @@
 </div><!-- /.parcels-shell -->
 
 
-<!-- ══ AUCTION PICKER MODAL ══════════════════════════════════ -->
+<!-- ══ COUNTY PICKER MODAL (Unified with US Overview) ═════════ -->
 <div class="modal-backdrop" id="auction-picker-modal" onclick="closeAuctionPickerBackdrop(event)">
   <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="picker-title" style="max-width:640px;">
     <div class="modal__header">
       <div>
-        <h2 class="modal__title" id="picker-title">Select Auction</h2>
-        <p class="modal__subtitle">Tax Deed auctions — upcoming and active</p>
+        <h2 class="modal__title" id="picker-title">Seleccionar condado con subastas</h2>
+        <p class="modal__subtitle">Condados con propiedades activas — selecciona uno para explorar</p>
       </div>
       <button class="modal__close" onclick="closeAuctionPickerDirect()" aria-label="Close">&times;</button>
     </div>
 
     <div class="modal__body" style="padding:0;height:60vh;">
-      <% if @auctions_by_state.any? %>
+      <% if @picker_counties_by_state.any? %>
         <div class="auction-picker-grid">
           <div class="master-col">
-            <% @auctions_by_state.each_with_index do |(state, auctions), index| %>
+            <% @picker_counties_by_state.each_with_index do |(state, county_rows), index| %>
               <div class="master-col-item <%= 'active' if index == 0 %>" onclick="showStateAuctions(event, '<%= state.parameterize %>')">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   <span>🏴 <%= state %></span>
-                  <span class="picker-state-badge"><%= auctions.size %></span>
+                  <span class="picker-state-badge"><%= county_rows.sum { |c| c[:parcel_count] } %></span>
                 </div>
               </div>
             <% end %>
@@ -437,28 +437,34 @@
             <div class="picker-search" style="border-bottom:none; padding:0 0 1rem 0;">
               <input type="text" id="picker-search-input" placeholder="Filter by county in selected state…" oninput="filterPickerRows(this.value)" autocomplete="off">
             </div>
-            <% @auctions_by_state.each_with_index do |(state, auctions), index| %>
+            <% @picker_counties_by_state.each_with_index do |(state, county_rows), index| %>
               <div class="picker-state-details" id="state-auctions-<%= state.parameterize %>" style="display: <%= index == 0 ? 'block' : 'none' %>;">
                 <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:1rem;border-bottom:1px solid var(--color-border);margin-bottom:1rem;">
                   <h3 style="font-size:1rem;font-weight:700;color:var(--color-primary);margin:0;">
-                    Tax Deed Auctions in <%= state %>
+                    Condados con subastas en <%= state %>
                   </h3>
                   <button type="button"
                      class="btn-sm btn-sm-primary"
                      style="font-size:.75rem;padding:.35rem .85rem;white-space:nowrap;text-decoration:none;"
                      onclick="selectStateFromPicker('<%= state %>')">
-                    🗺 View All <%= auctions.sum { |a| a.parcel_count || 0 } %> Parcels →
+                    🗺 View All <%= county_rows.sum { |c| c[:parcel_count] } %> Properties →
                   </button>
                 </div>
                 <div class="picker-state-rows open">
-                  <% auctions.each do |auction| %>
+                  <% county_rows.each do |county_row| %>
                     <div class="picker-auction-row"
-                         data-auction-name="<%= auction.county.downcase %>"
-                         onclick="selectAuction(<%= auction.id %>, '<%= auction.county.gsub("'", "\\\\'") %>', '<%= auction.state %>')">
-                      <span class="picker-auction-row__name"><%= auction.county %></span>
-                      <span class="picker-auction-row__date"><%= auction.sale_date&.strftime("%b %d, %Y") || '—' %></span>
-                      <span class="picker-auction-row__count"><%= auction.parcel_count || 0 %> parcels</span>
-                      <span class="badge badge-<%= auction.status %>"><%= auction.status&.capitalize %></span>
+                         data-auction-name="<%= county_row[:county].downcase %>"
+                         onclick="selectCountyFromPicker('<%= county_row[:county].gsub("'", "\\\\'") %>', '<%= county_row[:state] %>')">
+                      <span class="picker-auction-row__name"><%= county_row[:county] %></span>
+                      <span class="picker-auction-row__date">
+                        <% dates = county_row[:sale_dates] %>
+                        <% if dates.any? %>
+                          <%= dates.first.strftime("%b %d") %><%= dates.size > 1 ? " — #{dates.last.strftime("%b %d, %Y")}" : ", #{dates.first.strftime("%Y")}" %>
+                        <% else %>
+                          —
+                        <% end %>
+                      </span>
+                      <span class="picker-auction-row__count"><%= county_row[:parcel_count] %> properties</span>
                     </div>
                   <% end %>
                 </div>
@@ -469,7 +475,7 @@
       <% else %>
         <div class="empty-state" style="padding:3rem;">
           <div class="empty-state__icon">🏛️</div>
-          <p class="empty-state__title">No auctions available</p>
+          <p class="empty-state__title">No counties with auctions available</p>
           <p class="empty-state__desc">Check back after the next data sync (daily at 3 AM ET).</p>
         </div>
       <% end %>
@@ -497,7 +503,7 @@ var PARCELS_BASE_PATH   = '<%= research_parcels_path %>';
 var INITIAL_AUCTION_ID  = '<%= @auction&.id %>';
 var INITIAL_STATE       = '<%= @selected_state %>';
 var HAS_CONTEXT         = <%= @has_context ? 'true' : 'false' %>;
-var TOTAL_AUCTIONS      = <%= @auctions_by_state.values.flatten.size %>;
+var TOTAL_AUCTIONS      = <%= @picker_counties_by_state.values.flatten.sum { |c| c[:parcel_count] } %>;
 
 // ── State ────────────────────────────────────────────────────
 var STORAGE_KEY      = 'parcels_view_toggle';
@@ -867,11 +873,11 @@ function loadPhase1Data() {
         var popupHtml =
           '<div class="r2-popup">' +
             '<h4>' + county.county + ', ' + county.state + '</h4>' +
-            '<div class="r2-popup-row"><span>Parcels</span><strong>' + county.parcel_count + '</strong></div>' +
+            '<div class="r2-popup-row"><span>Properties</span><strong>' + county.parcel_count + '</strong></div>' +
             '<div class="r2-popup-row"><span>Auctions</span><strong>' + county.auction_count + '</strong></div>' +
             '<div class="r2-popup-row"><span>Total Amount</span><strong>' + amt + '</strong></div>' +
             '<div class="r2-popup-row"><span>Sale Dates</span><strong>' + dates + '</strong></div>' +
-            '<button class="r2-popup-cta" onclick="drillDownToCounty(\'' + safeCounty + '\', \'' + county.state + '\')">View Parcels →</button>' +
+            '<button class="r2-popup-cta" onclick="drillDownToCounty(\'' + safeCounty + '\', \'' + county.state + '\')">View Properties →</button>' +
           '</div>';
 
         marker.addListener('click', function() {
@@ -914,13 +920,19 @@ function drillDownToCounty(county, state) {
   enterPhase2Async(null, county, state);
 }
 
-// Called from auction picker — drill-down to specific auction
+// Called from auction picker — drill-down to specific auction (legacy, kept for compatibility)
 function selectAuction(auctionId, county, state) {
   closeAuctionPickerDirect();
   enterPhase2Async(String(auctionId), county, state);
 }
 
-// Called from "View All X Parcels" in picker — state-level
+// Called from unified county picker — county-level drill-down
+function selectCountyFromPicker(county, state) {
+  closeAuctionPickerDirect();
+  enterPhase2Async(null, county, state);
+}
+
+// Called from "View All X Properties" in picker — state-level
 function selectStateFromPicker(state) {
   closeAuctionPickerDirect();
   enterPhase2Async(null, null, state);
@@ -948,7 +960,7 @@ function enterPhase2Async(auctionId, county, state) {
     if (county && state) {
       label.textContent = county + ', ' + state;
     } else if (state) {
-      label.textContent = 'All auctions in ' + state;
+      label.textContent = 'All properties in ' + state;
     } else {
       label.textContent = 'Auction #' + auctionId;
     }
@@ -1217,14 +1229,14 @@ function loadParcelsList(page) {
 
       // Update results meta
       if (resultsMeta) {
-        resultsMeta.textContent = meta.total ? (meta.total + ' parcels') : '0 parcels';
+        resultsMeta.textContent = meta.total ? (meta.total + ' properties') : '0 properties';
       }
 
       if (!parcels.length) {
         listContent.innerHTML =
           '<div class="r2-list-empty">' +
             '<div class="r2-list-empty__icon">🔍</div>' +
-            '<h3 class="r2-list-empty__title">No parcels found</h3>' +
+            '<h3 class="r2-list-empty__title">No properties found</h3>' +
             '<p class="r2-list-empty__desc">Try adjusting your filters or clearing the search terms.</p>' +
           '</div>';
         return;
@@ -1266,7 +1278,7 @@ function loadParcelsList(page) {
       if (meta.pages > 1 && listPagination) {
         listPagination.style.display = 'flex';
         var pagHtml = '';
-        pagHtml += '<span class="r2-list-pagination__info">Displaying parcels ' + meta.from + ' – ' + meta.to + ' of ' + meta.total + ' in total</span>';
+        pagHtml += '<span class="r2-list-pagination__info">Displaying properties ' + meta.from + ' – ' + meta.to + ' of ' + meta.total + ' in total</span>';
         pagHtml += '<button class="r2-list-pagination__btn" onclick="loadParcelsList(' + (meta.page - 1) + ')"' + (meta.page <= 1 ? ' disabled' : '') + '>‹</button>';
 
         var pageNumbers = buildPageNumbers(meta.page, meta.pages);
@@ -1289,7 +1301,7 @@ function loadParcelsList(page) {
       listContent.innerHTML =
         '<div class="r2-list-empty">' +
           '<div class="r2-list-empty__icon">⚠️</div>' +
-          '<h3 class="r2-list-empty__title">Failed to load parcels</h3>' +
+          '<h3 class="r2-list-empty__title">Failed to load properties</h3>' +
           '<p class="r2-list-empty__desc">Please try again.</p>' +
           '<button class="topbar-filter-apply" onclick="loadParcelsList(1)">Retry</button>' +
         '</div>';
