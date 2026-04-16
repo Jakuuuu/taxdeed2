@@ -75,4 +75,23 @@ module Sanitize
     return nil if cleaned.nil?
     cleaned.start_with?("http://", "https://") ? cleaned : nil
   end
+
+  # ── COORDENADA ────────────────────────────────────────────────────────────────
+  # Limpia caracteres fantasma (NBSP, ZWSP, BOM, grado°) y retorna BigDecimal puro.
+  # Retorna nil si el valor no es un número válido.
+  # Campos: latitude, longitude (vía parsed_coords en SheetRowProcessor)
+  def self.coordinate(val)
+    return nil if val.nil?
+
+    cleaned = val.to_s
+                 .gsub(/[\u00A0\u200B\uFEFF\u200C\u200D\u2060°]/, "") # invisible chars + degree
+                 .gsub(/[^\d.\-]/, "")                                 # keep only digits, dot, minus
+                 .strip
+
+    return nil if cleaned.blank? || cleaned == "." || cleaned == "-"
+
+    cleaned.to_d
+  rescue ArgumentError, TypeError
+    nil
+  end
 end

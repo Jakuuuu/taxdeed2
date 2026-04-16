@@ -174,7 +174,7 @@
     <%# Summary Stats %>
     <div class="r1-stats-row">
       <div class="r1-stat-card">
-        <div class="r1-stat-label">Sale Events</div>
+        <div class="r1-stat-label">Condados con subastas</div>
         <div class="r1-stat-value"><%= @count_total %></div>
         <div class="r1-stat-sub">County-level tax sales</div>
       </div>
@@ -236,7 +236,7 @@
     <div class="r1-table-container">
       <div class="r1-table-toolbar">
         <span class="r1-table-count">
-          Showing sale events
+          Showing condados con subastas
           <strong><%= ((@page - 1) * 25) + 1 %></strong>–<strong><%= [(@page * 25), @total_count].min %></strong>
           of <strong><%= number_with_delimiter(@total_count) %></strong>
           <span class="r1-table-count-sub">(each row = one county sale)</span>
@@ -348,7 +348,7 @@
 <%# ── State popup (for map hover) ─────────────────────────────────── %>
 <div class="r1-state-popup" id="r1-state-popup">
   <h4 id="r1-popup-state-name"></h4>
-  <div class="r1-popup-row"><span>Sale Events <small style="opacity:0.6;font-size:10px;">(county tax sales)</small></span><strong id="r1-popup-auctions">0</strong></div>
+  <div class="r1-popup-row"><span>Condados con subastas</span><strong id="r1-popup-auctions">0</strong></div>
   <div class="r1-popup-row"><span>Properties for Bid</span><strong id="r1-popup-parcels">0</strong></div>
   <div class="r1-popup-row"><span>Est. Aggregate Value</span><strong id="r1-popup-amount">$0</strong></div>
   <!--

@@ -138,6 +138,11 @@ class SyncSheetJob < ApplicationJob
     Auction.find_each do |auction|
       auction.update_column(:parcel_count, auction.parcels.count)
     end
+
+    # Purga de caché post-sync: fuerza que county_overview.json y fragments
+    # sirvan datos frescos en la próxima petición del frontend
+    Rails.cache.clear
+    Rails.logger.info "[SyncSheetJob] ✅ Cache purgado post-sync"
   rescue => e
     Rails.logger.error "[SyncSheetJob] Error al actualizar parcel_count: #{e.message}"
   end

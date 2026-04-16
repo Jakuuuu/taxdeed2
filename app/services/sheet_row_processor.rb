@@ -145,16 +145,18 @@ class SheetRowProcessor
 
   # ── COORDENADAS ────────────────────────────────────────────────────────────
   # 🪞 ESPEJO: Celda vacía → { latitude: nil, longitude: nil } (fuerza limpieza)
+  # Usa Sanitize.text + Sanitize.coordinate para eliminar caracteres fantasma
   def parsed_coords
-    raw = col(COORDINATES_RAW)
+    raw = Sanitize.text(col(COORDINATES_RAW))
     return { latitude: nil, longitude: nil } if raw.blank?
 
     parts = raw.split(/[,x]|\s{2,}/).map(&:strip).reject(&:blank?)
     return { latitude: nil, longitude: nil } unless parts.size == 2
 
-    lat = parts[0].to_d
-    lng = parts[1].to_d
+    lat = Sanitize.coordinate(parts[0])
+    lng = Sanitize.coordinate(parts[1])
 
+    return { latitude: nil, longitude: nil } if lat.nil? || lng.nil?
     return { latitude: nil, longitude: nil } unless lat.between?(-90, 90) && lng.between?(-180, 180)
     return { latitude: nil, longitude: nil } if lat.zero? && lng.zero?
 
