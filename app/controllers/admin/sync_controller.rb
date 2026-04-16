@@ -11,8 +11,17 @@
 #   y parcel_user_notes permanecen absolutamente intocables.
 #
 class Admin::SyncController < Admin::BaseController
+  # Tiempo máximo permitido para un sync antes de marcarlo como "failed" automáticamente.
+  # Si Sidekiq no procesa el job (worker caído, Redis desconectado, crash sin rescue),
+  # el SyncLog queda huérfano en "running" para siempre, bloqueando el botón.
+  # Este guard lo detecta y desbloquea la UI.
+  STALE_SYNC_TIMEOUT = 30.minutes
+
   # GET /admin/sync
   def show
+    # ── GUARD: Limpiar syncs huérfanos (stuck "running" > 30 min) ─────────
+    expire_stale_syncs!
+
     @last_sync    = SyncLog.recent.first
     @sync_history = SyncLog.recent.limit(20)
     @running      = SyncLog.running.exists?
@@ -61,6 +70,32 @@ class Admin::SyncController < Admin::BaseController
   end
 
   private
+
+  # ── GUARD: Expirar syncs huérfanos ──────────────────────────────────────────
+  # Si un SyncLog lleva más de STALE_SYNC_TIMEOUT en "running", lo marca como
+  # "failed" con un mensaje descriptivo. Esto desbloquea el botón "Run Sync Now".
+  #
+  # Causas comunes:
+  #   - Sidekiq worker caído (Render free tier suspend)
+  #   - Redis perdió el job encolado
+  #   - Job crasheó fuera del rescue => e (SIGKILL, OOM)
+  def expire_stale_syncs!
+    stale = SyncLog.running.where("started_at < ?", STALE_SYNC_TIMEOUT.ago)
+    return if stale.empty?
+
+    stale.find_each do |log|
+      elapsed = (Time.current - log.started_at).round(1)
+      log.update!(
+        status:           "failed",
+        error_message:    "Sync timed out after #{(elapsed / 60).round(0)} minutes. " \
+                          "The Sidekiq worker may be down or the job crashed unexpectedly. " \
+                          "Check Render dashboard → tax-sale-worker service status.",
+        duration_seconds: elapsed,
+        completed_at:     Time.current
+      )
+      Rails.logger.warn "[SyncController] ⏰ Expired stale SyncLog ##{log.id} (running for #{(elapsed / 60).round(0)}min)"
+    end
+  end
 
   # Adquiere advisory lock, verifica que no haya sync running, y crea el SyncLog.
   # Retorna:

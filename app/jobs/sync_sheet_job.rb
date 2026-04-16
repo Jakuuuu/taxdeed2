@@ -34,11 +34,11 @@ class SyncSheetJob < ApplicationJob
 
     raise ArgumentError, "sheet_id is required" if sheet_id.blank?
 
-    sync_log = SyncLog.find_by(id: sync_log_id) if sync_log_id.present?
-    sync_log ||= SyncLog.create!(status: "running", started_at: Time.current)
+    @sync_log = SyncLog.find_by(id: sync_log_id) if sync_log_id.present?
+    @sync_log ||= SyncLog.create!(status: "running", started_at: Time.current)
 
-    Rails.logger.info "[SyncSheetJob] Iniciando sync de Sheet: #{sheet_id} (log_id: #{sync_log.id})"
-    started_at = Time.current
+    Rails.logger.info "[SyncSheetJob] Iniciando sync de Sheet: #{sheet_id} (log_id: #{@sync_log.id})"
+    @started_at = Time.current
 
     # 🛡️ fetch_headers_and_rows incluye validate_headers!
     # Si headers maestros faltan → SheetSchemaError → rescue abajo
@@ -52,14 +52,14 @@ class SyncSheetJob < ApplicationJob
     refresh_auction_counts
 
     # ── POST-SYNC: Geocodificación automática ──────────────────────────────
-    enqueue_geocoding(started_at)
+    enqueue_geocoding(@started_at)
 
-    elapsed = (Time.current - started_at).round(1)
+    elapsed = (Time.current - @started_at).round(1)
     Rails.logger.info "[SyncSheetJob] Completado en #{elapsed}s. " \
                       "Added: #{results[:added]} | Updated: #{results[:updated]} | " \
                       "Skipped: #{results[:skipped]} | Failed: #{results[:failed]}"
 
-    sync_log.update!(
+    @sync_log.update!(
       status:           results[:failed] > 0 ? "completed_with_errors" : "success",
       parcels_added:    results[:added],
       parcels_updated:  results[:updated],
@@ -73,8 +73,8 @@ class SyncSheetJob < ApplicationJob
 
   rescue GoogleSheetsImporter::SheetSchemaError => e
     # 🛡️ Header failsafe — abort total, ya logueado en SyncLog por validate_headers!
-    elapsed = (Time.current - (started_at || Time.current)).round(1)
-    sync_log&.update!(
+    elapsed = (Time.current - (@started_at || Time.current)).round(1)
+    @sync_log&.update!(
       status:           "failed",
       error_message:    e.message,
       duration_seconds: elapsed,
@@ -85,14 +85,30 @@ class SyncSheetJob < ApplicationJob
     raise # Re-raise para que Sidekiq registre el fallo
 
   rescue => e
-    elapsed = (Time.current - (started_at || Time.current)).round(1)
-    sync_log&.update!(
+    elapsed = (Time.current - (@started_at || Time.current)).round(1)
+    @sync_log&.update!(
       status:           "failed",
       error_message:    "#{e.class}: #{e.message}",
       duration_seconds: elapsed,
       completed_at:     Time.current
     )
     raise
+
+  ensure
+    # ── SAFETY NET: Garantizar que el SyncLog NUNCA quede huérfano ──────────
+    # Si el job fue interrumpido por SIGKILL, OOM, o cualquier crash que
+    # bypaseó los rescue blocks, este ensure marca el SyncLog como failed.
+    # Esto previene el bloqueo permanente del botón "Run Sync Now".
+    if @sync_log&.persisted? && @sync_log&.reload&.running?
+      @sync_log.update_columns(
+        status:           "failed",
+        error_message:    "Job terminated unexpectedly (process killed or out of memory). " \
+                          "Check Render logs for the worker service.",
+        duration_seconds: (Time.current - (@started_at || @sync_log.started_at || Time.current)).round(1),
+        completed_at:     Time.current
+      )
+      Rails.logger.error "[SyncSheetJob] 🚨 ENSURE: Force-failed orphaned SyncLog ##{@sync_log.id}"
+    end
   end
 
   private
