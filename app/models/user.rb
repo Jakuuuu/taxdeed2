@@ -20,11 +20,32 @@ class User < ApplicationRecord
   # ── Unlock / Viewed History ─────────────────────────────────────────
   has_many :viewed_parcels,     dependent: :destroy
 
+  # ── Audit trail (as target) ─────────────────────────────────────────
+  has_many :admin_audit_logs, foreign_key: :target_user_id, dependent: :destroy
+
   def full_name
     "#{first_name} #{last_name}".strip
   end
 
   def admin?
     admin
+  end
+
+  # ── Account disable ─────────────────────────────────────────────────
+  # disabled_at = nil  → account active
+  # disabled_at = Time → account locked out (Devise hook below)
+  def disabled?
+    disabled_at.present?
+  end
+
+  # Devise hook — block sign-in for disabled accounts.
+  # Called automatically by Devise on every authentication attempt.
+  def active_for_authentication?
+    super && !disabled?
+  end
+
+  # Custom Devise message shown on login when account is disabled.
+  def inactive_message
+    disabled? ? :account_disabled : super
   end
 end

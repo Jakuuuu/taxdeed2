@@ -10,9 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_15_152500) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_15_210313) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "admin_audit_logs", force: :cascade do |t|
+    t.bigint "admin_user_id", null: false
+    t.bigint "target_user_id", null: false
+    t.string "action", null: false
+    t.text "details"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action"], name: "index_admin_audit_logs_on_action"
+    t.index ["admin_user_id"], name: "index_admin_audit_logs_on_admin_user_id"
+    t.index ["created_at"], name: "index_admin_audit_logs_on_created_at"
+    t.index ["target_user_id"], name: "index_admin_audit_logs_on_target_user_id"
+  end
 
   create_table "auctions", force: :cascade do |t|
     t.string "state", null: false
@@ -212,6 +225,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_15_152500) do
     t.boolean "admin", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "disabled_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
@@ -228,6 +242,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_15_152500) do
     t.index ["user_id"], name: "index_viewed_parcels_on_user_id"
   end
 
+  add_foreign_key "admin_audit_logs", "users", column: "admin_user_id"
+  add_foreign_key "admin_audit_logs", "users", column: "target_user_id"
   add_foreign_key "parcel_liens", "parcels"
   add_foreign_key "parcel_user_notes", "parcels"
   add_foreign_key "parcel_user_notes", "users"

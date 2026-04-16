@@ -266,6 +266,9 @@ class SheetRowProcessor
   def parse_currency(str)
     return nil if str.blank?
 
+    # Detectar formato contable negativo: "(25,000)" → no tiene sentido para bids
+    return nil if str.strip.match?(/\A\(.*\)\z/)
+
     # Eliminar todo excepto dígitos, punto decimal y signo negativo
     cleaned = str.gsub(/[^\d.\-]/, "")
     return nil if cleaned.blank? || cleaned == "." || cleaned == "-"

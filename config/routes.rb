@@ -68,10 +68,14 @@ Rails.application.routes.draw do
     end
 
     resources :users, only: [:index, :show] do
+      collection do
+        get :export_csv
+      end
       member do
         post :reset_usage
         post :cancel_subscription
         post :toggle_admin
+        post :toggle_disable
       end
     end
 
@@ -82,7 +86,7 @@ Rails.application.routes.draw do
       end
     end
 
-    resource :sync, only: [:show] do
+    resource :sync, only: [:show], controller: "sync" do
       post :run_now
     end
   end

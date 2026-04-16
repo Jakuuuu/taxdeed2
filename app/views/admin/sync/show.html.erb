@@ -1,121 +1,581 @@
 <% content_for :title, "Sync Dashboard" %>
 
-<div class="admin-page-header">
-  <div>
-    <h1 class="admin-page-title">Sync Dashboard</h1>
-    <p class="admin-page-subtitle">Google Sheets → PostgreSQL synchronization status</p>
+<%# ═══════════════════════════════════════════════════════════════════════════
+    SYNC DASHBOARD — Admin Panel
+    Monitor de sincronización Google Sheets → PostgreSQL
+    ⛔ CRM IMMUNITY: Este dashboard NO altera parcel_user_tags/notes.
+       Solo encola SyncSheetJob y monitorea vía SyncLog.
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<style>
+  /* ── Sync Dashboard Specific Styles ──────────────────────────────────── */
+  .sync-hero {
+    background: linear-gradient(135deg, #1E3A5F 0%, #2C5282 60%, #1E3A5F 100%);
+    border-radius: 12px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    position: relative;
+    overflow: hidden;
+  }
+  .sync-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -15%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .sync-hero__info { position: relative; z-index: 1; }
+  .sync-hero__title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.01em;
+  }
+  .sync-hero__subtitle {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.55);
+    margin: 0;
+  }
+  .sync-hero__actions { position: relative; z-index: 1; display: flex; gap: 0.85rem; align-items: center; }
+
+  /* Run Now Button */
+  .btn-sync-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.35rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1E3A5F;
+    background: linear-gradient(135deg, #C9A84C 0%, #D4B65A 100%);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(201,168,76,0.3);
+    letter-spacing: 0.01em;
+  }
+  .btn-sync-trigger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(201,168,76,0.45);
+    background: linear-gradient(135deg, #D4B65A 0%, #E0C66A 100%);
+  }
+  .btn-sync-trigger:active { transform: translateY(0); }
+  .btn-sync-trigger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .btn-sync-trigger__icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  /* Running Indicator */
+  .sync-running-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.85rem;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #C9A84C;
+    animation: runBadgePulse 2s infinite;
+  }
+  @keyframes runBadgePulse {
+    0%, 100% { border-color: rgba(201,168,76,0.3); }
+    50%      { border-color: rgba(201,168,76,0.7); }
+  }
+  .sync-running-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #C9A84C;
+    animation: syncPulse 1.2s infinite;
+  }
+
+  /* Metrics Strip */
+  .sync-metrics-strip {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+  .sync-metric {
+    background: #fff;
+    border: 1px solid #DEE2E6;
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    border-top: 3px solid #1E3A5F;
+  }
+  .sync-metric:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    transform: translateY(-1px);
+  }
+  .sync-metric--success { border-top-color: #10B981; }
+  .sync-metric--danger  { border-top-color: #DC2626; }
+  .sync-metric--accent  { border-top-color: #C9A84C; }
+  .sync-metric--info    { border-top-color: #3B82F6; }
+  .sync-metric__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6C757D;
+    margin-bottom: 0.35rem;
+  }
+  .sync-metric__value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1E3A5F;
+    font-family: 'Inter', sans-serif;
+    line-height: 1;
+  }
+  .sync-metric__sub {
+    font-size: 0.72rem;
+    color: #6C757D;
+    margin-top: 0.25rem;
+  }
+
+  /* Last Sync Hero Card */
+  .last-sync-card {
+    background: #fff;
+    border: 1px solid #DEE2E6;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .last-sync-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid #DEE2E6;
+    background: #FAFAFA;
+  }
+  .last-sync-card__title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1E3A5F;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .last-sync-card__body {
+    padding: 1.25rem;
+  }
+
+  /* Last Sync Details Grid */
+  .last-sync-details {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+  }
+  .last-sync-detail {
+    background: #F8F9FA;
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    text-align: center;
+  }
+  .last-sync-detail__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6C757D;
+    margin-bottom: 0.3rem;
+  }
+  .last-sync-detail__value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #1E3A5F;
+    line-height: 1;
+  }
+  .last-sync-detail__value--success { color: #059669; }
+  .last-sync-detail__value--muted   { color: #9CA3AF; }
+  .last-sync-detail__sub {
+    font-size: 0.72rem;
+    color: #6C757D;
+    margin-top: 0.2rem;
+  }
+
+  /* Error Alert */
+  .sync-error-alert {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 8px;
+    border-left: 4px solid #DC2626;
+  }
+  .sync-error-alert__label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #991B1B;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.25rem;
+  }
+  .sync-error-alert__message {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    color: #991B1B;
+    word-break: break-all;
+    line-height: 1.4;
+  }
+
+  /* Schedule Info */
+  .sync-schedule-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.7);
+  }
+  .sync-schedule-info__icon { font-size: 0.9rem; }
+
+  /* History Table Enhancements */
+  .sync-history-row--latest td {
+    background: #FFFBF0 !important;
+  }
+  .sync-table-error {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: #DC2626;
+    cursor: help;
+  }
+  .sync-table-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1E3A5F;
+  }
+  .sync-table-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .sync-table-count--added { color: #059669; }
+  .sync-table-count--updated { color: #3B82F6; }
+  .sync-table-count--skipped { color: #D97706; }
+
+  /* Empty State Enhancement */
+  .sync-empty {
+    text-align: center;
+    padding: 3rem 2rem;
+  }
+  .sync-empty__icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.4;
+  }
+  .sync-empty__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1E3A5F;
+    margin-bottom: 0.3rem;
+  }
+  .sync-empty__desc {
+    font-size: 0.85rem;
+    color: #6C757D;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .sync-metrics-strip { grid-template-columns: repeat(3, 1fr); }
+    .last-sync-details  { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .sync-metrics-strip { grid-template-columns: repeat(2, 1fr); }
+    .last-sync-details  { grid-template-columns: repeat(2, 1fr); }
+    .sync-hero { flex-direction: column; text-align: center; }
+  }
+</style>
+
+
+<%# ═══════════════════════════════════════════════════════════════════════════
+    SECTION 1: Hero Header — Title + Run Now + Schedule
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<div class="sync-hero">
+  <div class="sync-hero__info">
+    <h1 class="sync-hero__title">Sync Dashboard</h1>
+    <p class="sync-hero__subtitle">Google Sheets → PostgreSQL synchronization monitor</p>
   </div>
-  <div class="admin-page-actions">
-    <%= form_with url: run_now_admin_sync_path, method: :post, local: true do |f| %>
-      <button type="submit" class="btn-sm btn-sm-primary"
-              onclick="return confirm('Run a full sync now? This will import all rows from Google Sheets.')">
-        🔄 Run Sync Now
+
+  <div class="sync-hero__actions">
+    <%# Schedule Info %>
+    <div class="sync-schedule-info">
+      <span class="sync-schedule-info__icon">⏱</span>
+      Auto: every 8h (3×/day)
+    </div>
+
+    <%# Running Indicator %>
+    <% if @running %>
+      <div class="sync-running-badge">
+        <span class="sync-running-dot"></span>
+        Sync in Progress…
+      </div>
+    <% end %>
+
+    <%# Manual Trigger Button %>
+    <%= form_with url: run_now_admin_sync_path, method: :post, local: true, style: "display:inline;" do |f| %>
+      <button type="submit"
+              class="btn-sync-trigger"
+              id="sync-trigger-btn"
+              <%= "disabled" if @running %>
+              onclick="return confirm('Run a full sync now?\n\nThis will fetch ALL rows from Google Sheets and synchronize with the database.\n\nCRM data (tags & notes) will NOT be affected.')">
+        <span class="btn-sync-trigger__icon"><%= @running ? "⏳" : "▶" %></span>
+        <%= @running ? "Sync Running…" : "Run Sync Now" %>
       </button>
     <% end %>
   </div>
 </div>
 
-<%# ── Last Sync Status Card ─────────────────────────────────────── %>
+
+<%# ═══════════════════════════════════════════════════════════════════════════
+    SECTION 2: Aggregate Metrics Strip
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<div class="sync-metrics-strip">
+  <div class="sync-metric">
+    <div class="sync-metric__label">Total Syncs</div>
+    <div class="sync-metric__value"><%= @total_syncs %></div>
+    <div class="sync-metric__sub">all time</div>
+  </div>
+
+  <div class="sync-metric sync-metric--success">
+    <div class="sync-metric__label">Successful</div>
+    <div class="sync-metric__value"><%= @successful %></div>
+    <div class="sync-metric__sub">
+      <%= @total_syncs > 0 ? "#{((@successful.to_f / @total_syncs) * 100).round(0)}% rate" : "—" %>
+    </div>
+  </div>
+
+  <div class="sync-metric sync-metric--danger">
+    <div class="sync-metric__label">Failed</div>
+    <div class="sync-metric__value"><%= @failed %></div>
+    <div class="sync-metric__sub">
+      <%= @failed > 0 ? "needs attention" : "all clear" %>
+    </div>
+  </div>
+
+  <div class="sync-metric sync-metric--accent">
+    <div class="sync-metric__label">Parcels Added</div>
+    <div class="sync-metric__value"><%= number_with_delimiter(@total_added) %></div>
+    <div class="sync-metric__sub">cumulative</div>
+  </div>
+
+  <div class="sync-metric sync-metric--info">
+    <div class="sync-metric__label">Parcels Updated</div>
+    <div class="sync-metric__value"><%= number_with_delimiter(@total_updated) %></div>
+    <div class="sync-metric__sub">cumulative</div>
+  </div>
+
+  <div class="sync-metric">
+    <div class="sync-metric__label">Avg Duration</div>
+    <div class="sync-metric__value"><%= @avg_duration ? "#{@avg_duration}s" : "—" %></div>
+    <div class="sync-metric__sub">successful runs</div>
+  </div>
+</div>
+
+
+<%# ═══════════════════════════════════════════════════════════════════════════
+    SECTION 3: Last Sync Result Card
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
 <% if @last_sync %>
-  <div class="admin-card" style="margin-bottom:1.25rem;border-top:3px solid <%= @last_sync.status == 'success' ? 'var(--color-success)' : @last_sync.status == 'failed' ? '#DC2626' : 'var(--color-accent)' %>;">
-    <div class="admin-card__header">
-      <h2 class="admin-card__title">Last Sync Result</h2>
-      <span class="badge badge-<%= @last_sync.status %>" style="padding:0.2rem 0.7rem;border-radius:20px;font-size:0.78rem;font-weight:700;">
+  <div class="last-sync-card" style="border-top: 3px solid <%= @last_sync.success? ? '#10B981' : @last_sync.failed? ? '#DC2626' : '#C9A84C' %>;">
+    <div class="last-sync-card__header">
+      <h2 class="last-sync-card__title">
+        <% if @last_sync.success? %>
+          ✅
+        <% elsif @last_sync.failed? %>
+          ❌
+        <% else %>
+          ⏳
+        <% end %>
+        Last Sync Result
+      </h2>
+      <span class="badge badge-<%= @last_sync.status %>" style="padding:0.2rem 0.75rem;border-radius:20px;font-size:0.78rem;font-weight:700;">
         <span class="sync-status-dot <%= @last_sync.status %>"></span>
         <%= @last_sync.status.upcase %>
       </span>
     </div>
-    <div class="admin-card__body">
-      <div class="admin-stat-grid" style="grid-template-columns:repeat(5,1fr);">
-        <div class="admin-stat-card">
-          <div class="admin-stat-card__label">Started</div>
-          <div class="admin-stat-card__value" style="font-size:0.9rem;">
-            <%= @last_sync.started_at&.strftime("%m/%d %H:%M") || "—" %>
+
+    <div class="last-sync-card__body">
+      <div class="last-sync-details">
+        <div class="last-sync-detail">
+          <div class="last-sync-detail__label">Started</div>
+          <div class="last-sync-detail__value" style="font-size:0.95rem;">
+            <%= @last_sync.started_at&.strftime("%b %d, %H:%M") || "—" %>
           </div>
-          <div class="admin-stat-card__sub"><%= @last_sync.started_at ? time_ago_in_words(@last_sync.started_at) + " ago" : "" %></div>
+          <div class="last-sync-detail__sub">
+            <%= @last_sync.started_at ? time_ago_in_words(@last_sync.started_at) + " ago" : "" %>
+          </div>
         </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-card__label">Duration</div>
-          <div class="admin-stat-card__value" style="font-size:1rem;"><%= @last_sync.duration_display %></div>
+
+        <div class="last-sync-detail">
+          <div class="last-sync-detail__label">Duration</div>
+          <div class="last-sync-detail__value"><%= @last_sync.duration_display %></div>
         </div>
-        <div class="admin-stat-card admin-stat-card--success">
-          <div class="admin-stat-card__label">Added</div>
-          <div class="admin-stat-card__value"><%= @last_sync.parcels_added || 0 %></div>
+
+        <div class="last-sync-detail">
+          <div class="last-sync-detail__label">Added</div>
+          <div class="last-sync-detail__value last-sync-detail__value--success">
+            +<%= @last_sync.parcels_added || 0 %>
+          </div>
         </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-card__label">Updated</div>
-          <div class="admin-stat-card__value"><%= @last_sync.parcels_updated || 0 %></div>
+
+        <div class="last-sync-detail">
+          <div class="last-sync-detail__label">Updated</div>
+          <div class="last-sync-detail__value"><%= @last_sync.parcels_updated || 0 %></div>
         </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-card__label">Skipped</div>
-          <div class="admin-stat-card__value"><%= @last_sync.parcels_skipped || 0 %></div>
+
+        <div class="last-sync-detail">
+          <div class="last-sync-detail__label">Skipped</div>
+          <div class="last-sync-detail__value last-sync-detail__value--muted"><%= @last_sync.parcels_skipped || 0 %></div>
         </div>
       </div>
 
       <% if @last_sync.error_message.present? %>
-        <div style="margin-top:1rem;padding:0.85rem 1rem;background:#FEE2E2;border-radius:8px;border:1px solid #FECACA;">
-          <div style="font-size:0.75rem;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Error</div>
-          <code style="font-size:0.8rem;color:#991B1B;word-break:break-all;"><%= @last_sync.error_message %></code>
+        <div class="sync-error-alert">
+          <div class="sync-error-alert__label">⚠ Error Details</div>
+          <div class="sync-error-alert__message"><%= @last_sync.error_message %></div>
         </div>
       <% end %>
     </div>
   </div>
 <% else %>
-  <div class="admin-card" style="margin-bottom:1.25rem;">
-    <div class="empty-state">
-      <div class="empty-state__icon">🔄</div>
-      <div class="empty-state__title">No syncs yet</div>
-      <div class="empty-state__desc">Run your first sync to import data from Google Sheets.</div>
+  <div class="admin-card" style="margin-bottom:1.5rem;">
+    <div class="sync-empty">
+      <div class="sync-empty__icon">📡</div>
+      <div class="sync-empty__title">No syncs yet</div>
+      <div class="sync-empty__desc">Run your first sync to import data from Google Sheets.</div>
     </div>
   </div>
 <% end %>
 
-<%# ── Sync History Table ─────────────────────────────────────────── %>
+
+<%# ═══════════════════════════════════════════════════════════════════════════
+    SECTION 4: Sync History Table
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
 <div class="admin-card">
   <div class="admin-card__header">
-    <h2 class="admin-card__title">Sync History</h2>
-    <span style="font-size:0.8rem;color:#6C757D;">Last 20 syncs</span>
+    <h2 class="admin-card__title">📜 Sync History</h2>
+    <span style="font-size:0.78rem;color:#6C757D;font-weight:500;">Last <%= @sync_history.size %> runs</span>
   </div>
 
   <% if @sync_history.any? %>
-    <table class="admin-table">
+    <table class="admin-table" id="sync-history-table">
       <thead>
         <tr>
-          <th>Started</th>
+          <th>#</th>
+          <th>Date / Time</th>
           <th>Status</th>
           <th>Duration</th>
-          <th>Added</th>
-          <th>Updated</th>
-          <th>Skipped</th>
+          <th style="text-align:right;">Added</th>
+          <th style="text-align:right;">Updated</th>
+          <th style="text-align:right;">Skipped</th>
           <th>Error</th>
         </tr>
       </thead>
       <tbody>
-        <% @sync_history.each do |log| %>
-          <tr>
-            <td style="white-space:nowrap;font-size:0.8rem;">
-              <%= log.started_at&.strftime("%m/%d/%y %H:%M") || "—" %>
+        <% @sync_history.each_with_index do |log, idx| %>
+          <tr class="<%= 'sync-history-row--latest' if idx == 0 %>">
+            <td style="font-size:0.78rem;color:#9CA3AF;font-weight:600;"><%= log.id %></td>
+            <td>
+              <div class="sync-table-mono">
+                <%= log.started_at&.strftime("%b %d, %Y") || "—" %>
+              </div>
+              <div style="font-size:0.72rem;color:#6C757D;">
+                <%= log.started_at&.strftime("%H:%M:%S") || "" %>
+                <% if log.started_at %>
+                  · <%= time_ago_in_words(log.started_at) %> ago
+                <% end %>
+              </div>
             </td>
             <td>
-              <span class="badge badge-<%= log.status %>" style="padding:0.15rem 0.55rem;border-radius:20px;font-size:0.72rem;font-weight:700;">
+              <span class="badge badge-<%= log.status %>"
+                    style="padding:0.15rem 0.6rem;border-radius:20px;font-size:0.72rem;font-weight:700;display:inline-flex;align-items:center;gap:0.3rem;">
                 <span class="sync-status-dot <%= log.status %>"></span>
                 <%= log.status.upcase %>
               </span>
             </td>
-            <td style="font-size:0.875rem;"><%= log.duration_display %></td>
-            <td><%= log.parcels_added || "—" %></td>
-            <td><%= log.parcels_updated || "—" %></td>
-            <td><%= log.parcels_skipped || "—" %></td>
-            <td style="font-size:0.78rem;color:#DC2626;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-              <%= log.error_message.presence || "—" %>
+            <td>
+              <span class="sync-table-mono"><%= log.duration_display %></span>
+            </td>
+            <td style="text-align:right;">
+              <span class="sync-table-count sync-table-count--added">
+                <%= log.parcels_added.to_i > 0 ? "+#{log.parcels_added}" : "0" %>
+              </span>
+            </td>
+            <td style="text-align:right;">
+              <span class="sync-table-count sync-table-count--updated">
+                <%= log.parcels_updated || 0 %>
+              </span>
+            </td>
+            <td style="text-align:right;">
+              <span class="sync-table-count sync-table-count--skipped">
+                <%= log.parcels_skipped || 0 %>
+              </span>
+            </td>
+            <td>
+              <% if log.error_message.present? %>
+                <span class="sync-table-error" title="<%= log.error_message %>">
+                  <%= log.error_message %>
+                </span>
+              <% else %>
+                <span style="font-size:0.78rem;color:#9CA3AF;">—</span>
+              <% end %>
             </td>
           </tr>
         <% end %>
       </tbody>
     </table>
   <% else %>
-    <div class="empty-state" style="padding:2rem;">
-      <div class="empty-state__desc">No sync history yet.</div>
+    <div class="sync-empty" style="padding:2.5rem;">
+      <div class="sync-empty__icon">📜</div>
+      <div class="sync-empty__desc">No sync history yet.</div>
     </div>
   <% end %>
+</div>
+
+
+<%# ═══════════════════════════════════════════════════════════════════════════
+    SECTION 5: CRM Immunity Notice (Footer)
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<div style="display:flex;align-items:center;gap:0.65rem;padding:0.75rem 1rem;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;margin-top:0.5rem;">
+  <span style="font-size:1.1rem;">🛡️</span>
+  <div>
+    <div style="font-size:0.78rem;font-weight:700;color:#065F46;margin-bottom:0.1rem;">CRM Immunity Active</div>
+    <div style="font-size:0.75rem;color:#047857;">Sync operations never touch <strong>parcel_user_tags</strong> or <strong>parcel_user_notes</strong>. User data is always protected.</div>
+  </div>
 </div>

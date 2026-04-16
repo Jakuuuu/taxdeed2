@@ -5,8 +5,85 @@
     <h1 class="admin-page-title">Users</h1>
     <p class="admin-page-subtitle"><%= @total_users %> registered users · <%= @admin_count %> admin</p>
   </div>
+  <div class="admin-page-actions">
+    <%= link_to export_csv_admin_users_path(params.permit(:q, :plan, :status, :role).to_h),
+        class: "btn-sm btn-sm-outline",
+        style: "display:inline-flex;align-items:center;gap:0.3rem;text-decoration:none;" do %>
+      📥 Export CSV
+    <% end %>
+  </div>
 </div>
 
+<%# ── Search & Filters Bar ──────────────────────────────────────────────── %>
+<div class="admin-card" style="margin-bottom:1rem;padding:0.75rem 1rem;">
+  <%= form_with url: admin_users_path, method: :get, local: true, style: "display:flex;flex-wrap:wrap;gap:0.6rem;align-items:center;" do %>
+
+    <%# Search input %>
+    <div style="flex:1;min-width:200px;position:relative;">
+      <span style="position:absolute;left:0.6rem;top:50%;transform:translateY(-50%);color:#9CA3AF;font-size:0.85rem;pointer-events:none;">🔍</span>
+      <input type="text" name="q" value="<%= params[:q] %>"
+             placeholder="Search by email or name…"
+             autocomplete="off"
+             style="width:100%;padding:0.45rem 0.6rem 0.45rem 2rem;border:1px solid #E5E7EB;border-radius:6px;font-size:0.82rem;color:#1E3A5F;background:#FAFBFC;outline:none;transition:border-color 0.15s;"
+             onfocus="this.style.borderColor='#C9A84C'" onblur="this.style.borderColor='#E5E7EB'">
+    </div>
+
+    <%# Plan filter %>
+    <select name="plan"
+            style="padding:0.45rem 0.6rem;border:1px solid #E5E7EB;border-radius:6px;font-size:0.82rem;color:#1E3A5F;background:#FAFBFC;cursor:pointer;min-width:110px;">
+      <option value="">All Plans</option>
+      <% %w[standard pro premier].each do |p| %>
+        <option value="<%= p %>" <%= 'selected' if params[:plan] == p %>><%= p.capitalize %></option>
+      <% end %>
+    </select>
+
+    <%# Status filter %>
+    <select name="status"
+            style="padding:0.45rem 0.6rem;border:1px solid #E5E7EB;border-radius:6px;font-size:0.82rem;color:#1E3A5F;background:#FAFBFC;cursor:pointer;min-width:110px;">
+      <option value="">All Status</option>
+      <% %w[trial active past_due canceled].each do |s| %>
+        <option value="<%= s %>" <%= 'selected' if params[:status] == s %>><%= s.capitalize.tr('_', ' ') %></option>
+      <% end %>
+    </select>
+
+    <%# Role filter %>
+    <select name="role"
+            style="padding:0.45rem 0.6rem;border:1px solid #E5E7EB;border-radius:6px;font-size:0.82rem;color:#1E3A5F;background:#FAFBFC;cursor:pointer;min-width:110px;">
+      <option value="">All Roles</option>
+      <option value="admin" <%= 'selected' if params[:role] == 'admin' %>>Admin</option>
+      <option value="member" <%= 'selected' if params[:role] == 'member' %>>Member</option>
+    </select>
+
+    <%# Buttons %>
+    <button type="submit" class="btn-sm btn-sm-outline"
+            style="padding:0.45rem 0.9rem;font-size:0.82rem;white-space:nowrap;">
+      Apply
+    </button>
+
+    <% if @active_filters.present? %>
+      <%= link_to "✕ Clear", admin_users_path, class: "btn-sm btn-sm-outline",
+            style: "padding:0.45rem 0.7rem;font-size:0.78rem;color:#DC2626;border-color:#DC2626;white-space:nowrap;" %>
+    <% end %>
+
+  <% end %>
+</div>
+
+<%# ── Active Filters Indicator ──────────────────────────────────────────── %>
+<% if @active_filters.present? %>
+  <div style="margin-bottom:0.75rem;display:flex;flex-wrap:wrap;gap:0.35rem;align-items:center;">
+    <span style="font-size:0.72rem;color:#6C757D;font-weight:600;">Filtered by:</span>
+    <% @active_filters.each do |key, val| %>
+      <span style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.15rem 0.5rem;background:#F0F4FF;border:1px solid #D1DBE9;border-radius:12px;font-size:0.7rem;color:#1E3A5F;font-weight:600;">
+        <%= key == 'q' ? "\"#{val}\"" : "#{key}: #{val}" %>
+      </span>
+    <% end %>
+    <span style="font-size:0.72rem;color:#6C757D;">·
+      <%= @users.respond_to?(:total_count) ? @users.total_count : @users.size %> result<%= @users.respond_to?(:total_count) && @users.total_count == 1 ? '' : 's' %>
+    </span>
+  </div>
+<% end %>
+
+<%# ── Users Table ───────────────────────────────────────────────────────── %>
 <div class="admin-card">
   <% if @users.any? %>
     <table class="admin-table">
@@ -25,8 +102,24 @@
         <% @users.each do |user| %>
           <tr>
             <td>
-              <div style="font-weight:600;color:#1E3A5F;"><%= user.full_name %></div>
-              <div style="font-size:0.78rem;color:#6C757D;"><%= user.email %></div>
+              <div style="font-weight:600;color:#1E3A5F;display:flex;align-items:center;gap:0.4rem;">
+                <%= user.full_name %>
+                <% if user.disabled? %>
+                  <span style="padding:0.1rem 0.4rem;border-radius:12px;font-size:0.6rem;font-weight:700;background:#FEE2E2;color:#991B1B;">SUSPENDED</span>
+                <% end %>
+              </div>
+              <div style="font-size:0.78rem;color:#6C757D;display:flex;align-items:center;gap:0.35rem;">
+                <a href="mailto:<%= user.email %>"
+                   style="color:#6C757D;text-decoration:none;transition:color 0.15s;"
+                   onmouseover="this.style.color='#C9A84C'" onmouseout="this.style.color='#6C757D'"
+                   title="Send email to <%= user.email %>">
+                  <%= user.email %>
+                </a>
+                <a href="mailto:<%= user.email %>"
+                   style="color:#9CA3AF;font-size:0.7rem;text-decoration:none;transition:color 0.15s;"
+                   onmouseover="this.style.color='#C9A84C'" onmouseout="this.style.color='#9CA3AF'"
+                   title="Send email">✉</a>
+              </div>
             </td>
             <td>
               <% if user.subscription %>
@@ -72,10 +165,10 @@
         </span>
         <div style="display:flex;gap:0.4rem;">
           <% if @users.prev_page %>
-            <%= link_to "← Prev", admin_users_path(page: @users.prev_page), class: "btn-sm btn-sm-outline" %>
+            <%= link_to "← Prev", admin_users_path(page: @users.prev_page, **@active_filters), class: "btn-sm btn-sm-outline" %>
           <% end %>
           <% if @users.next_page %>
-            <%= link_to "Next →", admin_users_path(page: @users.next_page), class: "btn-sm btn-sm-outline" %>
+            <%= link_to "Next →", admin_users_path(page: @users.next_page, **@active_filters), class: "btn-sm btn-sm-outline" %>
           <% end %>
         </div>
       </div>
@@ -84,7 +177,18 @@
   <% else %>
     <div class="empty-state">
       <div class="empty-state__icon">👥</div>
-      <div class="empty-state__title">No users yet</div>
+      <div class="empty-state__title">
+        <% if @active_filters.present? %>
+          No users match your filters
+        <% else %>
+          No users yet
+        <% end %>
+      </div>
+      <% if @active_filters.present? %>
+        <div style="margin-top:0.5rem;">
+          <%= link_to "Clear filters →", admin_users_path, class: "btn-sm btn-sm-outline", style: "font-size:0.82rem;" %>
+        </div>
+      <% end %>
     </div>
   <% end %>
 </div>
