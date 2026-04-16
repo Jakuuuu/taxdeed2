@@ -353,13 +353,13 @@
       </div>
     <% end %>
 
-    <%# Manual Trigger Button %>
-    <%= form_with url: run_now_admin_sync_path, method: :post, local: true, style: "display:inline;" do |f| %>
+    <%# Manual Trigger Button — CSP-safe (no inline onclick) %>
+    <%= form_with url: run_now_admin_sync_path, method: :post, style: "display:inline;",
+                  data: { turbo_confirm: "Run a full sync now?\n\nThis will fetch ALL rows from Google Sheets and synchronize with the database.\n\nCRM data (tags & notes) will NOT be affected." } do |f| %>
       <button type="submit"
               class="btn-sync-trigger"
               id="sync-trigger-btn"
-              <%= "disabled" if @running %>
-              onclick="return confirm('Run a full sync now?\n\nThis will fetch ALL rows from Google Sheets and synchronize with the database.\n\nCRM data (tags & notes) will NOT be affected.')">
+              <%= "disabled" if @running %>>
         <span class="btn-sync-trigger__icon"><%= @running ? "⏳" : "▶" %></span>
         <%= @running ? "Sync Running…" : "Run Sync Now" %>
       </button>
