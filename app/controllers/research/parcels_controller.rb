@@ -49,8 +49,17 @@ module Research
       @parcel  = Parcel.find(params[:id])
       @auction = @parcel.auction
 
-      # ── Blur Paywall: check if user has already unlocked this parcel ──
-      @unlocked = ViewedParcel.exists?(user_id: current_user.id, parcel_id: @parcel.id)
+      # ── Admin God Mode: bypass de Paywall ──────────────────────────────
+      # Si el usuario es admin, la ficha se trata como desbloqueada SIN
+      # tocar la tabla viewed_parcels ni descontar créditos.
+      @admin_override = current_user.admin?
+
+      if @admin_override
+        @unlocked = true
+      else
+        # ── Blur Paywall: check if user has already unlocked this parcel ──
+        @unlocked = ViewedParcel.exists?(user_id: current_user.id, parcel_id: @parcel.id)
+      end
 
       # ── Mini CRM (transversal — always visible regardless of paywall) ─
       @current_tag = current_user.parcel_user_tags.find_by(parcel_id: @parcel.id)
@@ -66,6 +75,13 @@ module Research
     # Basic property data (header) is always free. Advanced data requires unlock.
     def unlock
       @parcel = Parcel.find(params[:id])
+
+      # ── Admin God Mode: bypass instantáneo ─────────────────────────────
+      # No consume créditos, no crea registro en viewed_parcels.
+      if current_user.admin?
+        render json: { unlocked: true, message: "Admin override — no credits consumed" } and return
+      end
+
       sub     = current_user.subscription
 
       # Already unlocked — return success without consuming another credit
