@@ -359,7 +359,7 @@
       <button type="submit"
               class="btn-sync-trigger"
               id="sync-trigger-btn"
-              <%= "disabled" if @running %>>
+              <% if @running %>disabled<% end %>>
         <span class="btn-sync-trigger__icon"><%= @running ? "⏳" : "▶" %></span>
         <%= @running ? "Sync Running…" : "Run Sync Now" %>
       </button>
