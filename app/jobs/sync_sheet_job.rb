@@ -3,50 +3,26 @@
 # SyncSheetJob — Importa propiedades desde Google Sheets a PostgreSQL
 #
 # Disparado por:
-#   1. Sidekiq-cron: 3x/día cada 8h (3:00 AM, 11:00 AM, 7:00 PM ET)
+#   1. Sidekiq-cron: cada 12h (3:00 AM + 3:00 PM ET = "0 7,19 * * *" UTC)
 #   2. Admin manual: POST /admin/sync/run_now
 #
 # Diseño:
 #   - Fila que falla → se loguea y continúa (no para el batch)
-#   - Error de red Google API → job falla completo → Sidekiq retry automático (max 3)
-#   - Idempotente: upsert por (state+county+parcel_id), auction por (county+state+sale_date)
+#   - 🛡️ SheetSchemaError → job ABORTA completo (headers maestros ausentes)
+#   - Error de red Google API → job falla → Sidekiq retry automático (max 3)
+#   - Idempotente: upsert por (state+county+parcel_id)
 #   - Registra resultado en SyncLog para el Sync Dashboard del admin
-#   - Post-sync: encola geocodificación para parcelas sin coordenadas (Regrid API)
-#   - Procesamiento en lotes de BATCH_SIZE filas para controlar memoria en Render
+#   - Post-sync: encola geocodificación para parcelas sin coordenadas
+#   - Procesamiento en lotes de BATCH_SIZE filas para controlar memoria
 #
-# 🪞 ESPEJO INFALIBLE:
-#   Celdas borradas en Sheet → nil en PostgreSQL (obligatorio).
-#   El SheetRowProcessor maneja la conversión blank→nil en cada campo.
-#
-# 🛡️ MAPEO RESILIENTE:
-#   Cabeceras del Sheet se normalizan (.strip) para proteger contra
-#   caracteres invisibles. Se logea la fila de cabeceras para auditoría.
-#
-# 🛡️ BLINDAJE PostgreSQL:
-#   SheetRowProcessor usa find_or_initialize_by(state, county, parcel_id)
-#   alineado con UNIQUE INDEX idx_parcels_unique_state_county_pid.
-#   Tracking preciso: added vs updated vs skipped vs failed.
-#
-# ⛔ CRM IMMUNITY:
-#   parcel_user_tags y parcel_user_notes JAMÁS se tocan.
-#   Garantizado por enforce_crm_immunity! en SheetRowProcessor.
+# ⛔ CRM IMMUNITY: parcel_user_tags y parcel_user_notes JAMÁS se tocan.
+# 🧹 SANITIZACIÓN: Todos los campos pasan por el módulo Sanitize.
 #
 class SyncSheetJob < ApplicationJob
   queue_as :data_sync
 
-  # ── Lote de procesamiento ────────────────────────────────────────────────────
-  # Procesar filas en lotes de 100 para evitar picos de memoria (OOM) en Render.
-  # Después de cada lote se sugiere GC y se loguea progreso incremental.
+  # Lote de procesamiento para controlar memoria (OOM) en Render
   BATCH_SIZE = 100
-
-  # Cabeceras esperadas en posiciones clave (para validación de integridad)
-  EXPECTED_HEADERS = {
-    0 => "State",
-    1 => "County",
-    2 => "Parcel Number",
-    6 => "Auction Date",
-    8 => "Min. Bid"
-  }.freeze
 
   retry_on Google::Apis::ServerError, wait: :polynomially_longer, attempts: 3
   retry_on Google::Apis::TransmissionError, wait: :polynomially_longer, attempts: 3
@@ -59,18 +35,18 @@ class SyncSheetJob < ApplicationJob
     raise ArgumentError, "sheet_id is required" if sheet_id.blank?
 
     sync_log = SyncLog.find_by(id: sync_log_id) if sync_log_id.present?
-    # Si se llamó sin sync_log_id (cron automático), crear uno ahora
     sync_log ||= SyncLog.create!(status: "running", started_at: Time.current)
 
     Rails.logger.info "[SyncSheetJob] Iniciando sync de Sheet: #{sheet_id} (log_id: #{sync_log.id})"
     started_at = Time.current
 
-    # 🛡️ MAPEO RESILIENTE: Fetch con cabeceras normalizadas para validación
+    # 🛡️ fetch_headers_and_rows incluye validate_headers!
+    # Si headers maestros faltan → SheetSchemaError → rescue abajo
     data    = GoogleSheetsImporter.fetch_headers_and_rows(sheet_id)
     headers = data[:headers]
     rows    = data[:rows]
 
-    validate_headers(headers)
+    Rails.logger.info "[SyncSheetJob] 🛡️ Headers validados OK (#{headers.size} columnas, #{rows.size} filas)"
 
     results = process_rows_in_batches(rows)
     refresh_auction_counts
@@ -84,13 +60,29 @@ class SyncSheetJob < ApplicationJob
                       "Skipped: #{results[:skipped]} | Failed: #{results[:failed]}"
 
     sync_log.update!(
-      status:           "success",
+      status:           results[:failed] > 0 ? "completed_with_errors" : "success",
       parcels_added:    results[:added],
       parcels_updated:  results[:updated],
       parcels_skipped:  results[:skipped],
       duration_seconds: elapsed,
-      completed_at:     Time.current
+      completed_at:     Time.current,
+      records_synced:   results[:added] + results[:updated],
+      records_failed:   results[:failed],
+      error_message:    nil
     )
+
+  rescue GoogleSheetsImporter::SheetSchemaError => e
+    # 🛡️ Header failsafe — abort total, ya logueado en SyncLog por validate_headers!
+    elapsed = (Time.current - (started_at || Time.current)).round(1)
+    sync_log&.update!(
+      status:           "failed",
+      error_message:    e.message,
+      duration_seconds: elapsed,
+      completed_at:     Time.current,
+      records_synced:   0,
+      records_failed:   0
+    )
+    raise # Re-raise para que Sidekiq registre el fallo
 
   rescue => e
     elapsed = (Time.current - (started_at || Time.current)).round(1)
@@ -100,47 +92,12 @@ class SyncSheetJob < ApplicationJob
       duration_seconds: elapsed,
       completed_at:     Time.current
     )
-    raise # re-raise so Sidekiq retries / marks as failed
+    raise
   end
 
   private
 
-  # ── Validación de cabeceras ──────────────────────────────────────────────────
-  # 🛡️ MAPEO RESILIENTE: Compara las cabeceras normalizadas contra las esperadas.
-  # Si alguna cabecera clave no coincide, loguea WARNING (no bloquea el sync,
-  # ya que el procesamiento es posicional y una cabecera renombrada no rompe nada,
-  # pero alerta al equipo de que el Sheet pudo haber cambiado de estructura).
-  def validate_headers(headers)
-    Rails.logger.info "[SyncSheetJob] 🛡️ Headers normalizados (primeros 10): #{headers.first(10).inspect}"
-
-    mismatches = []
-    EXPECTED_HEADERS.each do |index, expected_name|
-      actual = headers[index]&.strip
-      # Comparación case-insensitive para tolerar variaciones menores
-      unless actual&.downcase == expected_name.downcase
-        mismatches << "col[#{index}]: esperado='#{expected_name}', actual='#{actual || '(vacío)'}'"
-      end
-    end
-
-    if mismatches.any?
-      Rails.logger.warn "[SyncSheetJob] ⚠️ HEADER MISMATCH detectado. " \
-                        "El Sheet podría haber cambiado de estructura: #{mismatches.join(' | ')}"
-    else
-      Rails.logger.info "[SyncSheetJob] ✅ Headers validados correctamente"
-    end
-  end
-
   # ── Procesamiento en lotes ─────────────────────────────────────────────────
-  # Divide las filas del Sheet en lotes de BATCH_SIZE para:
-  #   1. Controlar presión de memoria (objetos AR temporales se liberan entre lotes)
-  #   2. Dar visibilidad de progreso en los logs
-  #   3. Permitir GC entre lotes para evitar OOM en Render Starter plan
-  #
-  # 🛡️ TRACKING PRECISO:
-  #   SheetRowProcessor.process(row) retorna:
-  #     :added   → parcela nueva creada
-  #     :updated → parcela existente actualizada
-  #     :skipped → fila vacía (sin parcel_id ni address)
   def process_rows_in_batches(rows)
     added = updated = skipped = failed = 0
     total_rows = rows.size
@@ -166,13 +123,12 @@ class SyncSheetJob < ApplicationJob
         Rails.logger.error "[SyncSheetJob] Fila #{global_row + 2} bloqueada (CRM immunity?): #{e.message}"
       rescue => e
         failed += 1
-        Rails.logger.error "[SyncSheetJob] Fila #{global_row + 2} falló inesperadamente: #{e.class}: #{e.message}"
+        Rails.logger.error "[SyncSheetJob] Fila #{global_row + 2} falló: #{e.class}: #{e.message}"
       end
 
-      # Logging de progreso y hint de GC entre lotes
       processed_so_far = [((batch_idx + 1) * BATCH_SIZE), total_rows].min
       Rails.logger.info "[SyncSheetJob] Lote #{batch_idx + 1}/#{total_batches} completado (#{processed_so_far}/#{total_rows} filas)"
-      GC.start if batch_idx < total_batches - 1 # No GC en el último lote (innecesario)
+      GC.start if batch_idx < total_batches - 1
     end
 
     { added: added, updated: updated, skipped: skipped, failed: failed }
@@ -187,11 +143,6 @@ class SyncSheetJob < ApplicationJob
   end
 
   # ── Geocodificación post-sync (FALLBACK) ──────────────────────────────────
-  # Fuente primaria de coordenadas: Google Sheet columna AJ (COORDINATES_RAW)
-  # Si la columna AJ está vacía, encola geocodificación vía Regrid API como fallback.
-  #
-  # Este paso es fire-and-forget: si falla el enqueue, NO afecta el resultado
-  # del sync principal. Las parcelas se geocodificarán en el siguiente ciclo.
   def enqueue_geocoding(sync_started_at)
     return unless ENV["REGRID_API_TOKEN"].present?
 
@@ -204,10 +155,9 @@ class SyncSheetJob < ApplicationJob
 
     return if without_coords.empty?
 
-    Rails.logger.info "[SyncSheetJob] 🌐 Enqueuing Regrid geocoding for #{without_coords.size} parcels missing Sheet coordinates"
+    Rails.logger.info "[SyncSheetJob] 🌐 Enqueuing Regrid geocoding for #{without_coords.size} parcels"
     GeocodeParcelsBatchJob.perform_later(without_coords)
   rescue => e
-    # No interrumpir el sync por errores de geocodificación
     Rails.logger.warn "[SyncSheetJob] Geocoding enqueue failed (non-fatal): #{e.message}"
   end
 end

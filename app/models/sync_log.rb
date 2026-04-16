@@ -3,17 +3,18 @@
 # SyncLog — registra cada ejecución del SyncSheetJob.
 #
 # status:
-#   'running'  — job encolado / en progreso
-#   'success'  — completado sin errores críticos
-#   'failed'   — error fatal (no pudo conectar con Google Sheets, etc.)
+#   'running'               — job encolado / en progreso
+#   'success'               — completado sin errores críticos
+#   'completed_with_errors' — sync terminó pero algunas filas fallaron
+#   'failed'                — error fatal (no pudo conectar con Google Sheets, etc.)
 #
 class SyncLog < ApplicationRecord
-  STATUSES = %w[running success failed].freeze
+  STATUSES = %w[running success completed_with_errors failed].freeze
 
   validates :status, inclusion: { in: STATUSES }
 
   scope :recent,    -> { order(started_at: :desc) }
-  scope :completed, -> { where(status: %w[success failed]) }
+  scope :completed, -> { where(status: %w[success completed_with_errors failed]) }
   scope :running,   -> { where(status: "running") }
   scope :successful, -> { where(status: "success") }
 
@@ -45,6 +46,10 @@ class SyncLog < ApplicationRecord
 
   def success?
     status == "success"
+  end
+
+  def completed_with_errors?
+    status == "completed_with_errors"
   end
 
   def failed?

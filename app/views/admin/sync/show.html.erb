@@ -284,6 +284,16 @@
   .sync-table-count--updated { color: #3B82F6; }
   .sync-table-count--skipped { color: #D97706; }
 
+  /* Status badge for completed_with_errors */
+  .badge-completed_with_errors {
+    background: #FEF3C7;
+    color: #92400E;
+    border: 1px solid #FDE68A;
+  }
+  .sync-status-dot.completed_with_errors {
+    background: #F59E0B;
+  }
+
   /* Empty State Enhancement */
   .sync-empty {
     text-align: center;
@@ -410,11 +420,13 @@
     ═══════════════════════════════════════════════════════════════════════════ %>
 
 <% if @last_sync %>
-  <div class="last-sync-card" style="border-top: 3px solid <%= @last_sync.success? ? '#10B981' : @last_sync.failed? ? '#DC2626' : '#C9A84C' %>;">
+  <div class="last-sync-card" style="border-top: 3px solid <%= @last_sync.success? ? '#10B981' : @last_sync.failed? ? '#DC2626' : @last_sync.completed_with_errors? ? '#F59E0B' : '#C9A84C' %>;">
     <div class="last-sync-card__header">
       <h2 class="last-sync-card__title">
         <% if @last_sync.success? %>
           ✅
+        <% elsif @last_sync.completed_with_errors? %>
+          ⚠️
         <% elsif @last_sync.failed? %>
           ❌
         <% else %>

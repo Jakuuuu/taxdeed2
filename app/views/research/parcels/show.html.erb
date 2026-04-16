@@ -1090,8 +1090,9 @@
           <div class="fp-data-label"><%= u[:label] %></div>
           <div class="fp-data-value">
             <% if u[:val].present? %>
-              <% vc = u[:val].downcase == "yes" ? "success" : "danger" %>
-              <span class="fp-badge fp-badge--<%= vc %>"><%= u[:val].titleize %></span>
+              <% is_affirmative = %w[yes true y 1].include?(u[:val].to_s.downcase) %>
+              <% vc = is_affirmative ? "success" : "danger" %>
+              <span class="fp-badge fp-badge--<%= vc %>"><%= is_affirmative ? "Yes" : "No" %></span>
             <% else %>—<% end %>
           </div>
           <% end %>

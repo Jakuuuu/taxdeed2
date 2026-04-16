@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_15_210313) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_16_160000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -165,7 +165,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_15_210313) do
     t.datetime "updated_at", null: false
     t.text "admin_notes"
     t.string "datatrace_order_ref", limit: 200
+    t.string "stripe_payment_intent"
+    t.integer "amount_cents"
+    t.string "payment_status", default: "unpaid"
+    t.string "provider_ref"
+    t.string "download_url"
     t.index ["parcel_id"], name: "index_reports_on_parcel_id"
+    t.index ["payment_status"], name: "idx_reports_payment_status"
+    t.index ["stripe_payment_intent"], name: "idx_reports_stripe_pi", unique: true, where: "(stripe_payment_intent IS NOT NULL)"
     t.index ["user_id", "parcel_id", "report_type"], name: "idx_reports_user_parcel_type", unique: true, where: "((status)::text <> 'failed'::text)"
     t.index ["user_id"], name: "idx_rep_user_id_rls"
     t.index ["user_id"], name: "index_reports_on_user_id"
@@ -208,6 +215,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_15_210313) do
     t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "records_synced", default: 0, null: false
+    t.integer "records_failed", default: 0, null: false
     t.index ["started_at"], name: "index_sync_logs_on_started_at"
     t.index ["status"], name: "index_sync_logs_on_status"
   end

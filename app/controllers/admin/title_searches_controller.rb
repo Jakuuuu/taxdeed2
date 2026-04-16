@@ -19,10 +19,11 @@ class Admin::TitleSearchesController < Admin::BaseController
 
     @status_filter = params[:status]
     @counts = {
-      all:       Report.title_search.count,
-      ordered:   Report.title_search.where(status: :ordered).count,
-      generated: Report.title_search.where(status: :generated).count,
-      failed:    Report.title_search.where(status: :failed).count
+      all:           Report.title_search.count,
+      ordered:       Report.title_search.where(status: :ordered).count,
+      generated:     Report.title_search.where(status: :generated).count,
+      failed:        Report.title_search.where(status: :failed).count,
+      revenue_cents: Report.title_search.where(payment_status: "paid").sum(:amount_cents)
     }
     @reports = scope.page(params[:page]).per(25)
   end
@@ -59,7 +60,7 @@ class Admin::TitleSearchesController < Admin::BaseController
     # Save any notes/ref before changing status
     @report.assign_attributes(admin_fields_params) if params[:report].present?
 
-    if @report.update(status: :generated)
+    if @report.update(status: :generated, generated_at: Time.current)
       ReportMailer.title_search_ready(@report).deliver_later
       redirect_to admin_title_search_path(@report),
                   notice: "Report marked as Generated. Email notification sent to #{@report.user.email}."

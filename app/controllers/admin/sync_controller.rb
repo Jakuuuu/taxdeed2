@@ -19,11 +19,11 @@ class Admin::SyncController < Admin::BaseController
 
     # Métricas agregadas para el dashboard
     @total_syncs     = SyncLog.count
-    @successful      = SyncLog.where(status: "success").count
+    @successful      = SyncLog.where(status: %w[success completed_with_errors]).count
     @failed          = SyncLog.where(status: "failed").count
     @total_added     = SyncLog.sum(:parcels_added)
     @total_updated   = SyncLog.sum(:parcels_updated)
-    @avg_duration    = SyncLog.where(status: "success")
+    @avg_duration    = SyncLog.where(status: %w[success completed_with_errors])
                               .where.not(duration_seconds: nil)
                               .average(:duration_seconds)&.round(1)
   end

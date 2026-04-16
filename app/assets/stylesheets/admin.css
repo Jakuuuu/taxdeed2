@@ -451,6 +451,12 @@ body.admin-layout {
 .badge-failed    { background: #FEE2E2; color: #991B1B; }
 .badge-running   { background: #EDE9FE; color: #5B21B6; }
 .badge-success   { background: #D1FAE5; color: #065F46; }
+.badge-pending   { background: #FEF3C7; color: #92400E; }
+
+/* ── Payment Status Badges (Rama 3 — Stripe Direct) ─────────── */
+.badge-payment-unpaid   { background: #FEF3C7; color: #92400E; }
+.badge-payment-paid     { background: #D1FAE5; color: #065F46; }
+.badge-payment-refunded { background: #FEE2E2; color: #991B1B; }
 
 /* ── Admin File Upload Zone ──────────────────────────────────── */
 .admin-upload-zone {

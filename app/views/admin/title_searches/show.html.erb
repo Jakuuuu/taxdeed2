@@ -123,6 +123,68 @@
   <%# ── Right Column ────────────────────────────────────────────── %>
   <div>
 
+    <%# 💳 Payment Info — Validación visual de transacción Stripe %>
+    <div class="admin-card" style="margin-bottom:1.25rem;border-top:3px solid #6366F1;">
+      <div class="admin-card__header">
+        <h2 class="admin-card__title">💳 Payment Info</h2>
+      </div>
+      <div class="admin-card__body">
+        <div class="admin-detail-grid">
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Payment Status</div>
+            <div class="admin-detail-item__value">
+              <span class="badge badge-payment-<%= @report.payment_status %>" style="padding:0.2rem 0.6rem;border-radius:20px;font-size:0.75rem;font-weight:600;">
+                <%= @report.payment_status&.capitalize || "Unknown" %>
+              </span>
+            </div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Amount</div>
+            <div class="admin-detail-item__value">
+              <% if @report.amount_cents %>
+                <strong style="font-family:'JetBrains Mono',monospace;color:#059669;">$<%= "%.2f" % @report.amount_dollars %> USD</strong>
+              <% else %>
+                <span style="color:#9CA3AF;">—</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Stripe Payment Intent</div>
+            <div class="admin-detail-item__value" style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;">
+              <% if @report.stripe_payment_intent.present? %>
+                <% if @report.stripe_payment_intent.start_with?("pi_MOCK") %>
+                  <span style="color:#F59E0B;"><%= @report.stripe_payment_intent %></span>
+                  <span class="badge" style="background:#FEF3C7;color:#92400E;font-size:0.65rem;padding:0.1rem 0.4rem;border-radius:8px;margin-left:0.25rem;">MOCK</span>
+                <% else %>
+                  <a href="<%= @report.stripe_dashboard_url %>" target="_blank" rel="noopener"
+                     style="color:#6366F1;text-decoration:none;">
+                    <%= @report.stripe_payment_intent %>
+                    <span style="font-size:0.7rem;">↗</span>
+                  </a>
+                <% end %>
+              <% else %>
+                <span style="color:#9CA3AF;">—</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Paid At</div>
+            <div class="admin-detail-item__value">
+              <%= @report.ordered_at&.strftime("%b %d, %Y · %I:%M %p") || "—" %>
+            </div>
+          </div>
+          <% if @report.generated_at.present? %>
+          <div class="admin-detail-item">
+            <div class="admin-detail-item__label">Fulfilled At</div>
+            <div class="admin-detail-item__value">
+              <%= @report.generated_at.strftime("%b %d, %Y · %I:%M %p") %>
+            </div>
+          </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
     <%# User Info %>
     <div class="admin-card" style="margin-bottom:1.25rem;">
       <div class="admin-card__header">
@@ -201,7 +263,7 @@
           <div style="font-size:2rem;margin-bottom:0.5rem;">✅</div>
           <div style="font-weight:700;color:#065F46;">Report Delivered</div>
           <div style="font-size:0.8rem;color:#6C757D;margin-top:0.25rem;">
-            Completed <%= time_ago_in_words(@report.updated_at) %> ago
+            Completed <%= time_ago_in_words(@report.generated_at || @report.updated_at) %> ago
           </div>
         </div>
       </div>

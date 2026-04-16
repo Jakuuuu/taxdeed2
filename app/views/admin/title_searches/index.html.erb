@@ -8,11 +8,17 @@
 </div>
 
 <%# ── Stat Bar ───────────────────────────────────────────────────── %>
-<div class="admin-stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.25rem;">
+<div class="admin-stat-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:1.25rem;">
   <div class="admin-stat-card"><div class="admin-stat-card__label">All</div><div class="admin-stat-card__value"><%= @counts[:all] %></div></div>
   <div class="admin-stat-card admin-stat-card--urgent"><div class="admin-stat-card__label">Pending</div><div class="admin-stat-card__value"><%= @counts[:ordered] %></div></div>
   <div class="admin-stat-card admin-stat-card--success"><div class="admin-stat-card__label">Generated</div><div class="admin-stat-card__value"><%= @counts[:generated] %></div></div>
   <div class="admin-stat-card"><div class="admin-stat-card__label">Failed</div><div class="admin-stat-card__value" style="color:#DC2626;"><%= @counts[:failed] %></div></div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">Revenue</div>
+    <div class="admin-stat-card__value" style="color:#059669;">
+      $<%= "%.2f" % (@counts[:revenue_cents].to_f / 100) %>
+    </div>
+  </div>
 </div>
 
 <%# ── Filter Tabs ────────────────────────────────────────────────── %>
@@ -42,6 +48,7 @@
           <th>User</th>
           <th>Property Address</th>
           <th>County / State</th>
+          <th>Payment</th>
           <th>DataTrace Ref</th>
           <th>Status</th>
           <th>Action</th>
@@ -70,8 +77,18 @@
               <%= report.parcel&.county || "—" %><br>
               <span style="color:#6C757D;font-size:0.78rem;"><%= report.parcel&.state %></span>
             </td>
+            <td>
+              <span class="badge badge-payment-<%= report.payment_status %>" style="padding:0.15rem 0.5rem;border-radius:20px;font-size:0.72rem;font-weight:600;">
+                <%= report.payment_status&.capitalize || "—" %>
+              </span>
+              <% if report.amount_cents %>
+                <div style="font-size:0.72rem;color:#6C757D;margin-top:2px;font-family:'JetBrains Mono',monospace;">
+                  $<%= "%.2f" % report.amount_dollars %>
+                </div>
+              <% end %>
+            </td>
             <td style="font-size:0.8rem;color:#6C757D;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-              <%= report.datatrace_order_ref.presence || "—" %>
+              <%= report.datatrace_order_ref.presence || report.provider_ref.presence || "—" %>
             </td>
             <td>
               <span class="badge <%= "badge-#{report.status}" %>" style="padding:0.2rem 0.6rem;border-radius:20px;font-size:0.75rem;font-weight:600;">
