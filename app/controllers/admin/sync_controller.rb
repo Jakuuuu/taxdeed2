@@ -27,28 +27,29 @@ class Admin::SyncController < Admin::BaseController
     @running      = SyncLog.running.exists?
 
     # ── 🩺 SIDEKIQ HEALTH CHECK ──────────────────────────────────────────
-    # Verifica si hay al menos un proceso Sidekiq conectado a Redis
-    # que esté escuchando la cola 'data_sync'. Si no hay ninguno,
-    # cualquier job encolado se quedará esperando → zombie garantizado.
+    # Verifica si hay al menos un proceso Sidekiq conectado a Redis.
+    # ULTRA-DEFENSIVO: Si Redis no está disponible, falla silenciosamente.
+    # El rescue captura Exception (no solo StandardError) porque LoadError,
+    # Redis::CannotConnectError y similares pueden heredar de Exception.
+    @sidekiq_connected     = false
+    @sidekiq_queues        = []
+    @sidekiq_data_sync     = false
+    @sidekiq_process_count = 0
+    @sidekiq_pending_jobs  = 0
+    @sidekiq_error         = nil
+
     begin
       require "sidekiq/api"
       processes = Sidekiq::ProcessSet.new.to_a
-      @sidekiq_connected   = processes.any?
-      @sidekiq_queues      = processes.flat_map { |p| p["queues"] }.uniq
-      @sidekiq_data_sync   = @sidekiq_queues.include?("data_sync")
+      @sidekiq_connected     = processes.any?
+      @sidekiq_queues        = processes.flat_map { |p| p["queues"] }.uniq
+      @sidekiq_data_sync     = @sidekiq_queues.include?("data_sync")
       @sidekiq_process_count = processes.size
-
-      # Check pending jobs in the data_sync queue
-      queue = Sidekiq::Queue.new("data_sync")
-      @sidekiq_pending_jobs = queue.size
-    rescue => e
-      @sidekiq_connected     = false
-      @sidekiq_queues        = []
-      @sidekiq_data_sync     = false
-      @sidekiq_process_count = 0
-      @sidekiq_pending_jobs  = 0
-      @sidekiq_error         = e.message
-      Rails.logger.error "[Admin::Sync] Sidekiq health check failed: #{e.message}"
+      @sidekiq_pending_jobs  = Sidekiq::Queue.new("data_sync").size
+    rescue Exception => e # rubocop:disable Lint/RescueException — INTENCIONAL:
+      # Redis caído, Sidekiq no disponible, o LoadError. No debe crashear el dashboard.
+      @sidekiq_error = e.message
+      Rails.logger.warn "[Admin::Sync] Sidekiq health check failed (non-fatal): #{e.class}: #{e.message}"
     end
 
     # Métricas agregadas para el dashboard
