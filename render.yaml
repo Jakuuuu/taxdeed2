@@ -37,12 +37,17 @@ services:
           name: tax-sale-redis
           property: connectionString
 
+  # ── WORKER SERVICE ─────────────────────────────────────────────────────────
+  # runtime: docker → Usa el Dockerfile (que instala libjemalloc2).
+  # El docker-entrypoint activa LD_PRELOAD automáticamente.
+  # Con runtime: ruby (anterior), jemalloc NO estaba instalado y LD_PRELOAD
+  # apuntaba a un archivo inexistente — error silencioso.
   - type: worker
     name: tax-sale-worker
-    runtime: ruby
+    runtime: docker
     plan: starter
-    buildCommand: bundle install
-    startCommand: bundle exec sidekiq -C config/sidekiq.yml
+    dockerfilePath: ./Dockerfile
+    dockerCommand: bundle exec sidekiq -C config/sidekiq.yml
     envVars:
       - key: RAILS_ENV
         value: production
@@ -52,19 +57,12 @@ services:
         sync: false
       - key: GOOGLE_CREDENTIALS_JSON
         sync: false
-      - key: GOOGLE_MAPS_MAP_ID
-        sync: false
       - key: REGRID_API_TOKEN
         sync: false
-      # ── 🚀 MEMORY OPTIMIZATION ────────────────────────────────────────
-      # jemalloc: Reduces memory fragmentation (installed in Dockerfile).
-      # The docker-entrypoint sets LD_PRELOAD for `web`, but the worker
-      # bypasses the entrypoint, so we must set it explicitly here.
-      - key: LD_PRELOAD
-        value: /usr/lib/x86_64-linux-gnu/libjemalloc.so.2
-      # MALLOC_ARENA_MAX: Limits glibc memory arenas. Sidekiq uses 5
-      # threads (concurrency:5) — without this, glibc creates up to
-      # 8×CPU arenas, each hoarding RSS. Value 2 is optimal for workers.
+      - key: RAILS_LOG_TO_STDOUT
+        value: "true"
+      # MALLOC_ARENA_MAX: Limits glibc memory arenas to reduce RSS.
+      # Sidekiq with 2 threads → value 2 is optimal.
       - key: MALLOC_ARENA_MAX
         value: "2"
       - key: DATABASE_URL

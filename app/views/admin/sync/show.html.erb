@@ -369,6 +369,64 @@
 
 
 <%# ═══════════════════════════════════════════════════════════════════════════
+    SECTION 1.5: Sidekiq Worker Health Diagnostic
+    Shows immediately if the worker is connected and processing the right queues.
+    This is the #1 cause of "Zombie Process" errors.
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<% unless @sidekiq_connected %>
+  <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:1rem 1.25rem;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;margin-bottom:1.5rem;border-left:4px solid #DC2626;">
+    <span style="font-size:1.3rem;line-height:1;">🚨</span>
+    <div style="flex:1;">
+      <div style="font-size:0.85rem;font-weight:800;color:#991B1B;margin-bottom:0.3rem;">
+        Sidekiq Worker NOT Connected
+      </div>
+      <div style="font-size:0.8rem;color:#991B1B;line-height:1.5;margin-bottom:0.5rem;">
+        No background worker is processing jobs. Any sync you trigger will stay in "running" for 15 minutes
+        and then be killed as a zombie. <strong>This is the cause of all "Zombie Process" errors.</strong>
+      </div>
+      <div style="font-size:0.75rem;color:#7F1D1D;background:#FEE2E2;padding:0.5rem 0.75rem;border-radius:6px;line-height:1.6;">
+        <strong>Fix:</strong> Go to <strong>Render Dashboard → tax-sale-worker</strong> and verify:
+        <br>① The worker service exists and is <strong>deployed</strong> (not suspended)
+        <br>② Environment variables are set: <code style="background:#FECACA;padding:0.1rem 0.3rem;border-radius:3px;">RAILS_MASTER_KEY</code>,
+        <code style="background:#FECACA;padding:0.1rem 0.3rem;border-radius:3px;">REDIS_URL</code>,
+        <code style="background:#FECACA;padding:0.1rem 0.3rem;border-radius:3px;">DATABASE_URL</code>,
+        <code style="background:#FECACA;padding:0.1rem 0.3rem;border-radius:3px;">GOOGLE_CREDENTIALS_JSON</code>
+        <br>③ Check worker logs for startup errors (crash on boot = OOM or missing env vars)
+        <% if @sidekiq_error.present? %>
+          <br><strong>Debug:</strong> <code style="background:#FECACA;padding:0.1rem 0.3rem;border-radius:3px;"><%= @sidekiq_error %></code>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% elsif !@sidekiq_data_sync %>
+  <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:1rem 1.25rem;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;margin-bottom:1.5rem;border-left:4px solid #F59E0B;">
+    <span style="font-size:1.3rem;line-height:1;">⚠️</span>
+    <div style="flex:1;">
+      <div style="font-size:0.85rem;font-weight:800;color:#92400E;margin-bottom:0.3rem;">
+        Worker Connected — But NOT Listening to <code>data_sync</code> Queue
+      </div>
+      <div style="font-size:0.8rem;color:#92400E;line-height:1.5;">
+        <%= @sidekiq_process_count %> Sidekiq process(es) found, listening to: <strong><%= @sidekiq_queues.join(", ") %></strong>.
+        <br>The <code>data_sync</code> queue (where SyncSheetJob runs) is NOT included.
+        Verify the worker's start command uses <code>sidekiq -C config/sidekiq.yml</code>.
+      </div>
+    </div>
+  </div>
+<% else %>
+  <div style="display:flex;align-items:center;gap:0.65rem;padding:0.6rem 1rem;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;margin-bottom:1.5rem;border-left:4px solid #10B981;">
+    <span style="font-size:1rem;">✅</span>
+    <div style="font-size:0.78rem;color:#065F46;">
+      <strong>Worker Online</strong> — <%= @sidekiq_process_count %> process(es), queues: <%= @sidekiq_queues.join(", ") %>
+      <% if @sidekiq_pending_jobs > 0 %>
+        · <strong><%= @sidekiq_pending_jobs %></strong> pending job(s) in data_sync
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+
+<%# ═══════════════════════════════════════════════════════════════════════════
     SECTION 2: Aggregate Metrics Strip
     ═══════════════════════════════════════════════════════════════════════════ %>
 
