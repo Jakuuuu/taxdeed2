@@ -106,10 +106,10 @@ class SheetRowProcessor
       estimated_sale_value: Sanitize.currency(col(ESTIMATED_SALE_VALUE)),
       price_per_acre:       calculate_price_per_acre,
 
-      # ── NUMÉRICOS ────────────────────────────────────────────────────
+      # ── NUMÉRICOS (Sanitize.decimal — alineado con decimal() en PostgreSQL) ──
       lot_area_acres:       Sanitize.decimal(col(LOT_AREA_ACRES)),
-      sqft_lot:             Sanitize.integer(col(SQFT_LOT)),
-      sqft_living:          Sanitize.integer(col(SQFT_LIVING)),
+      sqft_lot:             Sanitize.decimal(col(SQFT_LOT)),
+      sqft_living:          Sanitize.decimal(col(SQFT_LIVING)),
 
       # ── TEXTO (Sanitize.text) ─────────────────────────────────────────
       address:              Sanitize.text(col(ADDRESS)),

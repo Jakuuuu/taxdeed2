@@ -47,12 +47,19 @@ module Sanitize
   end
 
   # ── ENTERO ───────────────────────────────────────────────────────────────────
-  # Limpia: "1,200 sqft" | "1200.00" → 1200
+  # Limpia: "1,200 sqft" | "1200.00" | "1,200.00" → 1200
   # Campos: sqft_lot, sqft_living
+  #
+  # ⚠️ FIX v2: El regex anterior /[^\d]/ destruía el punto decimal, causando
+  # que "1,200.00" → "120000" (inflación 100x). Ahora se conserva el punto
+  # y se parsea como BigDecimal antes de redondear a entero.
   def self.integer(val)
     return nil if val.to_s.strip.blank?
-    cleaned = val.to_s.gsub(/[^\d]/, "")
-    cleaned.blank? ? nil : cleaned.to_i
+    cleaned = val.to_s.gsub(/[^\d.\-]/, "")
+    return nil if cleaned.blank? || cleaned == "." || cleaned == "-"
+    cleaned.to_d.round(0).to_i
+  rescue ArgumentError, TypeError
+    nil
   end
 
   # ── DECIMAL ──────────────────────────────────────────────────────────────────
