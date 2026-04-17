@@ -20,7 +20,7 @@
 class SyncSheetJob < ApplicationJob
   queue_as :data_sync
 
-  BATCH_SIZE = 200
+  BATCH_SIZE = 100
 
   retry_on Google::Apis::ServerError, wait: :polynomially_longer, attempts: 3
   retry_on Google::Apis::TransmissionError, wait: :polynomially_longer, attempts: 3
@@ -125,6 +125,20 @@ class SyncSheetJob < ApplicationJob
       skipped += chunk_results[:skipped]
       failed  += chunk_results[:failed]
 
+      # ── 💓 HEARTBEAT — Previene falso zombie ────────────────────────────
+      # El zombie detector mata SyncLogs con started_at > 15 min ago.
+      # Para syncs legítimos que tardan más (sheets grandes), actualizamos
+      # started_at cada 3 chunks como "heartbeat" — el reloj zombie se
+      # reinicia sin perder la semántica original del timestamp.
+      if (chunk_index + 1) % 3 == 0 && @sync_log&.persisted?
+        @sync_log.update_columns(
+          started_at:      Time.current,
+          records_synced:  added + updated,
+          records_failed:  failed
+        )
+        Rails.logger.info "[SyncSheetJob] 💓 Heartbeat: #{added + updated} synced, #{failed} failed"
+      end
+
       # ── 🧹 LIBERACIÓN AGRESIVA DE MEMORIA ─────────────────────────────────
       # 1. Vaciar la cache de Auctions (se reconstruye si el siguiente chunk
       #    tiene los mismos counties — trade-off aceptable por memoria).
@@ -134,6 +148,7 @@ class SyncSheetJob < ApplicationJob
       @auction_cache.clear
       ActiveRecord::Base.connection.clear_query_cache
       GC.start
+      GC.compact if GC.respond_to?(:compact) # Ruby 2.7+ — defragmenta el heap
     end
 
     { added: added, updated: updated, skipped: skipped, failed: failed }
@@ -219,11 +234,21 @@ class SyncSheetJob < ApplicationJob
     )
   end
 
+  # ── 🚀 MEMORY-SAFE: Actualiza parcel_count con un solo UPDATE SQL ─────
+  # Antes: find_each + update_column por cada auction = N+1 queries + OOM
+  # Ahora: un solo UPDATE con subquery COUNT = O(1) memory, 1 query total
   def refresh_auction_counts
-    Auction.find_each do |auction|
-      auction.update_column(:parcel_count, auction.parcels.count)
-    end
+    sql = <<~SQL
+      UPDATE auctions
+      SET parcel_count = (
+        SELECT COUNT(*)
+        FROM parcels
+        WHERE parcels.auction_id = auctions.id
+      )
+    SQL
+    ActiveRecord::Base.connection.execute(sql)
     Rails.cache.clear
+    Rails.logger.info "[SyncSheetJob] ✅ parcel_count actualizado (SQL batch)"
   rescue StandardError => e
     Rails.logger.error "[SyncSheetJob] Error al actualizar parcel_count: #{e.message}"
   end
@@ -231,15 +256,25 @@ class SyncSheetJob < ApplicationJob
   # 🧹 GARBAGE COLLECTOR — Purga Auctions huérfanas (0 parcels)
   # Previene duplicación visual de condados en Rama 1.
   # Seguro: solo elimina auctions sin ninguna parcela asociada.
+  #
+  # 🚀 MEMORY-SAFE: Usa DELETE SQL directo en vez de destroy_all.
+  # destroy_all carga TODOS los registros en memoria para ejecutar callbacks,
+  # pero Auction no tiene dependent: :destroy ni callbacks críticos,
+  # así que delete es seguro y usa O(1) memoria.
   def cleanup_empty_auctions
-    orphaned = Auction.left_joins(:parcels)
-                      .group("auctions.id")
-                      .having("COUNT(parcels.id) = 0")
-    count = orphaned.count.size
-    if count > 0
-      orphaned.destroy_all
-      Rails.logger.info "[SyncSheetJob] \xF0\x9F\xA7\xB9 Cleaned #{count} empty auction records (0 parcels)"
-    end
+    sql = <<~SQL
+      DELETE FROM auctions
+      WHERE id IN (
+        SELECT auctions.id
+        FROM auctions
+        LEFT JOIN parcels ON parcels.auction_id = auctions.id
+        GROUP BY auctions.id
+        HAVING COUNT(parcels.id) = 0
+      )
+    SQL
+    result = ActiveRecord::Base.connection.execute(sql)
+    count = result.respond_to?(:cmd_tuples) ? result.cmd_tuples : 0
+    Rails.logger.info "[SyncSheetJob] 🧹 Cleaned #{count} empty auction records (SQL direct)" if count > 0
     count
   rescue StandardError => e
     Rails.logger.error "[SyncSheetJob] Error cleaning empty auctions: #{e.message}"

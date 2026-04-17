@@ -1,5 +1,9 @@
 # config/sidekiq.yml
-:concurrency: 5
+# ⚠️ CONCURRENCY: Render Starter plan = 512 MB RAM.
+# Con 5 threads + SyncSheetJob (Google API + ActiveRecord), el worker supera
+# el límite de memoria y Render lo mata (SIGKILL → OOM → Zombie Process).
+# 2 threads mantiene el RSS bajo ~300 MB con margen de seguridad.
+:concurrency: 2
 :queues:
   - critical
   - default

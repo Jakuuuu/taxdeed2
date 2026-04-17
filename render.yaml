@@ -50,10 +50,23 @@ services:
         sync: false
       - key: GOOGLE_SHEETS_SHEET_ID
         sync: false
+      - key: GOOGLE_CREDENTIALS_JSON
+        sync: false
       - key: GOOGLE_MAPS_MAP_ID
         sync: false
       - key: REGRID_API_TOKEN
         sync: false
+      # ── 🚀 MEMORY OPTIMIZATION ────────────────────────────────────────
+      # jemalloc: Reduces memory fragmentation (installed in Dockerfile).
+      # The docker-entrypoint sets LD_PRELOAD for `web`, but the worker
+      # bypasses the entrypoint, so we must set it explicitly here.
+      - key: LD_PRELOAD
+        value: /usr/lib/x86_64-linux-gnu/libjemalloc.so.2
+      # MALLOC_ARENA_MAX: Limits glibc memory arenas. Sidekiq uses 5
+      # threads (concurrency:5) — without this, glibc creates up to
+      # 8×CPU arenas, each hoarding RSS. Value 2 is optimal for workers.
+      - key: MALLOC_ARENA_MAX
+        value: "2"
       - key: DATABASE_URL
         fromDatabase:
           name: tax-sale-db
