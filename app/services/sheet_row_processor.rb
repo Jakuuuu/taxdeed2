@@ -12,6 +12,10 @@
 # 🛡️ BLINDAJE:     Lookup por clave compuesta (state, county, parcel_id).
 # 🧹 SANITIZACIÓN: Todos los campos pasan por el módulo Sanitize antes de assign_attributes.
 #
+# 🚀 MEMORY-SAFE (v3):
+#   - Acepta auction_cache opcional para evitar N+1 find_or_create_by!
+#   - No retiene referencias a objetos Parcel después de save!
+#
 class SheetRowProcessor
   include SheetColumnMap
 
@@ -23,35 +27,59 @@ class SheetRowProcessor
     user_notes
   ].freeze
 
-  def self.process(row)
-    new(row).call
+  # ── API PÚBLICA ────────────────────────────────────────────────────────────
+  # auction_cache: Hash opcional { "state|county|date" => Auction }
+  # Provisto por SyncSheetJob para reducir queries de Auction.
+  def self.process(row, auction_cache: nil)
+    new(row, auction_cache: auction_cache).call
   end
 
-  def initialize(row)
+  def initialize(row, auction_cache: nil)
     @row = row
+    @auction_cache = auction_cache
   end
 
   def call
     return :skipped if row_empty?
 
-    auction = find_or_create_auction
+    auction = find_or_create_auction_cached
     upsert_parcel(auction)
   end
 
   private
 
-  # ── AUCTION ──────────────────────────────────────────────────────────────────
+  # ── AUCTION (con cache opcional) ────────────────────────────────────────────
   # Las auctions se derivan del Sheet — no tienen hoja propia.
   # GROUP BY (county + state + sale_date) → find_or_create_by!
-  def find_or_create_auction
-    Auction.find_or_create_by!(
-      county:    Sanitize.text(col(COUNTY)),
-      state:     Sanitize.text(col(STATE)),
-      sale_date: parse_date(col(AUCTION_DATE))
+  #
+  # Si se provee @auction_cache, busca primero ahí para evitar queries
+  # repetidas. Típicamente un Sheet tiene ~10-20 auctions únicas pero
+  # cientos de parcelas, así que el cache es muy efectivo.
+  def find_or_create_auction_cached
+    state     = Sanitize.text(col(STATE))
+    county    = Sanitize.text(col(COUNTY))
+    sale_date = parse_date(col(AUCTION_DATE))
+    cache_key = "#{state}|#{county}|#{sale_date}"
+
+    # Si hay cache y la auction ya está cacheada, retornarla
+    if @auction_cache
+      cached = @auction_cache[cache_key]
+      return cached if cached
+    end
+
+    auction = Auction.find_or_create_by!(
+      county:    county,
+      state:     state,
+      sale_date: sale_date
     ) do |a|
       a.auction_type = "tax_deed"
       a.status       = "upcoming"
     end
+
+    # Cachear para las siguientes filas del mismo chunk
+    @auction_cache[cache_key] = auction if @auction_cache
+
+    auction
   end
 
   # ── PARCEL ────────────────────────────────────────────────────────────────────

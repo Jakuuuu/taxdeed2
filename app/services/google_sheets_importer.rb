@@ -23,10 +23,20 @@
 #   La fuente #1 es la más fiable porque el JSON se lee tal cual sin
 #   riesgo de corrupción por re-encoding YAML/credentials edit.
 #
+# 🚀 MEMORY-SAFE STREAMING (v3):
+#   fetch_rows_in_chunks lee el Sheet en ventanas de CHUNK_SIZE filas,
+#   yieldeando cada lote al caller para procesamiento inmediato.
+#   Esto reduce la huella de memoria de O(N) a O(CHUNK_SIZE).
+#
 class GoogleSheetsImporter
   SHEET_TAB  = "Propiedades"  # ⚠️ Nombre exacto de la pestaña en el Sheet
   DATA_RANGE = "#{SHEET_TAB}!A2:CB"
   HEADER_RANGE = "#{SHEET_TAB}!A1:CB1"
+
+  # ── 🚀 STREAMING: Tamaño de ventana para paginación por rangos ────────────
+  # Cada request al API de Google Sheets pide CHUNK_SIZE filas.
+  # En memoria solo vive 1 chunk a la vez + overhead del service object.
+  CHUNK_SIZE = 200
 
   # ── 🛡️ HEADER FAILSAFE ──────────────────────────────────────────────────────
   # Headers OBLIGATORIOS para que el sync proceda.
@@ -56,9 +66,76 @@ class GoogleSheetsImporter
     raise
   end
 
-  # 🛡️ MAPEO RESILIENTE: Retorna { headers: [...], rows: [...] }
-  # Las cabeceras se normalizan con .strip + eliminación de NBSP.
-  # ⛔ ABORTA si headers maestros faltan (validate_headers!)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🚀 MEMORY-SAFE: Streaming por ventanas de rango
+  #
+  # En vez de cargar TODAS las filas en un Array gigante, este método:
+  #   1. Valida headers (fila 1)
+  #   2. Lee filas en ventanas de CHUNK_SIZE (A2:CB201, A202:CB401, ...)
+  #   3. Yield cada chunk al bloque del caller
+  #   4. Cada chunk es eligible para GC después del yield
+  #
+  # Uso:
+  #   GoogleSheetsImporter.fetch_rows_in_chunks(sheet_id) do |chunk, chunk_index|
+  #     chunk.each { |row| SheetRowProcessor.process(row) }
+  #   end
+  #
+  # Reduce memoria de O(total_rows) a O(CHUNK_SIZE).
+  # ═══════════════════════════════════════════════════════════════════════════
+  def self.fetch_rows_in_chunks(sheet_id, chunk_size: CHUNK_SIZE)
+    service = build_service
+
+    # ── Paso 1: Validar headers ────────────────────────────────────────────
+    header_response = service.get_spreadsheet_values(sheet_id, HEADER_RANGE)
+    raw_headers = header_response.values&.first || []
+    normalized_headers = raw_headers.map { |h| h.to_s.strip.gsub(/\u00A0/, " ").strip }
+    validate_headers!(normalized_headers)
+
+    Rails.logger.info "[GoogleSheetsImporter] 🛡️ Headers validados OK (#{normalized_headers.size} columnas)"
+
+    # ── Paso 2: Iterar por ventanas de rango ───────────────────────────────
+    # La fila 1 es headers → datos empiezan en fila 2 (row_offset = 2)
+    row_offset = 2
+    chunk_index = 0
+    total_rows_fetched = 0
+
+    loop do
+      start_row = row_offset + (chunk_index * chunk_size)
+      end_row   = start_row + chunk_size - 1
+      range     = "#{SHEET_TAB}!A#{start_row}:CB#{end_row}"
+
+      Rails.logger.info "[GoogleSheetsImporter] 📦 Fetching chunk #{chunk_index + 1}: rows #{start_row}–#{end_row}"
+
+      response = service.get_spreadsheet_values(sheet_id, range)
+      rows = response.values || []
+
+      break if rows.empty?
+
+      total_rows_fetched += rows.size
+
+      # Yield el chunk al caller — después del yield, `rows` es eligible para GC
+      yield rows, chunk_index
+
+      # Si recibimos menos filas que el chunk_size, llegamos al final del Sheet
+      break if rows.size < chunk_size
+
+      chunk_index += 1
+    end
+
+    Rails.logger.info "[GoogleSheetsImporter] ✅ Streaming completo: #{total_rows_fetched} filas en #{chunk_index + 1} chunks"
+
+    { headers: normalized_headers, total_rows: total_rows_fetched, total_chunks: chunk_index + 1 }
+  rescue Google::Apis::AuthorizationError => e
+    Rails.logger.error "[GoogleSheetsImporter] Auth error: #{e.message}"
+    raise
+  rescue Google::Apis::ClientError => e
+    Rails.logger.error "[GoogleSheetsImporter] Client error: #{e.message}"
+    raise
+  end
+
+  # 🛡️ MAPEO RESILIENTE (LEGACY — carga TODO en memoria)
+  # ⚠️ DEPRECADO para producción: usar fetch_rows_in_chunks para Memory-Safe.
+  # Mantenido para tests y desarrollo local con datasets pequeños.
   def self.fetch_headers_and_rows(sheet_id)
     service = build_service
 

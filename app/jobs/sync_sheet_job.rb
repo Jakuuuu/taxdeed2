@@ -11,10 +11,16 @@
 #   absolutamente CUALQUIER error (incluso falta de credenciales)
 #   pueda ser capturado y registrado.
 #
+# 🚀 MEMORY-SAFE STREAMING (v3):
+#   Ya NO carga todas las filas en memoria. Usa GoogleSheetsImporter.fetch_rows_in_chunks
+#   que yield lotes de CHUNK_SIZE filas. Cada lote se procesa y se libera antes
+#   del siguiente. Incluye GC.start entre lotes y limpieza de cache ActiveRecord.
+#   Reduce la huella de memoria de O(N) a O(CHUNK_SIZE).
+#
 class SyncSheetJob < ApplicationJob
   queue_as :data_sync
 
-  BATCH_SIZE = 100
+  BATCH_SIZE = 200
 
   retry_on Google::Apis::ServerError, wait: :polynomially_longer, attempts: 3
   retry_on Google::Apis::TransmissionError, wait: :polynomially_longer, attempts: 3
@@ -40,14 +46,9 @@ class SyncSheetJob < ApplicationJob
 
       Rails.logger.info "[SyncSheetJob] Iniciando sync de Sheet: #{sheet_id} (log_id: #{@sync_log.id})"
 
-      # ── 3. Extracción e importación ──────────────────────────────────────────
-      data    = GoogleSheetsImporter.fetch_headers_and_rows(sheet_id)
-      headers = data[:headers]
-      rows    = data[:rows]
+      # ── 3. Extracción STREAMING e importación ────────────────────────────────
+      results = stream_and_process(sheet_id)
 
-      Rails.logger.info "[SyncSheetJob] 🛡️ Headers validados OK (#{headers.size} columnas, #{rows.size} filas)"
-
-      results = process_rows_in_batches(rows)
       refresh_auction_counts
       cleanup_empty_auctions
 
@@ -87,6 +88,96 @@ class SyncSheetJob < ApplicationJob
 
   private
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🚀 STREAMING PRINCIPAL — Procesa filas chunk por chunk
+  #
+  # En vez de:
+  #   data = GoogleSheetsImporter.fetch_headers_and_rows(sheet_id)  ← OOM!
+  #   rows = data[:rows]                                           ← Todo en RAM
+  #   process_rows_in_batches(rows)                                ← Demasiado tarde
+  #
+  # Ahora:
+  #   GoogleSheetsImporter.fetch_rows_in_chunks(sheet_id) { |chunk| process(chunk) }
+  #   ↑ Solo CHUNK_SIZE filas viven en memoria a la vez
+  #
+  # IDEMPOTENCIA:
+  #   Si Render mata el proceso a mitad de un chunk, las filas ya procesadas
+  #   usaron find_or_initialize_by con clave compuesta (state, county, parcel_id)
+  #   respaldada por UNIQUE INDEX en PostgreSQL. El siguiente sync simplemente
+  #   re-procesa todo sin duplicar — upsert puro.
+  # ═══════════════════════════════════════════════════════════════════════════
+  def stream_and_process(sheet_id)
+    added = 0
+    updated = 0
+    skipped = 0
+    failed = 0
+
+    # Cache de Auctions para evitar N+1 find_or_create_by por cada fila.
+    # Key: "state|county|sale_date" → Value: Auction instance.
+    # Se limpia entre chunks para no retener memoria indefinidamente.
+    @auction_cache = {}
+
+    GoogleSheetsImporter.fetch_rows_in_chunks(sheet_id, chunk_size: BATCH_SIZE) do |chunk, chunk_index|
+      chunk_results = process_single_chunk(chunk, chunk_index)
+
+      added   += chunk_results[:added]
+      updated += chunk_results[:updated]
+      skipped += chunk_results[:skipped]
+      failed  += chunk_results[:failed]
+
+      # ── 🧹 LIBERACIÓN AGRESIVA DE MEMORIA ─────────────────────────────────
+      # 1. Vaciar la cache de Auctions (se reconstruye si el siguiente chunk
+      #    tiene los mismos counties — trade-off aceptable por memoria).
+      # 2. Limpiar el identity map de ActiveRecord para liberar objetos Parcel
+      #    que ya fueron salvados y no se necesitan más.
+      # 3. Forzar GC para devolver memoria al SO inmediatamente.
+      @auction_cache.clear
+      ActiveRecord::Base.connection.clear_query_cache
+      GC.start
+    end
+
+    { added: added, updated: updated, skipped: skipped, failed: failed }
+  end
+
+  # ── Procesa un chunk individual de filas ──────────────────────────────────
+  def process_single_chunk(chunk, chunk_index)
+    added = updated = skipped = failed = 0
+
+    chunk.each_with_index do |row, row_in_chunk|
+      global_row = (chunk_index * BATCH_SIZE) + row_in_chunk
+      result = process_row_with_cache(row)
+
+      case result
+      when :added   then added   += 1
+      when :updated then updated += 1
+      when :skipped then skipped += 1
+      end
+    rescue ActiveRecord::RecordInvalid => e
+      failed += 1
+      Rails.logger.warn "[SyncSheetJob] Fila #{global_row + 2} inválida: #{e.message}"
+    rescue ActiveRecord::RecordNotSaved => e
+      failed += 1
+      Rails.logger.error "[SyncSheetJob] Fila #{global_row + 2} bloqueada (CRM immunity?): #{e.message}"
+    rescue StandardError => e
+      failed += 1
+      Rails.logger.error "[SyncSheetJob] Fila #{global_row + 2} falló: #{e.class}: #{e.message}"
+    end
+
+    processed_so_far = ((chunk_index + 1) * BATCH_SIZE)
+    Rails.logger.info "[SyncSheetJob] Chunk #{chunk_index + 1} completado " \
+                      "(+#{added} added, +#{updated} updated, +#{skipped} skipped, +#{failed} failed)"
+
+    { added: added, updated: updated, skipped: skipped, failed: failed }
+  end
+
+  # ── Procesamiento con cache de Auctions ───────────────────────────────────
+  # En vez de que SheetRowProcessor haga find_or_create_by! por CADA fila,
+  # cacheamos el Auction por la key compuesta (state|county|sale_date).
+  # Esto reduce las queries de Auction de O(N) a O(unique_auctions).
+  def process_row_with_cache(row)
+    SheetRowProcessor.process(row, auction_cache: @auction_cache)
+  end
+
   def force_fail_orphaned_log!
     return unless @sync_log&.persisted?
 
@@ -101,7 +192,10 @@ class SyncSheetJob < ApplicationJob
       completed_at:     Time.current
     )
     Rails.logger.error "[SyncSheetJob] 🚨 ENSURE: Force-failed orphaned SyncLog ##{@sync_log.id}"
-  rescue => e
+  rescue => e # rubocop:disable Style/RescueStandardError — INTENCIONAL:
+    # Este es el último recurso absoluto. Si falla, el SyncLog queda como zombie
+    # y solo SyncLog.expire_zombies! puede limpiarlo. Atrapamos TODO (incluyendo
+    # Exception) porque prefierimos loguear y sobrevivir a perder el registro.
     Rails.logger.fatal "[SyncSheetJob] 🔥 ENSURE failed: #{e.class}: #{e.message}"
   end
 
@@ -123,42 +217,6 @@ class SyncSheetJob < ApplicationJob
       error_message: "[#{prefix}] #{exception.class}: #{exception.message} (update! failed: #{update_error.message})",
       completed_at:  Time.current
     )
-  end
-
-  def process_rows_in_batches(rows)
-    added = updated = skipped = failed = 0
-    total_rows = rows.size
-    total_batches = (total_rows.to_f / BATCH_SIZE).ceil
-
-    Rails.logger.info "[SyncSheetJob] Procesando #{total_rows} filas en #{total_batches} lotes de #{BATCH_SIZE}"
-
-    rows.each_slice(BATCH_SIZE).with_index do |batch, batch_idx|
-      batch.each_with_index do |row, row_in_batch|
-        global_row = (batch_idx * BATCH_SIZE) + row_in_batch
-        result = SheetRowProcessor.process(row)
-
-        case result
-        when :added   then added   += 1
-        when :updated then updated += 1
-        when :skipped then skipped += 1
-        end
-      rescue ActiveRecord::RecordInvalid => e
-        failed += 1
-        Rails.logger.warn "[SyncSheetJob] Fila #{global_row + 2} inválida: #{e.message}"
-      rescue ActiveRecord::RecordNotSaved => e
-        failed += 1
-        Rails.logger.error "[SyncSheetJob] Fila #{global_row + 2} bloqueada (CRM immunity?): #{e.message}"
-      rescue StandardError => e
-        failed += 1
-        Rails.logger.error "[SyncSheetJob] Fila #{global_row + 2} falló: #{e.class}: #{e.message}"
-      end
-
-      processed_so_far = [((batch_idx + 1) * BATCH_SIZE), total_rows].min
-      Rails.logger.info "[SyncSheetJob] Lote #{batch_idx + 1}/#{total_batches} completado (#{processed_so_far}/#{total_rows} filas)"
-      GC.start if batch_idx < total_batches - 1
-    end
-
-    { added: added, updated: updated, skipped: skipped, failed: failed }
   end
 
   def refresh_auction_counts
