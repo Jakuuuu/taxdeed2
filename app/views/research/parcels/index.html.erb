@@ -200,7 +200,6 @@
     width: 15px; height: 15px; accent-color: var(--color-primary);
     cursor: pointer;
   }
-  /* Column widths */
   .r2-table .col-checkbox { width: 36px; text-align: center; }
   .r2-table .col-address  { width: 26%; }
   .r2-table .col-city     { width: 12%; }
@@ -209,6 +208,28 @@
   .r2-table .col-type     { width: 16%; }
   .r2-table .col-bid      { width: 10%; text-align: right; }
   .r2-table .col-value    { width: 10%; text-align: right; }
+
+  /* ── Locked / Blurred cells ─────────────────────────────── */
+  .td-locked {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    width: 100%;
+  }
+  .td-locked__text {
+    filter: blur(4px);
+    user-select: none; pointer-events: none;
+    color: var(--color-text);
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .td-locked__icon {
+    flex-shrink: 0;
+    font-size: 0.72rem; color: #90A4AE;
+    opacity: 0.8;
+  }
+  /* Address locked: show city/state prefix unblurred, blur number */
+  .td-locked--address .td-locked__text { filter: blur(3.5px); }
+  /* Hover reveals CTA */
+  .r2-table tbody tr:hover .td-locked__icon { color: var(--color-primary); opacity: 1; }
 
   /* ── Pagination bar ── */
   .r2-list-pagination {
@@ -1321,14 +1342,24 @@ function loadParcelsList(page) {
         var bid = p.opening_bid
           ? '$' + Number(p.opening_bid).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})
           : '—';
+
+        // ── Helper: wrap a value in blur markup if property is locked ──
+        function lockedCell(value, extraClass) {
+          if (p.unlocked) return value || '—';
+          return '<span class="td-locked ' + (extraClass || '') + '">' +
+                   '<span class="td-locked__text">' + (value || '—') + '</span>' +
+                   '<span class="td-locked__icon" title="Unlock to reveal">🔒</span>' +
+                 '</span>';
+        }
+
         html += '<tr onclick="openParcelDrawer(\'' + p.show_path + '\')">';
         html += '<td class="col-checkbox" onclick="event.stopPropagation()"><input type="checkbox" class="r2-row-check" value="' + p.id + '"></td>';
-        html += '<td class="td-address">' + (p.address || '—') + '</td>';
-        html += '<td>' + (p.city || '—') + '</td>';
-        html += '<td>' + (p.zip || '—') + '</td>';
-        html += '<td class="td-parcel">' + (p.parcel_id || '—') + '</td>';
-        html += '<td>' + (p.property_type || '—') + '</td>';
-        html += '<td class="td-bid">' + bid + '</td>';
+        html += '<td class="td-address">'  + lockedCell(p.address,   'td-locked--address') + '</td>';
+        html += '<td>'                     + (p.city || '—')                               + '</td>';
+        html += '<td>'                     + lockedCell(p.zip)                             + '</td>';
+        html += '<td class="td-parcel">'   + lockedCell(p.parcel_id)                       + '</td>';
+        html += '<td>'                     + (p.property_type || '—')                      + '</td>';
+        html += '<td class="td-bid">'      + bid                                            + '</td>';
         html += '</tr>';
       });
       html += '</tbody></table></div>';

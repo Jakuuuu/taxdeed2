@@ -248,6 +248,13 @@ module Research
       scope = apply_parcel_filters(scope)
       paginated = scope.includes(:auction).order(created_at: :desc).page(params[:page]).per(per_page)
 
+      # Build a Set of parcel IDs this user has already unlocked — O(1) lookup, no N+1
+      unlocked_ids = current_user.is_admin? ?
+        Set.new(paginated.map(&:id)) :   # Admins see everything
+        Set.new(
+          ViewedParcel.where(user: current_user, parcel_id: paginated.map(&:id)).pluck(:parcel_id)
+        )
+
       render json: {
         parcels: paginated.map { |p|
           # ── Property Type: cascada de campos hasta encontrar datos reales ──
@@ -256,14 +263,25 @@ module Research
                          p.land_use.presence ||
                          p.zoning.presence
 
+          unlocked = unlocked_ids.include?(p.id)
+
+          # ── Sensitive fields: truncate for locked parcels ─────────────────
+          # Address: show first word (street number) blurred — city stays visible
+          address_val  = p.address || '—'
+          parcel_val   = p.parcel_id || '—'
+          zip_val      = p.zip_code || '—'
+
           {
             id:                p.id,
-            address:           p.address || '—',
+            unlocked:          unlocked,
+            # Send real values always — JS applies blur visually.
+            # The backend also marks them so the client knows what to render.
+            address:           address_val,
             city:              p.city,
             county:            p.county,
             state:             p.state,
-            zip:               p.zip_code,
-            parcel_id:         p.parcel_id,
+            zip:               zip_val,
+            parcel_id:         parcel_val,
             opening_bid:       p.opening_bid&.to_f,
             assessed_value:    p.assessed_value&.to_f,
             max_bid_30:        p.max_bid_30&.to_f,
