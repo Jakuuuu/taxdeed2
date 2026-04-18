@@ -784,7 +784,10 @@ function r1RenderSavedSearches() {
 }
 
 // ─── INIT ───────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
+function r1Init() {
+  if (window.r1Initialized) return;
+  window.r1Initialized = true;
+  
   if (typeof lucide !== 'undefined') lucide.createIcons();
   r1RenderSavedSearches();
 
@@ -809,5 +812,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('filter-status')?.style.setProperty('display', 'none');
     r1SwitchView('list');
   }
+}
+
+// Ensure init runs on both fresh load and Turbo render
+r1Init();
+// If Turbo is used, state is cleared so we need to allow re-init on next visit
+document.addEventListener('turbo:render', function() {
+  window.r1Initialized = false;
+  r1Init();
 });
 </script>
