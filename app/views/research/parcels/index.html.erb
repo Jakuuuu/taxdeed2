@@ -1,4 +1,4 @@
-﻿<% content_for :title, "Property Search — TaxDeed Lion" %>
+<% content_for :title, "Property Search — TaxDeed Lion" %>
 
 <%# ══════════════════════════════════════════════════════════════════════
      RAMA 2: Geographic Search Module — Two-Phase Flow
@@ -1228,6 +1228,42 @@ function updateSortArrows() {
   });
 }
 
+function sortColumn(field) {
+  if (currentSortBy === field) {
+    currentSortDir = (currentSortDir === 'asc') ? 'desc' : 'asc';
+  } else {
+    currentSortBy = field;
+    currentSortDir = 'asc';
+  }
+  loadParcelsList(1);
+}
+
+function toggleSelectAll(master) {
+  var checks = document.querySelectorAll('.r2-row-check');
+  checks.forEach(function(cb) { cb.checked = master.checked; });
+}
+
+// Smart page numbers: 1 2 3 ... 10 11 12 ... 56 57
+function buildPageNumbers(current, total) {
+  if (total <= 7) {
+    var arr = [];
+    for (var i = 1; i <= total; i++) arr.push(i);
+    return arr;
+  }
+  var pages = [];
+  pages.push(1);
+  if (current > 4) pages.push('...');
+  var start = Math.max(2, current - 2);
+  var end   = Math.min(total - 1, current + 2);
+  for (var j = start; j <= end; j++) pages.push(j);
+  if (current < total - 3) pages.push('...');
+  pages.push(total);
+  return pages;
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// PHASE 2: Load parcel LIST into the bottom panel (async JSON)
 // ══════════════════════════════════════════════════════════════
 function loadParcelsList(page) {
   var listContent    = document.getElementById('r2-list-content');
