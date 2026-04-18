@@ -369,6 +369,7 @@
           <option value="Commercial">Commercial</option>
           <option value="Vacant Land">Vacant Land</option>
         </select>
+
         <button type="button" class="topbar-filter-apply" onclick="applyInlineFilters()">Apply</button>
         <button type="button" class="topbar-filter-clear" onclick="clearInlineFilters()">Clear</button>
       </div>
@@ -499,7 +500,12 @@
 var COUNTY_OVERVIEW_URL = '<%= county_overview_research_parcels_path(format: :json) %>';
 var MAP_DATA_URL        = '<%= map_data_research_parcels_path(format: :json) %>';
 var PARCELS_LIST_URL    = '<%= parcels_list_research_parcels_path(format: :json) %>';
+var countyData          = {}; // Cache for county centroids
+
 var PARCELS_BASE_PATH   = '<%= research_parcels_path %>';
+
+
+
 var INITIAL_AUCTION_ID  = '<%= @auction&.id %>';
 var INITIAL_STATE       = '<%= @selected_state %>';
 var INITIAL_COUNTY      = '<%= @selected_county %>';
@@ -1035,6 +1041,7 @@ function loadPhase2Markers(auctionId, county, state) {
     if (state) params.push('state=' + encodeURIComponent(state));
   }
   if (!params.length) return;
+
   fetchUrl += '?' + params.join('&');
 
   fetch(fetchUrl, { headers: { 'Accept': 'application/json' } })
@@ -1217,6 +1224,7 @@ function loadParcelsList(page) {
   if (maxBid && maxBid.value) params.push('max_bid=' + maxBid.value);
   if (propType && propType.value) params.push('property_type=' + encodeURIComponent(propType.value));
   if (search && search.value.trim()) params.push('q=' + encodeURIComponent(search.value.trim()));
+
 
   var url = PARCELS_LIST_URL + '?' + params.join('&');
 

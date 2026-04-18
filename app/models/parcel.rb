@@ -36,6 +36,25 @@ class Parcel < ApplicationRecord
   scope :max_bid,      ->(n)      { where("opening_bid <= ?", n) }
   scope :has_coords,              -> { where.not(latitude: nil).where.not(longitude: nil) }
 
+  # ── Time-based scopes (Motor de Tiempo) ──────────────────────────
+  # Parcelas cuya subasta tiene sale_date >= hoy → activas
+  scope :with_active_auction, -> {
+    joins(:auction).where("auctions.sale_date >= ?", Date.current)
+  }
+  # Parcelas cuya subasta tiene sale_date < hoy → pasadas (historial)
+  scope :with_past_auction, -> {
+    joins(:auction).where("auctions.sale_date < ?", Date.current)
+  }
+  # Filtro dinámico por status temporal (para el dropdown en Rama 2)
+  # Acepta "active" o "past"; cualquier otro valor no filtra.
+  scope :with_status_filter, ->(status) {
+    case status.to_s.downcase
+    when "active" then with_active_auction
+    when "past"   then with_past_auction
+    else               all
+    end
+  }
+
   # ── Calculados al vuelo (NO almacenados) ─────────────────────
   def adjusted_value_16
     return nil unless opening_bid

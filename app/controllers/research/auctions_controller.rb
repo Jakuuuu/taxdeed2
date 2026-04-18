@@ -13,13 +13,16 @@ module Research
     # REGLA DE NEGOCIO: La tabla muestra UNA fila por condado (county, state),
     # consolidando todas las subastas de ese condado en una sola fila.
     # Cada fila agrega: parcel_count, total_amount, sale_dates, auction_ids.
+    #
+    # MOTOR DE TIEMPO:
+    # - Tab principal ("Tax Sale Auctions") → solo subastas con sale_date >= hoy
+    # - Tab "Prior Sale Results" → solo subastas con sale_date < hoy
     def index
-      # ── Base scope: apply filters from params ──────────────────────────────
-      base_scope = apply_filters(Auction.all)
-
-      # Sub-tab: "prior" shows only completed auctions
+      # ── Base scope: apply time-based filter FIRST, then user filters ────────
       if params[:sub_tab] == "prior"
-        base_scope = base_scope.where(status: "completed")
+        base_scope = apply_filters(Auction.past_visible)
+      else
+        base_scope = apply_filters(Auction.active_visible)
       end
 
       # ── Group auctions by (county, state) → 1 row per county ─────────────
@@ -79,14 +82,20 @@ module Research
       @count_total_parcels = @auctions_scope.sum(:parcel_count)
       @total_amount        = @auctions_scope.sum(:total_amount)
 
-      # ── Map: all visible filtered auctions for the choropleth heatmap ───────
-      @choropleth_auctions = apply_filters(Auction.visible)
+      # ── Map: choropleth uses TIME-FILTERED auctions ─────────────────────────
+      # Main tab: only active_visible; Prior tab: past_visible
+      if params[:sub_tab] == "prior"
+        @choropleth_auctions = apply_filters(Auction.past_visible)
+      else
+        @choropleth_auctions = apply_filters(Auction.active_visible)
+      end
       @map_auctions = @choropleth_auctions
                         .where.not(latitude: nil)
                         .where.not(longitude: nil)
 
-      # ── State dropdown badges — count per state ────────────────────────────
-      @states_with_counts = Auction.visible
+      # ── State dropdown badges — count per state (time-filtered) ─────────────
+      state_scope = params[:sub_tab] == "prior" ? Auction.past_visible : Auction.active_visible
+      @states_with_counts = state_scope
                                    .group(:state)
                                    .count
                                    .sort_by { |state, _| state || "" }
@@ -121,7 +130,7 @@ module Research
       end
 
       # ── Calendar events: group by sale_date for JS calendar ────────────────
-      visible_for_cal = apply_filters(Auction.visible).where.not(sale_date: nil)
+      visible_for_cal = apply_filters(Auction.active_visible).where.not(sale_date: nil)
       @calendar_events = visible_for_cal.select(:id, :county, :state, :sale_date, :parcel_count, :status)
                                         .order(sale_date: :asc)
                                         .group_by { |a| a.sale_date.strftime("%Y-%m-%d") }
@@ -146,7 +155,7 @@ module Research
         return
       end
 
-      jurisdictions = Auction.visible
+      jurisdictions = Auction.active_visible
                              .where(state: states)
                              .group(:county, :state)
                              .count

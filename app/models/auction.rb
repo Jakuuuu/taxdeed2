@@ -18,6 +18,16 @@ class Auction < ApplicationRecord
   # For map: only auctions with valid coordinates
   scope :for_map,    -> { visible.where.not(latitude: nil).where.not(longitude: nil) }
 
+  # ── Time-based dynamic scopes (Motor de Tiempo) ────────────────────────────
+  # Subastas con sale_date >= hoy → activas temporalmente
+  scope :time_active, -> { where("sale_date >= ?", Date.current) }
+  # Subastas con sale_date < hoy → pasadas (Prior Sale Results)
+  scope :time_past,   -> { where("sale_date < ?", Date.current) }
+  # Combinado: visible + activas en el tiempo (para uso en UI principal)
+  scope :active_visible, -> { visible.time_active }
+  # Combinado: prior results (sin importar status, pero con sale_date pasada)
+  scope :past_visible,   -> { where("sale_date < ?", Date.current) }
+
   # ── Validations ─────────────────────────────────────────────────────────────
   validates :state, :county, :sale_date, presence: true
   validates :auction_type, inclusion: { in: ["tax_deed"] }
@@ -40,6 +50,15 @@ class Auction < ApplicationRecord
   def upcoming?   = status == "upcoming"
   def active?     = status == "active"
   def completed?  = status == "completed"
+
+  # Dynamic temporal classification
+  def time_active?
+    sale_date.present? && sale_date >= Date.current
+  end
+
+  def time_past?
+    sale_date.present? && sale_date < Date.current
+  end
 
   # Days until sale date (nil if past or unknown)
   def days_until_sale

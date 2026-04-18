@@ -7,13 +7,16 @@ module Research
 
     # GET /research/parcels
     def index
+      # ── MOTOR DE TIEMPO: Rama 2 SIEMPRE muestra solo subastas activas.
+      # (sale_date >= hoy). No se expone opción Past al usuario.
+
       @auctions_by_state = Auction.visible
                                   .order(state: :asc, sale_date: :asc)
                                   .group_by(&:state)
 
       # DRY — Unified county-grouped data for the "Seleccionar condado" picker.
-      # Same data structure as the US Overview table (Rama 1).
-      @picker_counties_by_state = helpers.counties_with_auctions_grouped
+      # Uses time-filtered scope so picker reflects only active auction counties.
+      @picker_counties_by_state = helpers.counties_with_auctions_grouped(Auction.active_visible)
 
       @per_page = PER_PAGE_OPTIONS.include?(params[:per_page].to_i) ? params[:per_page].to_i : 25
       @available_states = Auction.visible.distinct.pluck(:state).compact.sort
@@ -30,10 +33,10 @@ module Research
         # ── Modo County: parcelas de un condado específico ─────────
         @selected_state  = params[:state]
         @selected_county = params[:county]
-        auction_ids = Auction.visible
-                             .by_state(@selected_state)
-                             .where(county: @selected_county)
-                             .pluck(:id)
+        auction_ids = Auction.active_visible
+                        .by_state(@selected_state)
+                        .where(county: @selected_county)
+                        .pluck(:id)
         scope    = Parcel.where(auction_id: auction_ids)
         scope    = apply_parcel_filters(scope)
         @parcels = scope.order(created_at: :desc).page(params[:page]).per(@per_page)
@@ -42,7 +45,7 @@ module Research
       elsif params[:state].present?
         # ── Modo State: todas las parcelas de un estado ───────────
         @selected_state = params[:state]
-        @state_auctions = Auction.visible.by_state(@selected_state).order(sale_date: :asc)
+        @state_auctions = Auction.active_visible.by_state(@selected_state).order(sale_date: :asc)
         auction_ids = @state_auctions.pluck(:id)
         scope = Parcel.where(auction_id: auction_ids)
         scope = apply_parcel_filters(scope)
@@ -135,9 +138,9 @@ module Research
 
     # GET /research/parcels/county_overview.json
     # Phase 1: Geographic Overview — aggregated county-level data for map pins
-    # Returns: [{ county, state, lat, lng, parcel_count, auction_count, total_amount }]
+    # MOTOR DE TIEMPO: Filtra por subastas activas (sale_date >= hoy) por defecto
     def county_overview
-      auctions = Auction.visible.includes(:parcels)
+      auctions = Auction.active_visible.includes(:parcels)
 
       grouped = auctions.group_by { |a| [a.county, a.state] }
 
@@ -187,6 +190,7 @@ module Research
 
     # GET /research/parcels/map_data.json
     # Supports auction_id, state, or county+state as parameters
+    # MOTOR DE TIEMPO: Respects status filter for county/state modes
     def map_data
       if params[:auction_id].present?
         auction = Auction.find_by(id: params[:auction_id])
@@ -197,12 +201,12 @@ module Research
 
       elsif params[:county].present? && params[:state].present?
         # County-level drill-down: only parcels for this specific county
-        auction_ids = Auction.visible.by_state(params[:state])
+        auction_ids = Auction.active_visible.by_state(params[:state])
                              .where(county: params[:county]).pluck(:id)
         parcels = Parcel.where(auction_id: auction_ids).has_coords
 
       elsif params[:state].present?
-        auction_ids = Auction.visible.by_state(params[:state]).pluck(:id)
+        auction_ids = Auction.active_visible.by_state(params[:state]).pluck(:id)
         parcels = Parcel.where(auction_id: auction_ids).has_coords
 
       else
@@ -235,7 +239,7 @@ module Research
 
     # GET /research/parcels/parcels_list.json
     # Phase 2 async parcel list — paginated, filterable
-    # Returns parcels + pagination meta for the split-screen list panel
+    # MOTOR DE TIEMPO: Respects status filter
     def parcels_list
       per_page = PER_PAGE_OPTIONS.include?(params[:per_page].to_i) ? params[:per_page].to_i : 25
 
@@ -243,11 +247,11 @@ module Research
         auction = Auction.find_by(id: params[:auction_id])
         scope = auction ? Parcel.for_auction(auction.id) : Parcel.none
       elsif params[:county].present? && params[:state].present?
-        auction_ids = Auction.visible.by_state(params[:state])
+        auction_ids = Auction.active_visible.by_state(params[:state])
                              .where(county: params[:county]).pluck(:id)
         scope = Parcel.where(auction_id: auction_ids)
       elsif params[:state].present?
-        auction_ids = Auction.visible.by_state(params[:state]).pluck(:id)
+        auction_ids = Auction.active_visible.by_state(params[:state]).pluck(:id)
         scope = Parcel.where(auction_id: auction_ids)
       else
         render json: { parcels: [], meta: { total: 0, page: 1, pages: 0 } } and return
@@ -288,6 +292,9 @@ module Research
     end
 
     private
+
+    # ── Motor de Tiempo: Rama 2 SIEMPRE usa active_visible ────────────────
+    # No se expone filtro de status al usuario en esta rama.
 
     def apply_parcel_filters(scope)
       scope = scope.search_text(params[:q])        if params[:q].present?
