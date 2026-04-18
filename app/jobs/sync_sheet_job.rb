@@ -68,8 +68,15 @@ class SyncSheetJob < ApplicationJob
                         "Added: #{results[:added]} | Updated: #{results[:updated]} | " \
                         "Skipped: #{results[:skipped]} | Failed: #{results[:failed]}"
 
+      final_status = results[:failed] > 0 ? "completed_with_errors" : "success"
+      error_summary = if results[:failed] > 0
+                        "#{results[:failed]} row(s) failed validation during import. " \
+                        "Added: #{results[:added]}, Updated: #{results[:updated]}, Skipped: #{results[:skipped]}. " \
+                        "Check application logs for per-row details."
+                      end
+
       @sync_log.update!(
-        status:           results[:failed] > 0 ? "completed_with_errors" : "success",
+        status:           final_status,
         parcels_added:    results[:added],
         parcels_updated:  results[:updated],
         parcels_skipped:  results[:skipped],
@@ -77,7 +84,7 @@ class SyncSheetJob < ApplicationJob
         completed_at:     Time.current,
         records_synced:   results[:added] + results[:updated],
         records_failed:   results[:failed],
-        error_message:    nil
+        error_message:    error_summary
       )
 
     rescue MemoryLimitExceeded => e
