@@ -53,6 +53,12 @@ module Research
 
       @has_context = @auction.present? || (@selected_county.present? && @selected_state.present?)
 
+      # Distinct land_use/property_type values for the Property Type filter dropdown
+      @land_use_types = (
+        Parcel.where.not(land_use: [nil, ""]).distinct.pluck(:land_use) +
+        Parcel.where.not(property_type: [nil, ""]).distinct.pluck(:property_type)
+      ).map(&:strip).uniq.sort
+
       # Persist last parcels context for "← Back" button in the Ficha
       session[:last_parcels_path] = request.url if @has_context
     end
@@ -284,7 +290,10 @@ module Research
       scope = scope.by_state(params[:filter_state]) if params[:filter_state].present?
       scope = scope.min_bid(params[:min_bid])       if params[:min_bid].present?
       scope = scope.max_bid(params[:max_bid])       if params[:max_bid].present?
-      scope = scope.where(property_type: params[:property_type]) if params[:property_type].present?
+      if params[:property_type].present?
+        pt = params[:property_type]
+        scope = scope.where("land_use ILIKE :pt OR property_type ILIKE :pt", pt: "%#{pt}%")
+      end
       scope
     end
   end

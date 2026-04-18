@@ -392,9 +392,9 @@
         <input type="number" class="topbar-filter-input" id="r2-filter-max-bid" placeholder="Max">
         <select class="topbar-filter-select" id="r2-filter-property-type">
           <option value="">All Types</option>
-          <option value="Residential">Residential</option>
-          <option value="Commercial">Commercial</option>
-          <option value="Vacant Land">Vacant Land</option>
+          <% (@land_use_types || []).each do |type| %>
+            <option value="<%= type %>"><%= type %></option>
+          <% end %>
         </select>
 
         <button type="button" class="topbar-filter-apply" onclick="applyInlineFilters()">Apply</button>
