@@ -29,7 +29,7 @@
 #   Esto reduce la huella de memoria de O(N) a O(CHUNK_SIZE).
 #
 class GoogleSheetsImporter
-  SHEET_TAB  = "Propiedades"  # ⚠️ Nombre exacto de la pestaña en el Sheet
+  SHEET_TAB  = "Propiedades1"  # ⚠️ Nombre exacto de la pestaña en el Sheet
   DATA_RANGE = "#{SHEET_TAB}!A2:CB"
   HEADER_RANGE = "#{SHEET_TAB}!A1:CB1"
 
