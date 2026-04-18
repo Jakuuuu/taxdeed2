@@ -249,7 +249,7 @@ module Research
       paginated = scope.includes(:auction).order(created_at: :desc).page(params[:page]).per(per_page)
 
       # Build a Set of parcel IDs this user has already unlocked — O(1) lookup, no N+1
-      unlocked_ids = current_user.is_admin? ?
+      unlocked_ids = current_user.admin? ?
         Set.new(paginated.map(&:id)) :   # Admins see everything
         Set.new(
           ViewedParcel.where(user: current_user, parcel_id: paginated.map(&:id)).pluck(:parcel_id)
@@ -307,7 +307,9 @@ module Research
 
     def apply_parcel_filters(scope)
       scope = scope.search_text(params[:q])        if params[:q].present?
-      scope = scope.by_county(params[:county])      if params[:county].present?
+      # NOTE: by_county is NOT applied here — parcels are already scoped
+      # via auction_ids for the selected county in parcels_list/map_data.
+      # Applying it again is redundant and risks mismatches.
       scope = scope.by_state(params[:filter_state]) if params[:filter_state].present?
       scope = scope.min_bid(params[:min_bid])       if params[:min_bid].present?
       scope = scope.max_bid(params[:max_bid])       if params[:max_bid].present?
