@@ -1223,42 +1223,12 @@ function updateSortArrows() {
   allThs.forEach(function(th) {
     var onclick = th.getAttribute('onclick');
     if (onclick && onclick.indexOf("'" + currentSortBy + "'") !== -1) {
-      t        // ── Helper: show partial info with asterisks for locked properties ──
-        function maskedCell(value, showChars) {
-          if (p.unlocked) return value || '—';
-          var raw = value || '—';
-          if (raw === '—') return raw;
-          var visible = raw.substring(0, showChars);
-          var masked  = raw.length > showChars ? raw.substring(showChars).replace(/[^\s]/g, '*') : '';
-          return '<span class="td-masked">' +
-                   '<span class="td-masked__visible">' + visible + '</span>' +
-                   '<span class="td-masked__hidden">' + masked + '</span>' +
-                   '<span class="td-masked__lock" title="Unlock to reveal full data">🔒</span>' +
-                 '</span>';
-        }
-        function maskedAddress(value) {
-          if (p.unlocked) return value || '—';
-          var raw = value || '—';
-          if (raw === '—') return raw;
-          // Show street number + first word, mask the rest
-          var parts = raw.split(' ');
-          var show  = parts.slice(0, 2).join(' ');
-          var hide  = parts.length > 2 ? ' ' + parts.slice(2).join(' ').replace(/[^\s]/g, '*') : '';
-          return '<span class="td-masked">' +
-                   '<span class="td-masked__visible">' + show + '</span>' +
-                   '<span class="td-masked__hidden">' + hide + '</span>' +
-                   '<span class="td-masked__lock" title="Unlock to reveal full address">🔒</span>' +
-                 '</span>';
-        }
+      th.classList.add(currentSortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+    }
+  });
+}
 
-        html += '<tr onclick="openParcelDrawer(\'' + p.show_path + '\')">'; 
-        html += '<td class="col-checkbox" onclick="event.stopPropagation()"><input type="checkbox" class="r2-row-check" value="' + p.id + '"></td>';
-        html += '<td class="td-address">'  + maskedAddress(p.address)                       + '</td>';
-        html += '<td>'                     + (p.city || '—')                               + '</td>';
-        html += '<td>'                     + maskedCell(p.zip, 3)                           + '</td>';
-        html += '<td class="td-parcel">'   + maskedCell(p.parcel_id, 4)                     + '</td>';
-        html += '<td>'                     + (p.property_type || '—')                      + '</td>';
-        html += '<td class="td-bid">'      + bid                                            + '</td>';��═══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 function loadParcelsList(page) {
   var listContent    = document.getElementById('r2-list-content');
   var listPagination = document.getElementById('r2-list-pagination');
