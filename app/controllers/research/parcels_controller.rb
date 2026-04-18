@@ -26,6 +26,19 @@ module Research
         scope    = apply_parcel_filters(scope)
         @parcels = scope.order(created_at: :desc).page(params[:page]).per(@per_page)
 
+      elsif params[:county].present? && params[:state].present?
+        # ── Modo County: parcelas de un condado específico ─────────
+        @selected_state  = params[:state]
+        @selected_county = params[:county]
+        auction_ids = Auction.visible
+                             .by_state(@selected_state)
+                             .where(county: @selected_county)
+                             .pluck(:id)
+        scope    = Parcel.where(auction_id: auction_ids)
+        scope    = apply_parcel_filters(scope)
+        @parcels = scope.order(created_at: :desc).page(params[:page]).per(@per_page)
+        @auction = nil
+
       elsif params[:state].present?
         # ── Modo State: todas las parcelas de un estado ───────────
         @selected_state = params[:state]

@@ -502,6 +502,7 @@ var PARCELS_LIST_URL    = '<%= parcels_list_research_parcels_path(format: :json)
 var PARCELS_BASE_PATH   = '<%= research_parcels_path %>';
 var INITIAL_AUCTION_ID  = '<%= @auction&.id %>';
 var INITIAL_STATE       = '<%= @selected_state %>';
+var INITIAL_COUNTY      = '<%= @selected_county %>';
 var HAS_CONTEXT         = <%= @has_context ? 'true' : 'false' %>;
 var TOTAL_AUCTIONS      = <%= @picker_counties_by_state.values.flatten.sum { |c| c[:parcel_count] } %>;
 
@@ -599,7 +600,7 @@ function createMapAndEnterPhase() {
   initSingleMap(function() {
     r2Initialized = true;
     if (HAS_CONTEXT) {
-      enterPhase2Async(INITIAL_AUCTION_ID, null, INITIAL_STATE);
+      enterPhase2Async(INITIAL_AUCTION_ID, INITIAL_COUNTY || null, INITIAL_STATE);
       applyView(currentView, true);
     } else {
       enterPhase1();

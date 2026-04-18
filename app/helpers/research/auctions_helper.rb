@@ -18,7 +18,7 @@ module Research
     # Preserves current filter params across pagination links.
     # Strips Rails-internal keys and page (since we re-set it).
     def r1_pagination_params
-      params.permit(:sub_tab, :status, :from_date, :to_date, :sort, :dir, :county, states: [])
+      params.permit(:sub_tab, :status, :from_date, :to_date, :sort, :dir, :county, :view, states: [])
             .to_h
             .symbolize_keys
     end

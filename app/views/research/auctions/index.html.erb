@@ -76,12 +76,7 @@
       <option value="active" <%= 'selected' if params[:status] == 'active' %>>Active</option>
     </select>
 
-    <%# Sale Venue %>
-    <select class="r1-filter-select" id="filter-venue" onchange="r1ApplyFilters()">
-      <option value="">Sale Venue</option>
-      <option value="Online" <%= 'selected' if params[:sale_venue] == 'Online' %>>Online</option>
-      <option value="In-Person" <%= 'selected' if params[:sale_venue] == 'In-Person' %>>In-Person</option>
-    </select>
+
 
     <%# Date range %>
     <div class="r1-filter-date-wrap">
@@ -259,11 +254,7 @@
                 <th><div class="r1-th-inner" onclick="r1SortRedirect('county')">Jurisdiction <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
                 <th><div class="r1-th-inner" onclick="r1SortRedirect('state')">State <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
                 <th><div class="r1-th-inner" onclick="r1SortRedirect('sale_date')">Sale Date <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
-                <th>Sale Type</th>
-                <th>Sale Venue</th>
-                <th>Bidding Procedures</th>
                 <th><div class="r1-th-inner" onclick="r1SortRedirect('parcel_count')"># of Properties <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
-                <th><div class="r1-th-inner" onclick="r1SortRedirect('total_amount')">Aggregate Amount <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
               </tr>
             <% end %>
           </thead>
@@ -308,14 +299,7 @@
                       —
                     <% end %>
                   </td>
-                  <td><span class="r1-td-badge r1-badge-deed">Deed</span></td>
-                  <td>
-                    <% venue = row[:bidding_url].present? ? 'Online' : 'In Person' %>
-                    <span class="r1-td-badge <%= venue == 'Online' ? 'r1-badge-online' : 'r1-badge-inperson' %>"><%= venue %></span>
-                  </td>
-                  <td style="font-size:var(--r1-text-xs);color:var(--r1-color-text-secondary);"><%= row[:notes].present? ? row[:notes].truncate(40) : '—' %></td>
                   <td class="r1-parcels-count"><%= number_with_delimiter(row[:parcel_count]) %></td>
-                  <td class="r1-agg-amount"><%= row[:total_amount] > 0 ? number_to_currency(row[:total_amount]) : '—' %></td>
                 <% end %>
               </tr>
             <% end %>
@@ -333,7 +317,7 @@
         </div>
         <div class="r1-pagination-btns">
           <% if @page > 1 %>
-            <a href="<%= research_auctions_path(r1_pagination_params.merge(page: @page - 1)) %>" class="r1-page-btn">
+            <a href="<%= research_auctions_path(r1_pagination_params.merge(page: @page - 1, view: 'list')) %>" class="r1-page-btn">
               <i data-lucide="chevron-left" style="width:12px;height:12px;"></i>
             </a>
           <% else %>
@@ -344,13 +328,13 @@
             <% if p == :gap %>
               <span class="r1-page-btn disabled">…</span>
             <% else %>
-              <a href="<%= research_auctions_path(r1_pagination_params.merge(page: p)) %>"
+              <a href="<%= research_auctions_path(r1_pagination_params.merge(page: p, view: 'list')) %>"
                  class="r1-page-btn <%= 'active' if p == @page %>"><%= p %></a>
             <% end %>
           <% end %>
 
           <% if @page < @total_pages %>
-            <a href="<%= research_auctions_path(r1_pagination_params.merge(page: @page + 1)) %>" class="r1-page-btn">
+            <a href="<%= research_auctions_path(r1_pagination_params.merge(page: @page + 1, view: 'list')) %>" class="r1-page-btn">
               Next <i data-lucide="chevron-right" style="width:12px;height:12px;"></i>
             </a>
           <% else %>
@@ -448,9 +432,6 @@ function r1ApplyFilters() {
   const status = document.getElementById('filter-status')?.value;
   if (status) params.set('status', status);
 
-  const venue = document.getElementById('filter-venue')?.value;
-  if (venue) params.set('sale_venue', venue);
-
   const fromDate = document.getElementById('filter-from')?.value;
   if (fromDate) params.set('from_date', fromDate);
 
@@ -458,6 +439,9 @@ function r1ApplyFilters() {
   if (toDate) params.set('to_date', toDate);
 
   if (r1CurrentSubTab === 'prior') params.set('sub_tab', 'prior');
+
+  // Preserve current view across filter changes
+  if (r1CurrentView && r1CurrentView !== 'map') params.set('view', r1CurrentView);
 
   window.location.href = '<%= research_auctions_path %>?' + params.toString();
 }
@@ -696,6 +680,8 @@ function r1SortRedirect(field) {
     params.set('sort', field);
     params.set('dir', 'asc');
   }
+  // Preserve current view (sorting is only available in list view)
+  if (r1CurrentView && r1CurrentView !== 'map') params.set('view', r1CurrentView);
   window.location.href = '<%= research_auctions_path %>?' + params.toString();
 }
 
@@ -802,11 +788,17 @@ document.addEventListener('DOMContentLoaded', function() {
   if (typeof lucide !== 'undefined') lucide.createIcons();
   r1RenderSavedSearches();
 
-  // Restore persisted view preference
+  // Restore view: URL param takes priority (pagination preserves view), then localStorage
   try {
-    const savedView = localStorage.getItem('r1_view');
-    if (savedView && savedView !== 'map') {
-      r1SwitchView(savedView);
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlView = urlParams.get('view');
+    if (urlView && ['map', 'calendar', 'list'].includes(urlView)) {
+      r1SwitchView(urlView);
+    } else {
+      const savedView = localStorage.getItem('r1_view');
+      if (savedView && savedView !== 'map') {
+        r1SwitchView(savedView);
+      }
     }
   } catch(e) {}
 
