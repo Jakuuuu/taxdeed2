@@ -20,7 +20,15 @@
 class SyncSheetJob < ApplicationJob
   queue_as :data_sync
 
-  BATCH_SIZE = 100
+  # Error personalizado para abortar sync cuando la memoria está al límite
+  class MemoryLimitExceeded < StandardError; end
+
+  BATCH_SIZE = 50
+
+  # Límite de seguridad: si el RSS del proceso supera este valor,
+  # abortamos el sync GRACEFULLY antes de que Render nos mate con SIGKILL.
+  # Render Starter = 512 MB. Dejamos ~90 MB de headroom.
+  MAX_RSS_MB = 420
 
   retry_on Google::Apis::ServerError, wait: :polynomially_longer, attempts: 3
   retry_on Google::Apis::TransmissionError, wait: :polynomially_longer, attempts: 3
@@ -72,6 +80,18 @@ class SyncSheetJob < ApplicationJob
         error_message:    nil
       )
 
+    rescue MemoryLimitExceeded => e
+      # Partial sync completado — los datos YA están en la BD (idempotente).
+      # No re-raise: el job terminó su trabajo parcial exitosamente.
+      elapsed = (Time.current - (@started_at || Time.current)).round(1)
+      @sync_log&.update!(
+        status:           "completed_with_errors",
+        error_message:    "[MemoryLimit] #{e.message}",
+        duration_seconds: elapsed,
+        completed_at:     Time.current
+      )
+      Rails.logger.warn "[SyncSheetJob] ⚠️ Memory limit reached — partial sync saved. Re-run to continue."
+
     rescue GoogleSheetsImporter::SheetSchemaError => e
       mark_sync_failed!(e, prefix: "SheetSchemaError")
       raise
@@ -117,6 +137,15 @@ class SyncSheetJob < ApplicationJob
     # Se limpia entre chunks para no retener memoria indefinidamente.
     @auction_cache = {}
 
+    # ── 💓 HEARTBEAT INICIAL — Confirma que el job ARRANCÓ ──────────────────
+    # Si el worker muere antes del primer chunk, este heartbeat nos dice
+    # "el job sí empezó" vs "el job nunca se ejecutó".
+    rss = current_rss_mb
+    Rails.logger.info "[SyncSheetJob] 🚀 Startup RSS: #{rss} MB (limit: #{MAX_RSS_MB} MB)"
+    if @sync_log&.persisted?
+      @sync_log.update_columns(heartbeat_at: Time.current)
+    end
+
     GoogleSheetsImporter.fetch_rows_in_chunks(sheet_id, chunk_size: BATCH_SIZE) do |chunk, chunk_index|
       chunk_results = process_single_chunk(chunk, chunk_index)
 
@@ -125,36 +154,36 @@ class SyncSheetJob < ApplicationJob
       skipped += chunk_results[:skipped]
       failed  += chunk_results[:failed]
 
-      # ── 💓 HEARTBEAT — Previene falso zombie ────────────────────────────
-      # El zombie detector usa MAX(started_at, heartbeat_at) para calcular
-      # cuánto tiempo lleva el sync. Actualizamos heartbeat_at (NO started_at)
-      # cada 3 chunks para que el zombie detector sepa que seguimos vivos
-      # sin perder el timestamp original de inicio.
-      #
-      # ⚠️ BUG PREVIO: Se actualizaba started_at, lo que enmascaraba zombies
-      # reales — un proceso que moría a los 60 min no se detectaba hasta
-      # los 74 min (heartbeat a min 59 + 15 min timeout).
-      if (chunk_index + 1) % 3 == 0 && @sync_log&.persisted?
+      # ── 💓 HEARTBEAT — CADA chunk (no cada 3) ──────────────────────────
+      # Actualiza heartbeat_at para que el zombie detector sepa que seguimos
+      # vivos. Frecuencia: cada chunk (50 filas) para máxima visibilidad.
+      if @sync_log&.persisted?
         @sync_log.update_columns(
           heartbeat_at:    Time.current,
           records_synced:  added + updated,
           records_failed:  failed
         )
-        Rails.logger.info "[SyncSheetJob] 💓 Heartbeat: #{added + updated} synced, #{failed} failed"
       end
 
       # ── 🧹 LIBERACIÓN AGRESIVA DE MEMORIA ─────────────────────────────────
-      # 1. Vaciar la cache de Auctions (se reconstruye si el siguiente chunk
-      #    tiene los mismos counties — trade-off aceptable por memoria).
-      # 2. Limpiar el identity map de ActiveRecord para liberar objetos Parcel
-      #    que ya fueron salvados y no se necesitan más.
-      # 3. Forzar GC para devolver memoria al SO inmediatamente.
       @auction_cache.clear
       ActiveRecord::Base.connection.clear_query_cache
       GC.start
-      # ⚠️ NO usar GC.compact — temporalmente duplica el uso de RAM al mover
-      # objetos, lo que puede empujar el worker de 512MB al OOM threshold.
-      # GC.start es suficiente para liberar objetos muertos.
+
+      # ── 🛡️ MEMORY SAFETY VALVE ─────────────────────────────────────────
+      # Si el RSS supera MAX_RSS_MB, abortamos GRACEFULLY antes de que
+      # Render nos mate con SIGKILL (que no ejecuta ensure/rescue).
+      rss = current_rss_mb
+      Rails.logger.info "[SyncSheetJob] Chunk #{chunk_index + 1} done | " \
+                        "RSS: #{rss} MB | Synced: #{added + updated} | Failed: #{failed}"
+
+      if rss > MAX_RSS_MB
+        Rails.logger.error "[SyncSheetJob] 🚨 RSS #{rss} MB > #{MAX_RSS_MB} MB limit! " \
+                           "Aborting sync gracefully to prevent OOM SIGKILL."
+        raise MemoryLimitExceeded, "RSS #{rss} MB exceeded #{MAX_RSS_MB} MB safety limit " \
+                                   "after #{added + updated} rows synced. " \
+                                   "Partial sync is safe (idempotent). Re-run to continue."
+      end
     end
 
     { added: added, updated: updated, skipped: skipped, failed: failed }
@@ -299,5 +328,24 @@ class SyncSheetJob < ApplicationJob
     GeocodeParcelsBatchJob.perform_later(without_coords)
   rescue StandardError => e
     Rails.logger.warn "[SyncSheetJob] Geocoding enqueue failed (non-fatal): #{e.message}"
+  end
+
+  # ── 📈 MEMORY MONITOR ──────────────────────────────────────────────────
+  # Lee el RSS (Resident Set Size) del proceso actual desde /proc/self/status.
+  # Esto es la memoria FÍSICA real que el proceso está usando.
+  # Solo funciona en Linux (Docker containers). En otros OS retorna 0.
+  def current_rss_mb
+    status_file = "/proc/self/status"
+    return 0 unless File.exist?(status_file)
+
+    File.readlines(status_file).each do |line|
+      if line.start_with?("VmRSS:")
+        # VmRSS está en kB: "VmRSS:   123456 kB"
+        return (line.split[1].to_i / 1024.0).round(1)
+      end
+    end
+    0
+  rescue StandardError
+    0
   end
 end

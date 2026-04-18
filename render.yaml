@@ -68,6 +68,17 @@ services:
       # Sidekiq with 2 threads → value 2 is optimal.
       - key: MALLOC_ARENA_MAX
         value: "2"
+      # Ruby GC tuning for 512MB Starter plan:
+      # - GROWTH_FACTOR 1.1: Heap grows 10% per GC cycle (default 1.8 = 80%)
+      # - GROWTH_MAX_SLOTS: Cap new slots per expansion
+      # - HEAP_FREE_SLOTS_MIN_RATIO: Keep fewer free slots (less wasted memory)
+      # Trade-off: more GC pauses, but dramatically lower peak memory.
+      - key: RUBY_GC_HEAP_GROWTH_FACTOR
+        value: "1.1"
+      - key: RUBY_GC_HEAP_GROWTH_MAX_SLOTS
+        value: "10000"
+      - key: RUBY_GC_HEAP_FREE_SLOTS_MIN_RATIO
+        value: "0.15"
       - key: DATABASE_URL
         fromDatabase:
           name: tax-sale-db
