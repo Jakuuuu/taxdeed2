@@ -27,7 +27,16 @@ class SyncLog < ApplicationRecord
   scope :completed, -> { where(status: %w[success completed_with_errors failed]) }
   scope :running,   -> { where(status: "running") }
   scope :successful, -> { where(status: "success") }
-  scope :zombies,   -> { running.where("started_at < ?", ZOMBIE_TIMEOUT.ago) }
+  # Un zombie es un SyncLog con status "running" cuya ÚLTIMA señal de vida
+  # (ya sea started_at o heartbeat_at) supera ZOMBIE_TIMEOUT.
+  # GREATEST() toma el más reciente de ambos timestamps.
+  # COALESCE() maneja el caso de syncs antiguos sin heartbeat_at (NULL).
+  scope :zombies, -> {
+    running.where(
+      "GREATEST(started_at, COALESCE(heartbeat_at, started_at)) < ?",
+      ZOMBIE_TIMEOUT.ago
+    )
+  }
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 🧟 AUTO-HEAL: Detecta y elimina registros zombie
@@ -51,11 +60,15 @@ class SyncLog < ApplicationRecord
 
     zombified.find_each do |log|
       elapsed_minutes = ((Time.current - log.started_at) / 60).round(0)
+      last_signal = log.heartbeat_at || log.started_at
+      signal_age = ((Time.current - last_signal) / 60).round(0)
+
       log.update!(
         status:           "failed",
-        error_message:    "Job Timeout - Zombie Process. Sync was stuck in 'running' for " \
-                          "#{elapsed_minutes} minutes. The Sidekiq worker likely crashed or " \
-                          "was killed (OOM/SIGKILL). Check Render dashboard → worker service.",
+        error_message:    "Job Timeout - Zombie Process. Sync ran for " \
+                          "#{elapsed_minutes} minutes total. Last heartbeat was " \
+                          "#{signal_age} minutes ago. The Sidekiq worker likely crashed " \
+                          "(OOM/SIGKILL). Check Render dashboard → worker service logs.",
         duration_seconds: (Time.current - log.started_at).round(1),
         completed_at:     Time.current
       )

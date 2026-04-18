@@ -47,7 +47,10 @@ services:
     runtime: docker
     plan: starter
     dockerfilePath: ./Dockerfile
-    dockerCommand: bundle exec sidekiq -C config/sidekiq.yml
+    # ⚠️ CRÍTICO: Usar docker-entrypoint para activar jemalloc (LD_PRELOAD).
+    # `dockerCommand` sobrescribe ENTRYPOINT + CMD del Dockerfile.
+    # Sin esto, el worker corre SIN jemalloc → fragmentación RAM → OOM a ~60min.
+    dockerCommand: ./bin/docker-entrypoint bundle exec sidekiq -C config/sidekiq.yml
     envVars:
       - key: RAILS_ENV
         value: production

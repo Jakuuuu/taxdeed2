@@ -126,13 +126,17 @@ class SyncSheetJob < ApplicationJob
       failed  += chunk_results[:failed]
 
       # ── 💓 HEARTBEAT — Previene falso zombie ────────────────────────────
-      # El zombie detector mata SyncLogs con started_at > 15 min ago.
-      # Para syncs legítimos que tardan más (sheets grandes), actualizamos
-      # started_at cada 3 chunks como "heartbeat" — el reloj zombie se
-      # reinicia sin perder la semántica original del timestamp.
+      # El zombie detector usa MAX(started_at, heartbeat_at) para calcular
+      # cuánto tiempo lleva el sync. Actualizamos heartbeat_at (NO started_at)
+      # cada 3 chunks para que el zombie detector sepa que seguimos vivos
+      # sin perder el timestamp original de inicio.
+      #
+      # ⚠️ BUG PREVIO: Se actualizaba started_at, lo que enmascaraba zombies
+      # reales — un proceso que moría a los 60 min no se detectaba hasta
+      # los 74 min (heartbeat a min 59 + 15 min timeout).
       if (chunk_index + 1) % 3 == 0 && @sync_log&.persisted?
         @sync_log.update_columns(
-          started_at:      Time.current,
+          heartbeat_at:    Time.current,
           records_synced:  added + updated,
           records_failed:  failed
         )
@@ -148,7 +152,9 @@ class SyncSheetJob < ApplicationJob
       @auction_cache.clear
       ActiveRecord::Base.connection.clear_query_cache
       GC.start
-      GC.compact if GC.respond_to?(:compact) # Ruby 2.7+ — defragmenta el heap
+      # ⚠️ NO usar GC.compact — temporalmente duplica el uso de RAM al mover
+      # objetos, lo que puede empujar el worker de 512MB al OOM threshold.
+      # GC.start es suficiente para liberar objetos muertos.
     end
 
     { added: added, updated: updated, skipped: skipped, failed: failed }
