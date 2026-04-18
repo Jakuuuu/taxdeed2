@@ -27,7 +27,8 @@ module SheetColumnMap
   SQFT_LOT            = 12  # col M  — Lot Area sqft
   SQFT_LIVING         = 13  # col N  — Lot Area Home (sqft)
 
-  # ⛔ cols O, P (14, 15) — Hab, Bd
+  HAB                 = 14  # col O  — Habitaciones (bathrooms/rooms)
+  BD                  = 15  # col P  — Dormitorios (bedrooms)
 
   MINIMUM_LOT_SIZE    = 16  # col Q  — Minimum Lot Size (texto)
   ZONING              = 17  # col R  — Zoning Code
@@ -78,7 +79,7 @@ module SheetColumnMap
   # ⛔ cols CA→CB (78→79) — Realforeclose, Zoning Ordinances
 
   # ── COLUMNAS IGNORADAS (documentadas para referencia) ────────────────────────
-  IGNORED_INTERNAL = [4, 5, 6, 14, 15, 35, 42, 78, 79].freeze
+  IGNORED_INTERNAL = [4, 5, 6, 35, 42, 78, 79].freeze  # HAB(14) y BD(15) ya no ignorados
   IGNORED_ZILLOW   = (44..67).to_a.freeze
   IGNORED_CALCS    = (69..75).to_a.freeze
 end

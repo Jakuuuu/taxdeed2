@@ -112,6 +112,7 @@ class SheetRowProcessor
       sqft_living:          Sanitize.decimal(col(SQFT_LIVING)),
 
       # ── TEXTO (Sanitize.text) ─────────────────────────────────────────
+      sale_venue:           Sanitize.text(col(SALE_VENUE)),
       address:              Sanitize.text(col(ADDRESS)),
       property_address:     Sanitize.text(col(PROPERTY_ADDRESS)),
       zip:                  Sanitize.text(col(ZIP)),
@@ -128,6 +129,10 @@ class SheetRowProcessor
       lot_shape:            Sanitize.text(col(LOT_SHAPE)),
       fema_notes:           Sanitize.text(col(FEMA_NOTES)),
       fema_risk_level:      Sanitize.text(col(FEMA_RISK_LEVEL)),
+
+      # ── ENTEROS (habitaciones y dormitorios) ───────────────────────────
+      bathrooms:            col(HAB).to_s.strip.presence&.to_i,
+      bedrooms:             col(BD).to_s.strip.presence&.to_i,
 
       # ── BOOLEANOS (Sanitize.boolean) ──────────────────────────────────
       electric:             Sanitize.boolean(col(ELECTRIC)),
