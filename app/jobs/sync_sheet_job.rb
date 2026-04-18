@@ -251,9 +251,19 @@ class SyncSheetJob < ApplicationJob
 
   def mark_sync_failed!(exception, prefix: "Error")
     elapsed = (Time.current - (@started_at || Time.current)).round(1)
+
+    # Capturar detalles extra de Google API errors
+    extra = ""
+    if exception.respond_to?(:status_code)
+      extra += " | HTTP #{exception.status_code}"
+    end
+    if exception.respond_to?(:body) && exception.body.present?
+      extra += " | Body: #{exception.body.to_s.truncate(500)}"
+    end
+
     @sync_log&.update!(
       status:           "failed",
-      error_message:    "[#{prefix}] #{exception.class}: #{exception.message}",
+      error_message:    "[#{prefix}] #{exception.class}: #{exception.message}#{extra}",
       duration_seconds: elapsed,
       completed_at:     Time.current,
       records_synced:   0,

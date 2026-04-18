@@ -83,6 +83,9 @@ class GoogleSheetsImporter
   # Reduce memoria de O(total_rows) a O(CHUNK_SIZE).
   # ═══════════════════════════════════════════════════════════════════════════
   def self.fetch_rows_in_chunks(sheet_id, chunk_size: CHUNK_SIZE)
+    Rails.logger.info "[GoogleSheetsImporter] 🔍 DIAGNOSTIC: sheet_id=#{sheet_id.inspect}, " \
+                      "tab=#{SHEET_TAB}, header_range=#{HEADER_RANGE}, chunk_size=#{chunk_size}"
+
     service = build_service
 
     # ── Paso 1: Validar headers ────────────────────────────────────────────
@@ -126,10 +129,15 @@ class GoogleSheetsImporter
 
     { headers: normalized_headers, total_rows: total_rows_fetched, total_chunks: chunk_index + 1 }
   rescue Google::Apis::AuthorizationError => e
-    Rails.logger.error "[GoogleSheetsImporter] Auth error: #{e.message}"
+    Rails.logger.error "[GoogleSheetsImporter] 🔐 Auth error: #{e.message}"
+    Rails.logger.error "[GoogleSheetsImporter]    status_code=#{e.status_code rescue 'N/A'}, body=#{e.body rescue 'N/A'}"
     raise
   rescue Google::Apis::ClientError => e
-    Rails.logger.error "[GoogleSheetsImporter] Client error: #{e.message}"
+    Rails.logger.error "[GoogleSheetsImporter] ❌ Client error: #{e.message}"
+    Rails.logger.error "[GoogleSheetsImporter]    status_code=#{e.status_code rescue 'N/A'}"
+    Rails.logger.error "[GoogleSheetsImporter]    body=#{e.body rescue 'N/A'}"
+    Rails.logger.error "[GoogleSheetsImporter]    sheet_id=#{sheet_id.inspect}"
+    Rails.logger.error "[GoogleSheetsImporter]    backtrace=#{e.backtrace&.first(5)&.join("\n")}"
     raise
   end
 
