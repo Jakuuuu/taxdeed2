@@ -94,6 +94,9 @@ class GoogleSheetsImporter
     normalized_headers = raw_headers.map { |h| h.to_s.strip.gsub(/\u00A0/, " ").strip }
     validate_headers!(normalized_headers)
 
+    # 🔍 DIAGNOSTIC: Dump header positions to identify column shifts
+    header_map = normalized_headers.each_with_index.map { |h, i| "#{i}=#{h}" }.first(25)
+    Rails.logger.info "[GoogleSheetsImporter] 🗺️ HEADER MAP: #{header_map.join(' | ')}"
     Rails.logger.info "[GoogleSheetsImporter] 🛡️ Headers validados OK (#{normalized_headers.size} columnas)"
 
     # ── Paso 2: Iterar por ventanas de rango ───────────────────────────────
@@ -115,6 +118,12 @@ class GoogleSheetsImporter
       break if rows.empty?
 
       total_rows_fetched += rows.size
+
+      # 🔍 DIAGNOSTIC: Log first row of first chunk to verify column alignment
+      if chunk_index == 0 && rows.any?
+        sample = rows.first.each_with_index.map { |v, i| "#{i}=#{v.to_s.truncate(25)}" }.first(15)
+        Rails.logger.info "[GoogleSheetsImporter] 🔬 FIRST ROW DATA: #{sample.join(' | ')}"
+      end
 
       # Yield el chunk al caller — después del yield, `rows` es eligible para GC
       yield rows, chunk_index

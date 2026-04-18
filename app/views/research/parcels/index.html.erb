@@ -297,6 +297,33 @@
   }
   .picker-search input:focus { border-color: var(--color-primary); }
 
+  /* ── Phase 2 Individual Parcel Pin — Advanced Marker (coherente) ── */
+  .r2-parcel-pin {
+    display: flex; flex-direction: column; align-items: center;
+    cursor: pointer; user-select: none;
+  }
+  .r2-parcel-pin__dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #1B2A4A;
+    border: 2.5px solid rgba(52,152,219,0.75);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .r2-parcel-pin:hover .r2-parcel-pin__dot {
+    transform: scale(1.35);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+    background: #2E86C1;
+  }
+  .r2-parcel-pin__label {
+    margin-top: 3px;
+    padding: 2px 6px; border-radius: 4px;
+    background: #1B2A4A; color: #fff;
+    font-size: 0.62rem; font-weight: 700;
+    font-family: var(--font); white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    line-height: 1.4;
+  }
+
 </style>
 <% end %>
 
@@ -440,16 +467,13 @@
             </div>
             <% @picker_counties_by_state.each_with_index do |(state, county_rows), index| %>
               <div class="picker-state-details" id="state-auctions-<%= state.parameterize %>" style="display: <%= index == 0 ? 'block' : 'none' %>;">
-                <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:1rem;border-bottom:1px solid var(--color-border);margin-bottom:1rem;">
+                <div style="padding-bottom:1rem;border-bottom:1px solid var(--color-border);margin-bottom:1rem;">
                   <h3 style="font-size:1rem;font-weight:700;color:var(--color-primary);margin:0;">
                     Condados con subastas en <%= state %>
                   </h3>
-                  <button type="button"
-                     class="btn-sm btn-sm-primary"
-                     style="font-size:.75rem;padding:.35rem .85rem;white-space:nowrap;text-decoration:none;"
-                     onclick="selectStateFromPicker('<%= state %>')">
-                    🗺 View All <%= county_rows.sum { |c| c[:parcel_count] } %> Properties →
-                  </button>
+                  <p style="font-size:.75rem;color:var(--color-text-muted);margin:.25rem 0 0;">
+                    Selecciona un condado específico para ver sus propiedades.
+                  </p>
                 </div>
                 <div class="picker-state-rows open">
                   <% county_rows.each do |county_row| %>
@@ -939,11 +963,9 @@ function selectCountyFromPicker(county, state) {
   enterPhase2Async(null, county, state);
 }
 
-// Called from "View All X Properties" in picker — state-level
-function selectStateFromPicker(state) {
-  closeAuctionPickerDirect();
-  enterPhase2Async(null, null, state);
-}
+// selectStateFromPicker() ELIMINADO — cargar todo un estado está PROHIBIDO.
+// Regla arquitectónica: Fase 2 requiere county+state o auction_id.
+// Usar selectCountyFromPicker() para drill-down correcto.
 
 // ── Core Phase 2 entry (async) ──────────────────────────────
 function enterPhase2Async(auctionId, county, state) {
@@ -961,15 +983,15 @@ function enterPhase2Async(auctionId, county, state) {
   // Relocate the map to the split-screen top panel
   relocateMapToPhase2();
 
-  // Update topbar county label
+  // Update topbar county label — state-only mode REMOVED
   var label = document.getElementById('r2-phase2-county-label');
   if (label) {
     if (county && state) {
       label.textContent = county + ', ' + state;
-    } else if (state) {
-      label.textContent = 'All properties in ' + state;
-    } else {
+    } else if (auctionId) {
       label.textContent = 'Auction #' + auctionId;
+    } else {
+      label.textContent = 'Seleccionar condado';
     }
   }
 
@@ -1059,23 +1081,44 @@ function loadPhase2Markers(auctionId, county, state) {
         bounds.extend(position);
         var marker;
 
+        var bid = p.opening_bid ? '$' + Math.round(p.opening_bid).toLocaleString() : '—';
+        var typeLabel = p.property_type || '—';
+
         if (useAdvanced) {
+          // ── Advanced Marker: pin personalizado coherente ──
+          var pinEl = document.createElement('div');
+          pinEl.className = 'r2-parcel-pin';
+          pinEl.innerHTML =
+            '<div class="r2-parcel-pin__dot"></div>' +
+            '<div class="r2-parcel-pin__label">' + bid + '</div>';
           marker = new google.maps.marker.AdvancedMarkerElement({
-            position: position
+            position: position,
+            content:  pinEl,
+            title:    p.address || p.parcel_id || ''
           });
         } else {
           marker = new google.maps.Marker({
-            position: position
+            map: r2Map,
+            position: position,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#1B2A4A',
+              fillOpacity: 0.92,
+              strokeColor: 'rgba(52,152,219,0.6)',
+              strokeWeight: 2
+            },
+            title: p.address || ''
           });
         }
 
-        var bid = p.opening_bid ? '$' + Math.round(p.opening_bid).toLocaleString() : '—';
         var popupHtml =
           '<div class="r2-popup">' +
-            '<h4>' + (p.address || 'Unknown') + '</h4>' +
+            '<h4>' + (p.address || 'Parcel ' + p.parcel_id) + '</h4>' +
             '<div class="r2-popup-row"><span>County</span><strong>' + [p.county, p.state].filter(Boolean).join(', ') + '</strong></div>' +
             '<div class="r2-popup-row"><span>Opening Bid</span><strong>' + bid + '</strong></div>' +
-            '<button class="r2-popup-cta" onclick="openParcelDrawer(\'/research/parcels/' + p.id + '\')">View Property Card →</button>' +
+            '<div class="r2-popup-row"><span>Type</span><strong>' + typeLabel + '</strong></div>' +
+            '<button class="r2-popup-cta" onclick="openParcelDrawer(\'/research/parcels/' + p.id + '\')">View Property Card &#8594;</button>' +
           '</div>';
 
         marker.addListener('click', function() {
