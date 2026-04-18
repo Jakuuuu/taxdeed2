@@ -93,9 +93,41 @@ class Admin::SyncController < Admin::BaseController
                   alert: "A sync is already in progress. Please wait for it to finish."
     else
       # result is the SyncLog instance
-      SyncSheetJob.perform_later(nil, result.id)
+      #
+      # ── THREAD EN PROCESO WEB (en vez de Sidekiq worker) ────────────────
+      # ¿Por qué? El worker Sidekiq en Render Starter (512MB) carga:
+      #   Rails (~200MB) + Sidekiq server (~100MB) = ~350MB base
+      #   → Solo quedan ~150MB → OOM/SIGKILL antes del primer chunk.
+      #
+      # El proceso web (Puma) YA tiene Rails cargado (~250MB base).
+      # Un thread adicional solo añade el payload del sync (~100-150MB).
+      # Total pico: ~400MB < 512MB → cabe con ~110MB de headroom.
+      #
+      # Puma threads: 3, DB pool: 5 → el sync usa 1 conexión extra → OK.
+      #
+      # Rails.application.executor.wrap garantiza:
+      #   - Autoloading funciona en el thread
+      #   - Conexión DB se obtiene del pool y se devuelve al terminar
+      #   - Thread independiente del ciclo de vida del request HTTP
+      #
+      # Si el proceso web se reinicia durante el sync:
+      #   - SyncLog queda "running" → expire_zombies! lo limpia
+      #   - El sync es idempotente (upsert) → re-run seguro
+      #
+      sync_log_id = result.id
+      Thread.new do
+        Rails.application.executor.wrap do
+          SyncSheetJob.new.perform(nil, sync_log_id)
+        rescue StandardError => e
+          Rails.logger.error "[Admin::Sync] ⚠️ Background sync thread failed: #{e.class}: #{e.message}"
+          Rails.logger.error e.backtrace&.first(10)&.join("\n")
+        ensure
+          ActiveRecord::Base.connection_handler.clear_active_connections!
+        end
+      end
+
       redirect_to admin_sync_path,
-                  notice: "Sync job enqueued. It will run in the background and update this dashboard."
+                  notice: "Sync started in background. Refresh this page to see progress."
     end
   end
 
