@@ -1,4 +1,4 @@
-<% content_for :title, "Property Search — TaxDeed Lion" %>
+﻿<% content_for :title, "Property Search — TaxDeed Lion" %>
 
 <%# ══════════════════════════════════════════════════════════════════════
      RAMA 2: Geographic Search Module — Two-Phase Flow
@@ -209,27 +209,28 @@
   .r2-table .col-bid      { width: 10%; text-align: right; }
   .r2-table .col-value    { width: 10%; text-align: right; }
 
-  /* ── Locked / Blurred cells ─────────────────────────────── */
-  .td-locked {
-    position: relative;
-    display: inline-flex; align-items: center; gap: 0.3rem;
+  /* ── Masked / Partially-hidden cells (soft paywall) ────── */
+  .td-masked {
+    display: inline-flex; align-items: center; gap: 0.35rem;
     width: 100%;
   }
-  .td-locked__text {
-    filter: blur(4px);
-    user-select: none; pointer-events: none;
+  .td-masked__visible {
     color: var(--color-text);
-    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .td-locked__icon {
     flex-shrink: 0;
-    font-size: 0.72rem; color: #90A4AE;
-    opacity: 0.8;
   }
-  /* Address locked: show city/state prefix unblurred, blur number */
-  .td-locked--address .td-locked__text { filter: blur(3.5px); }
-  /* Hover reveals CTA */
-  .r2-table tbody tr:hover .td-locked__icon { color: var(--color-primary); opacity: 1; }
+  .td-masked__hidden {
+    color: var(--color-text-muted);
+    letter-spacing: 0.08em;
+    opacity: 0.55;
+    user-select: none;
+  }
+  .td-masked__lock {
+    flex-shrink: 0;
+    font-size: 0.65rem; color: #90A4AE;
+    opacity: 0.7;
+    margin-left: auto;
+  }
+  .r2-table tbody tr:hover .td-masked__lock { color: var(--color-primary); opacity: 1; }
 
   /* ── Pagination bar ── */
   .r2-list-pagination {
@@ -1222,48 +1223,42 @@ function updateSortArrows() {
   allThs.forEach(function(th) {
     var onclick = th.getAttribute('onclick');
     if (onclick && onclick.indexOf("'" + currentSortBy + "'") !== -1) {
-      th.classList.add(currentSortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
-    }
-  });
-}
+      t        // ── Helper: show partial info with asterisks for locked properties ──
+        function maskedCell(value, showChars) {
+          if (p.unlocked) return value || '—';
+          var raw = value || '—';
+          if (raw === '—') return raw;
+          var visible = raw.substring(0, showChars);
+          var masked  = raw.length > showChars ? raw.substring(showChars).replace(/[^\s]/g, '*') : '';
+          return '<span class="td-masked">' +
+                   '<span class="td-masked__visible">' + visible + '</span>' +
+                   '<span class="td-masked__hidden">' + masked + '</span>' +
+                   '<span class="td-masked__lock" title="Unlock to reveal full data">🔒</span>' +
+                 '</span>';
+        }
+        function maskedAddress(value) {
+          if (p.unlocked) return value || '—';
+          var raw = value || '—';
+          if (raw === '—') return raw;
+          // Show street number + first word, mask the rest
+          var parts = raw.split(' ');
+          var show  = parts.slice(0, 2).join(' ');
+          var hide  = parts.length > 2 ? ' ' + parts.slice(2).join(' ').replace(/[^\s]/g, '*') : '';
+          return '<span class="td-masked">' +
+                   '<span class="td-masked__visible">' + show + '</span>' +
+                   '<span class="td-masked__hidden">' + hide + '</span>' +
+                   '<span class="td-masked__lock" title="Unlock to reveal full address">🔒</span>' +
+                 '</span>';
+        }
 
-function sortColumn(field) {
-  if (currentSortBy === field) {
-    currentSortDir = (currentSortDir === 'asc') ? 'desc' : 'asc';
-  } else {
-    currentSortBy = field;
-    currentSortDir = 'asc';
-  }
-  loadParcelsList(1);
-}
-
-function toggleSelectAll(master) {
-  var checks = document.querySelectorAll('.r2-row-check');
-  checks.forEach(function(cb) { cb.checked = master.checked; });
-}
-
-// Smart page numbers: 1 2 3 ... 10 11 12 ... 56 57
-function buildPageNumbers(current, total) {
-  if (total <= 7) {
-    var arr = [];
-    for (var i = 1; i <= total; i++) arr.push(i);
-    return arr;
-  }
-  var pages = [];
-  pages.push(1);
-  if (current > 4) pages.push('...');
-  var start = Math.max(2, current - 2);
-  var end   = Math.min(total - 1, current + 2);
-  for (var j = start; j <= end; j++) pages.push(j);
-  if (current < total - 3) pages.push('...');
-  pages.push(total);
-  return pages;
-}
-
-
-// ══════════════════════════════════════════════════════════════
-// PHASE 2: Load parcel LIST into the bottom panel (async JSON)
-// ══════════════════════════════════════════════════════════════
+        html += '<tr onclick="openParcelDrawer(\'' + p.show_path + '\')">'; 
+        html += '<td class="col-checkbox" onclick="event.stopPropagation()"><input type="checkbox" class="r2-row-check" value="' + p.id + '"></td>';
+        html += '<td class="td-address">'  + maskedAddress(p.address)                       + '</td>';
+        html += '<td>'                     + (p.city || '—')                               + '</td>';
+        html += '<td>'                     + maskedCell(p.zip, 3)                           + '</td>';
+        html += '<td class="td-parcel">'   + maskedCell(p.parcel_id, 4)                     + '</td>';
+        html += '<td>'                     + (p.property_type || '—')                      + '</td>';
+        html += '<td class="td-bid">'      + bid                                            + '</td>';��═══════════════════════════════════════════
 function loadParcelsList(page) {
   var listContent    = document.getElementById('r2-list-content');
   var listPagination = document.getElementById('r2-list-pagination');
@@ -1343,21 +1338,39 @@ function loadParcelsList(page) {
           ? '$' + Number(p.opening_bid).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})
           : '—';
 
-        // ── Helper: wrap a value in blur markup if property is locked ──
-        function lockedCell(value, extraClass) {
+        // ── Helper: show partial info with asterisks for locked properties ──
+        function maskedCell(value, showChars) {
           if (p.unlocked) return value || '—';
-          return '<span class="td-locked ' + (extraClass || '') + '">' +
-                   '<span class="td-locked__text">' + (value || '—') + '</span>' +
-                   '<span class="td-locked__icon" title="Unlock to reveal">🔒</span>' +
+          var raw = value || '—';
+          if (raw === '—') return raw;
+          var visible = raw.substring(0, showChars);
+          var masked  = raw.length > showChars ? raw.substring(showChars).replace(/[^\s]/g, '*') : '';
+          return '<span class="td-masked">' +
+                   '<span class="td-masked__visible">' + visible + '</span>' +
+                   '<span class="td-masked__hidden">' + masked + '</span>' +
+                   '<span class="td-masked__lock" title="Unlock to reveal full data">🔒</span>' +
+                 '</span>';
+        }
+        function maskedAddress(value) {
+          if (p.unlocked) return value || '—';
+          var raw = value || '—';
+          if (raw === '—') return raw;
+          var parts = raw.split(' ');
+          var show  = parts.slice(0, 2).join(' ');
+          var hide  = parts.length > 2 ? ' ' + parts.slice(2).join(' ').replace(/[^\s]/g, '*') : '';
+          return '<span class="td-masked">' +
+                   '<span class="td-masked__visible">' + show + '</span>' +
+                   '<span class="td-masked__hidden">' + hide + '</span>' +
+                   '<span class="td-masked__lock" title="Unlock to reveal full address">🔒</span>' +
                  '</span>';
         }
 
         html += '<tr onclick="openParcelDrawer(\'' + p.show_path + '\')">';
         html += '<td class="col-checkbox" onclick="event.stopPropagation()"><input type="checkbox" class="r2-row-check" value="' + p.id + '"></td>';
-        html += '<td class="td-address">'  + lockedCell(p.address,   'td-locked--address') + '</td>';
+        html += '<td class="td-address">'  + maskedAddress(p.address)                       + '</td>';
         html += '<td>'                     + (p.city || '—')                               + '</td>';
-        html += '<td>'                     + lockedCell(p.zip)                             + '</td>';
-        html += '<td class="td-parcel">'   + lockedCell(p.parcel_id)                       + '</td>';
+        html += '<td>'                     + maskedCell(p.zip, 3)                           + '</td>';
+        html += '<td class="td-parcel">'   + maskedCell(p.parcel_id, 4)                     + '</td>';
         html += '<td>'                     + (p.property_type || '—')                      + '</td>';
         html += '<td class="td-bid">'      + bid                                            + '</td>';
         html += '</tr>';
