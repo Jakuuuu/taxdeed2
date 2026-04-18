@@ -129,6 +129,7 @@ class SheetRowProcessor
       lot_shape:            Sanitize.text(col(LOT_SHAPE)),
       fema_notes:           Sanitize.text(col(FEMA_NOTES)),
       fema_risk_level:      Sanitize.text(col(FEMA_RISK_LEVEL)),
+      comments_do_va:       Sanitize.text(col(COMMENTS_DO_VA)),
 
       # ── ENTEROS (habitaciones y dormitorios) ───────────────────────────
       bathrooms:            col(HAB).to_s.strip.presence&.to_i,

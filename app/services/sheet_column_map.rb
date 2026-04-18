@@ -17,7 +17,9 @@ module SheetColumnMap
   SALE_VENUE          = 2   # col C  — Sale Venue (NUEVA — 2026-04-18)
   PARCEL_ID           = 3   # col D  — Parcel Number
 
-  # ⛔ cols E, F, G (4, 5, 6) — Estatus, NOTAS, Comments do VA
+  ESTATUS             = 4   # col E  — Estatus
+  NOTAS               = 5   # col F  — NOTAS internas
+  COMMENTS_DO_VA      = 6   # col G  — Comments do VA (Anlisis del Virtual Assistant)
 
   AUCTION_DATE        = 7   # col H  — Auction Date (MM/DD/YYYY)
   MARKET_VALUE        = 8   # col I  — Appraisal (Market Value)
@@ -79,7 +81,7 @@ module SheetColumnMap
   # ⛔ cols CA→CB (78→79) — Realforeclose, Zoning Ordinances
 
   # ── COLUMNAS IGNORADAS (documentadas para referencia) ────────────────────────
-  IGNORED_INTERNAL = [4, 5, 6, 35, 42, 78, 79].freeze  # HAB(14) y BD(15) ya no ignorados
+  IGNORED_INTERNAL = [4, 5, 35, 42, 78, 79].freeze  # col 6 (COMMENTS_DO_VA) ahora se mapea
   IGNORED_ZILLOW   = (44..67).to_a.freeze
   IGNORED_CALCS    = (69..75).to_a.freeze
 end

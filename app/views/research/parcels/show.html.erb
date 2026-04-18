@@ -1179,7 +1179,36 @@
       </div>
     </div>
 
-    <%# ─ 5. GIS MAP — SIEMPRE VISIBLE (fuera del paywall) ───────────── %>
+    <%# ─ 5. VA ANALYSIS — SIEMPRE VISIBLE (datos del equipo VA) ───── %>
+    <%# Siempre visible: es inteligencia interna del equipo, no paywall %>
+    <% if @parcel.comments_do_va.present? %>
+    <div class="fp-card" id="ficha-va-comments">
+      <div class="fp-card__hdr" style="background: linear-gradient(135deg, #FFF8E1 0%, #FFF3CD 100%); border-bottom-color: rgba(218,165,32,0.25);">
+        <span class="fp-card__hdr-icon">📋</span>
+        <h3 class="fp-card__hdr-title" style="color: #856404;">VA Analysis</h3>
+        <span class="fp-card__hdr-badge" style="background: rgba(218,165,32,0.12); color: #856404; border-color: rgba(218,165,32,0.3);">Research Notes</span>
+      </div>
+      <div class="fp-card__body">
+        <div style="
+          background: #FFFDE7;
+          border: 1px solid rgba(218,165,32,0.3);
+          border-left: 4px solid #F9A825;
+          border-radius: 8px;
+          padding: 16px 18px;
+          font-size: 13.5px;
+          line-height: 1.65;
+          color: #4A3800;
+          white-space: pre-wrap;
+          font-family: var(--fp-font-ui);
+        "><%= @parcel.comments_do_va %></div>
+        <p style="font-size: 11px; color: var(--fp-text-muted); margin: 10px 0 0; text-align: right;">
+          📌 Análisis del equipo de Virtual Assistants — no editable por el usuario
+        </p>
+      </div>
+    </div>
+    <% end %>
+
+    <%# ─ 6. GIS MAP — SIEMPRE VISIBLE (fuera del paywall) ───────────── %>
     <%# Regla 43/44: GIS Map + Street View SIEMPRE visibles %>
     <div class="fp-card" id="ficha-gis">
       <div class="fp-card__hdr">
