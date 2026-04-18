@@ -729,7 +729,10 @@ function initSingleMap(callback) {
     ]
   };
   var mapIdMeta = document.querySelector('meta[name="google-maps-map-id"]');
-  if (mapIdMeta) mapOptions.mapId = mapIdMeta.content;
+  if (mapIdMeta) {
+    mapOptions.mapId = mapIdMeta.content;
+    delete mapOptions.styles; // styles are ignored when mapId is present
+  }
 
   r2Map = new google.maps.Map(mapDiv, mapOptions);
   r2InfoWindow = new google.maps.InfoWindow();
@@ -809,16 +812,16 @@ function enterPhase1() {
     r2Map.setCenter({ lat: 39.8, lng: -98.5 });
     r2Map.setZoom(5);
     r2Map.setMapTypeId('roadmap');
-    r2Map.setOptions({
-      mapTypeControl: false,
-      fullscreenControl: false,
-      styles: [
+    var p1Options = { mapTypeControl: false, fullscreenControl: false };
+    if (!r2Map.getMapId || !r2Map.getMapId()) {
+      p1Options.styles = [
         { featureType: 'poi', stylers: [{ visibility: 'off' }] },
         { featureType: 'transit', stylers: [{ visibility: 'off' }] },
         { featureType: 'water', stylers: [{ color: '#c9d6e5' }] },
         { featureType: 'landscape', stylers: [{ color: '#f5f5f5' }] }
-      ]
-    });
+      ];
+    }
+    r2Map.setOptions(p1Options);
     google.maps.event.trigger(r2Map, 'resize');
   }
 
@@ -1023,11 +1026,11 @@ function enterPhase2Async(auctionId, county, state) {
   // Configure map for Phase 2 — satellite hybrid + controls
   if (r2Map) {
     r2Map.setMapTypeId('hybrid');
-    r2Map.setOptions({
-      mapTypeControl: true,
-      fullscreenControl: true,
-      styles: [] // Reset to default for satellite
-    });
+    var p2Options = { mapTypeControl: true, fullscreenControl: true };
+    if (!r2Map.getMapId || !r2Map.getMapId()) {
+      p2Options.styles = []; // Reset to default for satellite
+    }
+    r2Map.setOptions(p2Options);
   }
 
   // Update URL without page reload
@@ -1065,7 +1068,12 @@ function enterPhase2Async(auctionId, county, state) {
       // Load markers + list AFTER map is positioned correctly
       loadPhase2Markers(auctionId, county, state);
       loadParcelsList(1);
-    }, 100); // 100ms to let CSS flex/height calculations complete
+
+      // Safety: secondary resize in case CSS reflow was slow
+      setTimeout(function() {
+        if (r2Map) google.maps.event.trigger(r2Map, 'resize');
+      }, 400);
+    }, 200); // 200ms to let CSS flex/height calculations complete
   });
 }
 
