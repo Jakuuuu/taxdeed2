@@ -196,6 +196,9 @@ module Research
         render json: { error: "county+state or auction_id is required" }, status: :bad_request and return
       end
 
+      # Apply the same inline filters as the list (min_bid, max_bid, property_type, q)
+      parcels = apply_parcel_filters(parcels)
+
       parcels = parcels.select(
         :id, :address, :city, :county, :state, :zip_code,
         :parcel_id, :opening_bid, :latitude, :longitude,

@@ -1064,6 +1064,16 @@ function loadPhase2Markers(auctionId, county, state) {
   }
   if (!params.length) return;
 
+  // ── Sync with inline filters (same params as the list) ──
+  var minBid   = document.getElementById('r2-filter-min-bid');
+  var maxBid   = document.getElementById('r2-filter-max-bid');
+  var propType = document.getElementById('r2-filter-property-type');
+  var search   = document.getElementById('r2-topbar-search');
+  if (minBid   && minBid.value)        params.push('min_bid='       + minBid.value);
+  if (maxBid   && maxBid.value)        params.push('max_bid='       + maxBid.value);
+  if (propType && propType.value)      params.push('property_type=' + encodeURIComponent(propType.value));
+  if (search   && search.value.trim()) params.push('q='             + encodeURIComponent(search.value.trim()));
+
   fetchUrl += '?' + params.join('&');
 
   fetch(fetchUrl, { headers: { 'Accept': 'application/json' } })
@@ -1430,7 +1440,7 @@ function clearInlineFilters() {
 function debounceSearch() {
   clearTimeout(searchDebounce);
   searchDebounce = setTimeout(function() {
-    loadParcelsList(1);
+    applyInlineFilters(); // reloads both list AND map markers
   }, 400);
 }
 
