@@ -46,12 +46,10 @@
         <% @auctions.each do |auction| %>
           <tr>
             <td>
-              <div style="font-weight:600;color:#1E3A5F;"><%= auction.name %></div>
-              <% if auction.website_url.present? %>
-                <div style="font-size:0.75rem;">
-                  <a href="<%= auction.website_url %>" target="_blank" style="color:#C9A84C;">Official site ↗</a>
-                </div>
-              <% end %>
+              <div style="font-weight:600;color:#1E3A5F;"><%= "#{auction.county}, #{auction.state}" %></div>
+              <div style="font-size:0.75rem;color:#6C757D;">
+                <%= auction.sale_date&.strftime("%b %d, %Y") || "No date" %>
+              </div>
             </td>
             <td style="font-size:0.875rem;">
               <%= auction.county %><br>
