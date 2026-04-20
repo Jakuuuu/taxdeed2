@@ -80,7 +80,13 @@ module Sanitize
   def self.url(val)
     cleaned = text(val)
     return nil if cleaned.nil?
-    cleaned.start_with?("http://", "https://") ? cleaned : nil
+    
+    # Auto-prefix si no empieza con http:// o https://
+    unless cleaned.start_with?("http://", "https://")
+      cleaned = "https://#{cleaned}"
+    end
+    
+    cleaned
   end
 
   # ── COORDENADA ────────────────────────────────────────────────────────────────

@@ -566,6 +566,7 @@ var r2InfoWindow     = null;   // Shared InfoWindow (reused everywhere)
 var currentPhase     = HAS_CONTEXT ? 2 : 1;
 var phase2MapLoaded  = false;  // Whether Phase 2 markers are loaded
 var r2Initialized    = false;  // Guard: prevent double-init from multiple events
+var phase1LoadGen    = 0;      // Generation counter: prevents stale Phase 1 fetches from adding markers
 
 // Phase 2 context (for async list loading)
 var p2Context = { auctionId: null, county: null, state: null, page: 1 };
@@ -745,13 +746,21 @@ function initSingleMap(callback) {
 // OVERLAY CLEANUP — remove markers/circles/clusters from map
 // ══════════════════════════════════════════════════════════════
 function clearPhase1Overlays() {
+  // Increment generation to invalidate any in-flight loadPhase1Data fetch
+  phase1LoadGen++;
+
   phase1Markers.forEach(function(m) {
-    if (m.setMap) m.setMap(null);
-    if (m.map !== undefined) m.map = null;
+    // AdvancedMarkerElement uses .map property, legacy Marker uses .setMap()
+    try {
+      if (m.setMap) m.setMap(null);
+      if (m.map !== undefined) m.map = null;
+    } catch(e) { /* ignore already-detached markers */ }
   });
   phase1Markers = [];
 
-  phase1Circles.forEach(function(c) { c.setMap(null); });
+  phase1Circles.forEach(function(c) {
+    try { c.setMap(null); } catch(e) { /* ignore */ }
+  });
   phase1Circles = [];
 }
 
@@ -835,6 +844,10 @@ function enterPhase1() {
 function loadPhase1Data() {
   if (!r2Map) return;
 
+  // Capture the current generation — if it changes before fetch completes,
+  // the user navigated away from Phase 1 and we must discard results.
+  var myGen = phase1LoadGen;
+
   var loadingEl = document.getElementById('r2-phase1-loading');
   if (!loadingEl) {
     loadingEl = document.createElement('div');
@@ -851,6 +864,15 @@ function loadPhase1Data() {
       return r.json();
     })
     .then(function(counties) {
+      // ══ RACE CONDITION GUARD ══════════════════════════════════════
+      // If the user already navigated to Phase 2 (or triggered another
+      // Phase 1 load), this fetch result is STALE — discard it.
+      if (myGen !== phase1LoadGen || currentPhase !== 1) {
+        console.log('[R2] Stale Phase 1 fetch discarded (gen ' + myGen + ' vs ' + phase1LoadGen + ', phase ' + currentPhase + ')');
+        return;
+      }
+      // ═════════════════════════════════════════════════════════════
+
       var loading = document.getElementById('r2-phase1-loading');
       if (loading) loading.remove();
 
@@ -867,6 +889,9 @@ function loadPhase1Data() {
 
       // ── Heatmap simulation: Google Maps circles ──
       counties.forEach(function(c) {
+        // Double-check we're still in Phase 1 (guard against fast navigation)
+        if (currentPhase !== 1) return;
+
         var intensity = Math.min(c.parcel_count / 20, 1);
         var color = intensity < 0.3 ? '#3498DB' :
                     intensity < 0.6 ? '#1ABC9C' :
@@ -884,6 +909,14 @@ function loadPhase1Data() {
         });
         phase1Circles.push(circle);
       });
+
+      // Final phase check before creating markers
+      if (currentPhase !== 1) {
+        // Clean up circles we just created
+        phase1Circles.forEach(function(c) { try { c.setMap(null); } catch(e) {} });
+        phase1Circles = [];
+        return;
+      }
 
       // ── County pins (Advanced Markers with custom HTML) ──
       counties.forEach(function(county) {
@@ -960,6 +993,7 @@ function loadPhase1Data() {
     })
     .catch(function(err) {
       console.error('County overview load failed:', err);
+      if (currentPhase !== 1) return; // Don't show error if we already left Phase 1
       var loading = document.getElementById('r2-phase1-loading');
       if (loading) loading.innerHTML = '<span style="color:var(--color-danger);">⚠️ Failed to load geographic data. <button onclick="loadPhase1Data()" style="text-decoration:underline;background:none;border:none;cursor:pointer;">Retry</button></span>';
     });
@@ -1002,7 +1036,10 @@ function enterPhase2Async(auctionId, county, state) {
   var shell = document.getElementById('r2-shell');
   shell.classList.add('r2-in-phase2');
 
-  // Clear Phase 1 overlays from the single map
+  // Clear Phase 1 overlays from the single map.
+  // clearAllOverlays() also increments phase1LoadGen, which invalidates
+  // any in-flight loadPhase1Data() fetch — preventing the race condition
+  // where stale Phase 1 markers appear on top of Phase 2.
   clearAllOverlays();
 
   // Relocate the map to the split-screen top panel

@@ -20,17 +20,26 @@
       { icon: "🌊", title: "FEMA Flood Map",         desc: "Riesgo de inundación",               url: @parcel.fema_url             }
     ] %>
 
-    <% resources.each do |r| %>
-      <% if r[:url].present? %>
-        <a href="<%= r[:url] %>" target="_blank" rel="noopener" class="fp-resource-item">
-          <span class="fp-resource-icon"><%= r[:icon] %></span>
-          <div class="fp-resource-text">
-            <div class="fp-resource-title"><%= r[:title] %></div>
-            <div class="fp-resource-desc"><%= r[:desc] %></div>
-          </div>
-          <span class="fp-resource-arrow">↗</span>
-        </a>
+    <% has_resources = resources.any? { |r| r[:url].present? } %>
+    
+    <% if has_resources %>
+      <% resources.each do |r| %>
+        <% if r[:url].present? %>
+          <a href="<%= r[:url] %>" target="_blank" rel="noopener" class="fp-resource-item">
+            <span class="fp-resource-icon"><%= r[:icon] %></span>
+            <div class="fp-resource-text">
+              <div class="fp-resource-title"><%= r[:title] %></div>
+              <div class="fp-resource-desc"><%= r[:desc] %></div>
+            </div>
+            <span class="fp-resource-arrow">↗</span>
+          </a>
+        <% end %>
       <% end %>
+    <% else %>
+      <div class="fp-empty-state" style="padding: 24px 16px; text-align: center; color: var(--fp-text-muted);">
+        <div style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;">📭</div>
+        <p style="margin: 0; font-size: 13px;">No external resources available for this property.</p>
+      </div>
     <% end %>
   </div>
 </div>

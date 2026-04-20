@@ -21,21 +21,16 @@
     </div>
   </div>
 
-  <%# ── Title + Address ───────────────────────────────────────────── %>
-  <h1 class="fp-hero__title">PROPERTY INTELLIGENCE REPORT</h1>
-  <div class="fp-hero__address-line">
+  <%# ── Address & Location ───────────────────────────────────────────── %>
+  <h1 class="fp-hero__title" style="display: flex; align-items: center; gap: 8px;">
     <span class="fp-hero__pin">📍</span>
-    <span class="fp-hero__address"><%= @parcel.address.presence || "Address not available" %></span>
-  </div>
-  <p class="fp-hero__location">
-    <% location_parts = []
-       location_parts << @parcel.city if @parcel.city.present?
-       county_state = [@parcel.county.presence&.then { |c| "#{c} County" }, @parcel.state.presence].compact.join(", ")
-       location_parts << county_state if county_state.present?
-       location_parts << @parcel.zip if @parcel.zip.present?
-    %>
-    <%= location_parts.join(" · ") %>
-  </p>
+    <%= @parcel.address.presence || "Address not available" %>
+  </h1>
+  <% if @parcel.county.present? %>
+    <p class="fp-hero__location" style="margin-top: 4px; opacity: 0.85;">
+      <%= @parcel.county %> County, <%= @parcel.state.presence || "FL" %>
+    </p>
+  <% end %>
 
   <%# ── Meta pills row ───────────────────────────────────────────── %>
   <div class="fp-hero__meta-row">
