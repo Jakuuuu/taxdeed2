@@ -1,0 +1,52 @@
+<%# ─ PARTIAL: _mini_crm.html.erb ────────────────────────────────────────────
+    Mini CRM — SIEMPRE VISIBLE. Inmune al paywall (regla absoluta).
+    Tags & Notes nunca se difuminan.
+─────────────────────────────────────────────────────────────────────────── %>
+<div class="fp-card" id="ficha-crm">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">🏷</span>
+    <h3 class="fp-card__hdr-title">My CRM — Tags &amp; Notes</h3>
+    <span class="fp-card__hdr-badge">Always Visible</span>
+  </div>
+  <div class="fp-card__body">
+
+    <%# Tag chips — activables con colores semánticos %>
+    <div class="crm-chips-row" id="crm-chips-row">
+      <% tag_value = @current_tag&.tag %>
+      <% [
+        { key: "target",    label: "🎯 Target",       css: "target"    },
+        { key: "diligence", label: "🔍 Due Diligence", css: "diligence" },
+        { key: "ready",     label: "✅ Ready to Bid",  css: "ready"     },
+        { key: "dismissed", label: "❌ Dismissed",     css: "dismissed" }
+      ].each do |t| %>
+        <%= button_to research_parcel_user_tags_path(parcel_id: @parcel.id),
+            method: :post,
+            params: { tag: t[:key] },
+            class: "crm-chip crm-chip--#{t[:css]}#{tag_value == t[:key] ? ' active' : ''}",
+            form: { class: "crm-chip-form" },
+            data: { turbo_method: :post } do %>
+          <%= t[:label] %>
+        <% end %>
+      <% end %>
+    </div>
+
+    <%# Existing notes %>
+    <% if @notes.any? %>
+    <div class="crm-notes-list">
+      <% @notes.each do |note| %>
+      <div class="crm-note-item">
+        <div class="crm-note-item__body"><%= note.body %></div>
+        <div class="crm-note-item__time"><%= note.created_at.strftime("%b %d, %Y · %I:%M %p") %></div>
+      </div>
+      <% end %>
+    </div>
+    <% end %>
+
+    <%# New note form %>
+    <%= form_with url: research_parcel_user_notes_path(parcel_id: @parcel.id), method: :post, local: false do |f| %>
+      <%= f.text_area :body, class: "crm-textarea",
+          placeholder: "Add a private note about this property…\n(Only visible to you)" %>
+      <%= f.submit "Save Note", class: "crm-save-btn" %>
+    <% end %>
+  </div>
+</div>

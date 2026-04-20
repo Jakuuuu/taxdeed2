@@ -1,0 +1,153 @@
+<%# ─ PARTIAL: _ficha_javascript.html.erb ────────────────────────────────────
+    Scripts inline de la Ficha: CRM Optimistic UI, Unlock flow,
+    Google Maps GIS init, Regrid boundary layer.
+    GOTCHA: innerHTML no ejecuta <script> — el drawer JS recrea los tags.
+─────────────────────────────────────────────────────────────────────────── %>
+<script>
+  // ─── CRM chip — Optimistic UI visual toggle ────────────────────────────
+  document.querySelectorAll('.crm-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      document.querySelectorAll('.crm-chip').forEach(function(c) { c.classList.remove('active'); });
+      this.classList.add('active');
+    });
+  });
+
+  // ─── Unlock action ─────────────────────────────────────────────────────
+  function fichaUnlock(parcelId) {
+    var btn = document.getElementById('ficha-unlock-btn');
+    btn.disabled = true;
+    btn.textContent = 'Desbloqueando…';
+
+    fetch('/research/parcels/' + parcelId + '/unlock', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': (document.querySelector('meta[name="csrf-token"]') || {}).content
+      }
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.unlocked) {
+        fichaRevealAll();
+      } else {
+        btn.disabled = false;
+        btn.textContent = '🔓 Desbloquear Ficha Completa — 1 Crédito';
+        alert(data.error || 'No se pudo desbloquear. Verifica tus créditos.');
+      }
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.textContent = '🔓 Desbloquear Ficha Completa — 1 Crédito';
+      alert('Error de red. Intenta nuevamente.');
+    });
+  }
+
+  function fichaRevealAll() {
+    // Hide paywall CTA
+    var cta = document.getElementById('ficha-paywall-cta');
+    if (cta) cta.classList.add('fp-hidden');
+
+    // Show unlocked banner
+    var banner = document.getElementById('ficha-unlocked-banner');
+    if (banner) banner.classList.add('fp-visible');
+
+    // Show title report CTA
+    var tr = document.getElementById('ficha-title-report');
+    if (tr) tr.classList.remove('fp-hidden');
+
+    // Staggered reveal of premium sections
+    var sections = document.querySelectorAll('.fp-premium');
+    sections.forEach(function(s, i) {
+      setTimeout(function() {
+        s.classList.remove('fp-locked');
+        s.classList.add('fp-unlocked', 'fp-animating');
+        setTimeout(function() { s.classList.remove('fp-animating'); }, 600);
+      }, i * 120);
+    });
+  }
+
+  <% if @parcel.has_coords? %>
+  // ─── Google Maps GIS Map ──────────────────────────────────────────────
+  (function() {
+    if (typeof google === 'undefined' || !google.maps) {
+      console.warn('[Ficha] Google Maps API not loaded — skipping map init.');
+      return;
+    }
+
+    var lat = <%= @parcel.latitude %>;
+    var lng = <%= @parcel.longitude %>;
+
+    var mapOptions = {
+      center: { lat: lat, lng: lng },
+      zoom: 16,
+      scrollwheel: false,
+      gestureHandling: 'cooperative',
+      mapTypeId: 'roadmap',
+      zoomControl: true,
+      mapTypeControl: true,
+      mapTypeControlOptions: { style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR },
+      streetViewControl: false,
+      fullscreenControl: true
+    };
+
+    var mapIdMeta = document.querySelector('meta[name="google-maps-map-id"]');
+    if (mapIdMeta && mapIdMeta.content) {
+      mapOptions.mapId = mapIdMeta.content;
+    }
+
+    var map = new google.maps.Map(document.getElementById('ficha-map'), mapOptions);
+
+    // Advanced Marker with classic fallback
+    var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
+    var marker;
+
+    if (useAdvanced) {
+      var markerEl = document.createElement('div');
+      markerEl.style.cssText = [
+        'width:16px;height:16px;border-radius:50%;',
+        'background:#1E3A5F;border:2.5px solid white;',
+        'box-shadow:0 2px 8px rgba(30,58,95,0.5);'
+      ].join('');
+      marker = new google.maps.marker.AdvancedMarkerElement({
+        map: map,
+        position: { lat: lat, lng: lng },
+        content: markerEl
+      });
+    } else {
+      marker = new google.maps.Marker({
+        map: map,
+        position: { lat: lat, lng: lng },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: '#1E3A5F',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2.5
+        }
+      });
+    }
+
+    var infoWin = new google.maps.InfoWindow({
+      content: '<strong><%= j @parcel.address %></strong><br><span style="font-size:11px;color:#6C757D;">APN: <%= j @parcel.parcel_id.to_s %></span>'
+    });
+    infoWin.open({ anchor: marker, map: map });
+    marker.addListener('click', function() { infoWin.open({ anchor: marker, map: map }); });
+
+    <% if ENV['REGRID_API_KEY'].present? %>
+    // Regrid parcel boundary layer (proxied — API key never on client)
+    fetch('/api/regrid/geojson?lat=' + lat + '&lng=' + lng, {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(geojson) {
+        if (!geojson) return;
+        var layer = new google.maps.Data({ map: map });
+        layer.addGeoJson(geojson);
+        layer.setStyle({ strokeColor: '#2E86C1', strokeWeight: 2, fillColor: '#2E86C1', fillOpacity: 0.1 });
+      })
+      .catch(function() {});
+    <% end %>
+  })();
+  <% end %>
+</script>

@@ -1,0 +1,70 @@
+<%# ─ PARTIAL: _header_hero.html.erb ─────────────────────────────────────────
+    Datos básicos GRATUITOS — siempre visible. Incluye back button + hero card.
+    CSS INLINE OBLIGATORIO (drawer AJAX, render layout: false).
+─────────────────────────────────────────────────────────────────────────── %>
+
+<%# ── Back Button ──────────────────────────────────────────────────────── %>
+<% back_path = session[:last_parcels_path] || research_parcels_path(auction_id: @parcel.auction_id) %>
+<%= link_to back_path, class: "fp-back" do %>
+  ← Ver parcelas
+<% end %>
+
+<%# ── Hero card ────────────────────────────────────────────────────────── %>
+<div class="fp-hero">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="fp-apn-pill" style="margin-bottom:0;">
+      <div class="fp-apn-dot"></div>
+      APN: <%= @parcel.parcel_id.presence || "—" %>
+    </div>
+    <% if @admin_override %>
+      <span class="fp-admin-badge">Admin Override</span>
+    <% end %>
+  </div>
+
+  <h1 class="fp-hero-address"><%= @parcel.address.presence || "Address not available" %></h1>
+  <p class="fp-hero-location">
+    <%= [@parcel.city, @parcel.county, @parcel.state, @parcel.zip_code].select(&:present?).join(", ") %>
+  </p>
+
+  <div class="fp-meta-grid">
+    <% if @parcel.auction&.sale_date.present? %>
+    <div class="fp-meta-item">
+      <div class="fp-meta-label">Sale Date</div>
+      <div class="fp-meta-value"><%= @parcel.auction.sale_date.strftime("%b %d, %Y") %></div>
+    </div>
+    <% end %>
+    <% if @parcel.property_type.present? %>
+    <div class="fp-meta-item">
+      <div class="fp-meta-label">Property Type</div>
+      <div class="fp-meta-value"><%= @parcel.property_type %></div>
+    </div>
+    <% end %>
+    <div class="fp-meta-item">
+      <div class="fp-meta-label">Auction Status</div>
+      <div class="fp-meta-value">
+        <% s_cls = @parcel.auction_status == "available" ? "success" : (@parcel.auction_status == "sold" ? "danger" : "muted") %>
+        <span class="fp-badge fp-badge--<%= s_cls %>" style="font-size:11px;"><%= @parcel.auction_status&.titleize %></span>
+      </div>
+    </div>
+    <% if @parcel.crime_level.present? %>
+    <div class="fp-meta-item">
+      <div class="fp-meta-label">Crime Level</div>
+      <div class="fp-meta-value">
+        <% c_cls = case @parcel.crime_level.downcase; when "low" then "success"; when "moderate" then "warning"; when "high" then "danger"; else "muted"; end %>
+        <span class="fp-badge fp-badge--<%= c_cls %>" style="font-size:11px;"><%= @parcel.crime_level.titleize %></span>
+      </div>
+    </div>
+    <% end %>
+  </div>
+
+  <%# Money Typography — "El precio inicia en $" %>
+  <div class="fp-bid-wrap">
+    <div class="fp-bid-label">Minimum Bid</div>
+    <div class="fp-bid-price-line">
+      <span class="fp-bid-starts">El precio inicia en&nbsp;$</span>
+      <span class="fp-bid-amount">
+        <%= @parcel.opening_bid ? number_to_currency(@parcel.opening_bid, unit: "", delimiter: ",", separator: ".") : "—" %>
+      </span>
+    </div>
+  </div>
+</div>

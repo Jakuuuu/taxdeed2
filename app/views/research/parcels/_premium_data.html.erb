@@ -1,0 +1,183 @@
+<%# ─ PARTIAL: _premium_data.html.erb ────────────────────────────────────────
+    Datos avanzados premium — blur si locked, claro si unlocked.
+    PROTECCIÓN PAYWALL: .fp-premium.fp-locked { overflow: visible }
+    Las 4 secciones: Characteristics, Valuation, Calculator, Utilities/Risk.
+─────────────────────────────────────────────────────────────────────────── %>
+
+<%# ── Property Characteristics ──────────────────────────────────────────── %>
+<div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-premium-1">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">🏠</span>
+    <h3 class="fp-card__hdr-title">Property Characteristics</h3>
+  </div>
+  <div class="fp-premium-body" style="position:relative;">
+    <div class="fp-data-grid">
+      <div class="fp-data-label">Year Built</div>
+      <div class="fp-data-value"><%= @parcel.year_built.presence || "—" %></div>
+
+      <div class="fp-data-label">Sqft Living Area</div>
+      <div class="fp-data-value"><%= @parcel.living_area_sqft.present? ? number_with_delimiter(@parcel.living_area_sqft) + " sqft" : "—" %></div>
+
+      <div class="fp-data-label">Sqft Lot</div>
+      <div class="fp-data-value"><%= @parcel.sqft_lot.present? ? number_with_delimiter(@parcel.sqft_lot) + " sqft" : "—" %></div>
+
+      <div class="fp-data-label">Lot Area (Acres)</div>
+      <div class="fp-data-value"><%= @parcel.lot_area_acres.present? ? "#{@parcel.lot_area_acres} ac" : "—" %></div>
+
+      <div class="fp-data-label">Bedrooms</div>
+      <div class="fp-data-value"><%= @parcel.bedrooms.presence || "—" %></div>
+
+      <div class="fp-data-label">Bathrooms</div>
+      <div class="fp-data-value"><%= @parcel.bathrooms.presence || "—" %></div>
+
+      <div class="fp-data-label">Zoning</div>
+      <div class="fp-data-value"><%= @parcel.zoning.presence || "—" %></div>
+
+      <div class="fp-data-label">Land Use</div>
+      <div class="fp-data-value"><%= @parcel.land_use.presence || "—" %></div>
+
+      <div class="fp-data-label">Lot Shape</div>
+      <div class="fp-data-value"><%= @parcel.lot_shape.presence || "—" %></div>
+
+      <div class="fp-data-label">Min. Lot Size</div>
+      <div class="fp-data-value"><%= @parcel.minimum_lot_size.presence || "—" %></div>
+
+      <div class="fp-data-label">Jurisdiction</div>
+      <div class="fp-data-value"><%= @parcel.jurisdiction.presence || "—" %></div>
+
+      <div class="fp-data-label">Homestead</div>
+      <div class="fp-data-value">
+        <% if @parcel.homestead_flag.present? %>
+          <% hc = @parcel.homestead_flag.downcase == "homestead" ? "success" : "info" %>
+          <span class="fp-badge fp-badge--<%= hc %>"><%= @parcel.homestead_flag.titleize %></span>
+        <% else %>—<% end %>
+      </div>
+
+      <% if @parcel.legal_description.present? %>
+      <div class="fp-data-label">Legal Description</div>
+      <div class="fp-data-value" style="font-family:var(--fp-font-ui);font-size:12px;line-height:1.45;"><%= @parcel.legal_description %></div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%# ── Property Valuation ─────────────────────────────────────────────────── %>
+<div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-premium-2">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">💰</span>
+    <h3 class="fp-card__hdr-title">Property Valuation</h3>
+  </div>
+  <div class="fp-premium-body" style="position:relative;">
+    <div class="fp-data-grid">
+      <div class="fp-data-label">Assessed Value</div>
+      <div class="fp-data-value"><%= @parcel.assessed_value ? number_to_currency(@parcel.assessed_value) : "—" %></div>
+
+      <div class="fp-data-label">Market Value</div>
+      <div class="fp-data-value"><%= @parcel.market_value ? number_to_currency(@parcel.market_value) : "—" %></div>
+
+      <div class="fp-data-label">Land Value</div>
+      <div class="fp-data-value"><%= @parcel.land_value ? number_to_currency(@parcel.land_value) : "—" %></div>
+
+      <div class="fp-data-label">Improvement Value</div>
+      <div class="fp-data-value"><%= @parcel.improvement_value ? number_to_currency(@parcel.improvement_value) : "—" %></div>
+
+      <div class="fp-data-label">Delinquent Amount</div>
+      <div class="fp-data-value" style="color:#C0392B;font-weight:600;">
+        <%= @parcel.delinquent_amount ? number_to_currency(@parcel.delinquent_amount) : "—" %>
+      </div>
+
+      <div class="fp-data-label">Est. Sale Value</div>
+      <div class="fp-data-value"><%= @parcel.estimated_sale_value ? number_to_currency(@parcel.estimated_sale_value) : "—" %></div>
+
+      <div class="fp-data-label">Price per Acre</div>
+      <div class="fp-data-value"><%= @parcel.price_per_acre ? number_to_currency(@parcel.price_per_acre) : "—" %></div>
+
+      <% if @parcel.winning_bid.present? %>
+      <div class="fp-data-label">Winning Bid</div>
+      <div class="fp-data-value" style="color:#27AE60;font-weight:700;"><%= number_to_currency(@parcel.winning_bid) %></div>
+      <% end %>
+
+      <div class="fp-data-label">Owner Name</div>
+      <div class="fp-data-value"><%= @parcel.owner_name.presence || "—" %></div>
+
+      <div class="fp-data-label">Owner Mailing Address</div>
+      <div class="fp-data-value"><%= @parcel.owner_mail_address.presence || "—" %></div>
+
+      <div class="fp-data-label">Property Address</div>
+      <div class="fp-data-value"><%= @parcel.property_address.presence || "—" %></div>
+    </div>
+  </div>
+</div>
+
+<%# ── Investment Calculator ──────────────────────────────────────────────── %>
+<div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-premium-3">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">📊</span>
+    <h3 class="fp-card__hdr-title">Investment Calculator</h3>
+  </div>
+  <div class="fp-card__body fp-premium-body" style="position:relative;">
+    <div class="fp-calc-grid">
+      <div class="fp-calc-card">
+        <div class="fp-calc-label">Max Bid at 30%</div>
+        <div class="fp-calc-value"><%= @parcel.max_bid_30 ? number_to_currency(@parcel.max_bid_30) : "—" %></div>
+      </div>
+      <div class="fp-calc-card">
+        <div class="fp-calc-label">Max Bid at 35%</div>
+        <div class="fp-calc-value"><%= @parcel.max_bid_35 ? number_to_currency(@parcel.max_bid_35) : "—" %></div>
+      </div>
+      <div class="fp-calc-card">
+        <div class="fp-calc-label">Minimum Bid +16%</div>
+        <div class="fp-calc-value"><%= @parcel.adjusted_value_16 ? number_to_currency(@parcel.adjusted_value_16) : "—" %></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<%# ── Utilities & Environmental Risk ────────────────────────────────────── %>
+<div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-premium-4">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">⚡</span>
+    <h3 class="fp-card__hdr-title">Utilities &amp; Environmental Risk</h3>
+  </div>
+  <div class="fp-premium-body" style="position:relative;">
+    <div class="fp-data-grid">
+      <% [
+        { label: "Electric", val: @parcel.electric },
+        { label: "Water",    val: @parcel.water    },
+        { label: "Sewer",    val: @parcel.sewer    },
+        { label: "HOA",      val: @parcel.hoa      }
+      ].each do |u| %>
+      <div class="fp-data-label"><%= u[:label] %></div>
+      <div class="fp-data-value">
+        <% if u[:val].present? %>
+          <% is_affirmative = %w[yes true y 1].include?(u[:val].to_s.downcase) %>
+          <span class="fp-badge fp-badge--<%= is_affirmative ? 'success' : 'danger' %>"><%= is_affirmative ? "Yes" : "No" %></span>
+        <% else %>—<% end %>
+      </div>
+      <% end %>
+
+      <div class="fp-data-label">Wetlands</div>
+      <div class="fp-data-value">
+        <% unless @parcel.wetlands.nil? %>
+          <span class="fp-badge fp-badge--<%= @parcel.wetlands ? 'warning' : 'success' %>">
+            <%= @parcel.wetlands ? "Yes" : "No" %>
+          </span>
+        <% else %>—<% end %>
+      </div>
+
+      <div class="fp-data-label">FEMA Risk Level</div>
+      <div class="fp-data-value">
+        <% if @parcel.fema_risk_level.present? %>
+          <% fc = @parcel.fema_risk_level.downcase.include?("minimal") ? "success" : (@parcel.fema_risk_level.downcase.include?("high") ? "danger" : "warning") %>
+          <span class="fp-badge fp-badge--<%= fc %>"><%= @parcel.fema_risk_level %></span>
+        <% else %>—<% end %>
+      </div>
+
+      <% if @parcel.fema_notes.present? %>
+      <div class="fp-data-label">FEMA Notes</div>
+      <div class="fp-data-value" style="font-family:var(--fp-font-ui);font-size:12px;line-height:1.45;"><%= @parcel.fema_notes %></div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,38 @@
+<%# ─ PARTIAL: _gis_and_streetview.html.erb ──────────────────────────────────
+    GIS Map + Street View — SIEMPRE VISIBLES (fuera del paywall).
+    Regla absoluta: nunca detrás del blur/paywall.
+─────────────────────────────────────────────────────────────────────────── %>
+
+<%# ── GIS Map ────────────────────────────────────────────────────────────── %>
+<div class="fp-card" id="ficha-gis">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">🗺</span>
+    <h3 class="fp-card__hdr-title">GIS Map — Parcel Location</h3>
+    <span class="fp-card__hdr-badge">Always Visible</span>
+  </div>
+  <% if @parcel.has_coords? %>
+    <div id="ficha-map"></div>
+  <% else %>
+    <div class="fp-map-placeholder">
+      <span style="font-size:32px;opacity:0.25;">🗺</span>
+      <span>No coordinates available for this parcel</span>
+    </div>
+  <% end %>
+</div>
+
+<%# ── Street View ────────────────────────────────────────────────────────── %>
+<% if @parcel.has_coords? && ENV['GOOGLE_MAPS_API_KEY'].present? %>
+<div class="fp-card" id="ficha-streetview">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">📷</span>
+    <h3 class="fp-card__hdr-title">Street View</h3>
+    <span class="fp-card__hdr-badge">Always Visible</span>
+  </div>
+  <iframe
+    src="<%= @parcel.street_view_url(ENV['GOOGLE_MAPS_API_KEY']) %>"
+    style="width:100%;height:260px;border:none;display:block;"
+    allowfullscreen
+    loading="lazy"
+  ></iframe>
+</div>
+<% end %>
