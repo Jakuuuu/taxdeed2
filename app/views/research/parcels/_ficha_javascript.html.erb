@@ -69,85 +69,93 @@
   <% if @parcel.has_coords? %>
   // ─── Google Maps GIS Map ──────────────────────────────────────────────
   (function() {
-    if (typeof google === 'undefined' || !google.maps) {
-      console.warn('[Ficha] Google Maps API not loaded — skipping map init.');
-      return;
-    }
+    function initFichaMap() {
+      if (typeof google === 'undefined' || !google.maps) {
+        console.warn('[Ficha] Google Maps API not loaded — skipping map init.');
+        return;
+      }
 
-    var lat = <%= @parcel.latitude %>;
-    var lng = <%= @parcel.longitude %>;
+      var lat = <%= @parcel.latitude %>;
+      var lng = <%= @parcel.longitude %>;
 
-    var mapOptions = {
-      center: { lat: lat, lng: lng },
-      zoom: 16,
-      scrollwheel: false,
-      gestureHandling: 'cooperative',
-      mapTypeId: 'roadmap',
-      zoomControl: true,
-      mapTypeControl: true,
-      mapTypeControlOptions: { style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR },
-      streetViewControl: false,
-      fullscreenControl: true
-    };
+      var mapOptions = {
+        center: { lat: lat, lng: lng },
+        zoom: 16,
+        scrollwheel: false,
+        gestureHandling: 'cooperative',
+        mapTypeId: 'roadmap',
+        zoomControl: true,
+        mapTypeControl: true,
+        mapTypeControlOptions: { style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR },
+        streetViewControl: false,
+        fullscreenControl: true
+      };
 
-    var mapIdMeta = document.querySelector('meta[name="google-maps-map-id"]');
-    if (mapIdMeta && mapIdMeta.content) {
-      mapOptions.mapId = mapIdMeta.content;
-    }
+      var mapIdMeta = document.querySelector('meta[name="google-maps-map-id"]');
+      if (mapIdMeta && mapIdMeta.content) {
+        mapOptions.mapId = mapIdMeta.content;
+      }
 
-    var map = new google.maps.Map(document.getElementById('ficha-map'), mapOptions);
+      var map = new google.maps.Map(document.getElementById('ficha-map'), mapOptions);
 
-    // Advanced Marker with classic fallback
-    var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
-    var marker;
+      // Advanced Marker with classic fallback
+      var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
+      var marker;
 
-    if (useAdvanced) {
-      var markerEl = document.createElement('div');
-      markerEl.style.cssText = [
-        'width:16px;height:16px;border-radius:50%;',
-        'background:#1E3A5F;border:2.5px solid white;',
-        'box-shadow:0 2px 8px rgba(30,58,95,0.5);'
-      ].join('');
-      marker = new google.maps.marker.AdvancedMarkerElement({
-        map: map,
-        position: { lat: lat, lng: lng },
-        content: markerEl
+      if (useAdvanced) {
+        var markerEl = document.createElement('div');
+        markerEl.style.cssText = [
+          'width:16px;height:16px;border-radius:50%;',
+          'background:#1E3A5F;border:2.5px solid white;',
+          'box-shadow:0 2px 8px rgba(30,58,95,0.5);'
+        ].join('');
+        marker = new google.maps.marker.AdvancedMarkerElement({
+          map: map,
+          position: { lat: lat, lng: lng },
+          content: markerEl
+        });
+      } else {
+        marker = new google.maps.Marker({
+          map: map,
+          position: { lat: lat, lng: lng },
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            fillColor: '#1E3A5F',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2.5
+          }
+        });
+      }
+
+      var infoWin = new google.maps.InfoWindow({
+        content: '<strong><%= j @parcel.address %></strong><br><span style="font-size:11px;color:#6C757D;">APN: <%= j @parcel.parcel_id.to_s %></span>'
       });
-    } else {
-      marker = new google.maps.Marker({
-        map: map,
-        position: { lat: lat, lng: lng },
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#1E3A5F',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2.5
-        }
-      });
-    }
+      infoWin.open({ anchor: marker, map: map });
+      marker.addListener('click', function() { infoWin.open({ anchor: marker, map: map }); });
 
-    var infoWin = new google.maps.InfoWindow({
-      content: '<strong><%= j @parcel.address %></strong><br><span style="font-size:11px;color:#6C757D;">APN: <%= j @parcel.parcel_id.to_s %></span>'
-    });
-    infoWin.open({ anchor: marker, map: map });
-    marker.addListener('click', function() { infoWin.open({ anchor: marker, map: map }); });
-
-    <% if ENV['REGRID_API_KEY'].present? %>
-    // Regrid parcel boundary layer (proxied — API key never on client)
-    fetch('/api/regrid/geojson?lat=' + lat + '&lng=' + lng, {
-      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-    })
-      .then(function(r) { return r.ok ? r.json() : null; })
-      .then(function(geojson) {
-        if (!geojson) return;
-        var layer = new google.maps.Data({ map: map });
-        layer.addGeoJson(geojson);
-        layer.setStyle({ strokeColor: '#2E86C1', strokeWeight: 2, fillColor: '#2E86C1', fillOpacity: 0.1 });
+      <% if ENV['REGRID_API_KEY'].present? %>
+      // Regrid parcel boundary layer (proxied — API key never on client)
+      fetch('/api/regrid/geojson?lat=' + lat + '&lng=' + lng, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
       })
-      .catch(function() {});
-    <% end %>
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(geojson) {
+          if (!geojson) return;
+          var layer = new google.maps.Data({ map: map });
+          layer.addGeoJson(geojson);
+          layer.setStyle({ strokeColor: '#2E86C1', strokeWeight: 2, fillColor: '#2E86C1', fillOpacity: 0.1 });
+        })
+        .catch(function() {});
+      <% end %>
+    }
+
+    if (typeof google !== 'undefined' && google.maps) {
+      initFichaMap();
+    } else {
+      document.addEventListener('google-maps:ready', initFichaMap, { once: true });
+    }
   })();
   <% end %>
 </script>
