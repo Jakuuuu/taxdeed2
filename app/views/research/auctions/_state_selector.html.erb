@@ -20,7 +20,7 @@
     <% active_states.each do |state_name| %>
       <% data = @auctions_by_state[state_name] %>
       <option value="<%= state_name %>" <%= 'selected' if state_name == selected_state %>>
-        <%= state_name %> (<%= data[:count] %> condados con subastas)
+        <%= state_name %> (<%= data[:unique_counties] %> condados con subastas)
       </option>
     <% end %>
   </select>
