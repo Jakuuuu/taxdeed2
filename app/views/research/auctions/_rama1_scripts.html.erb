@@ -255,7 +255,7 @@ function r1LoadJurisdictions() {
 function r1StateClick(event, stateName) {
   event.stopPropagation();
 
-  const data = R1_AUCTIONS_BY_STATE[stateName] || { count: 0, total_parcels: 0 };
+  const data = R1_AUCTIONS_BY_STATE[stateName] || { count: 0, unique_counties: 0, total_parcels: 0 };
   const popup = document.getElementById('r1-state-popup');
   popup.style.display = 'block';
   popup.style.pointerEvents = 'auto';
@@ -263,7 +263,8 @@ function r1StateClick(event, stateName) {
   popup.style.top  = (event.clientY - 30) + 'px';
 
   document.getElementById('r1-popup-state-name').textContent = stateName;
-  document.getElementById('r1-popup-auctions').textContent   = data.count;
+  document.getElementById('r1-popup-unique-counties').textContent = data.unique_counties || 0;
+  document.getElementById('r1-popup-auctions').textContent   = data.count || 0;
   document.getElementById('r1-popup-parcels').textContent    = (data.total_parcels || 0).toLocaleString();
 
   // ⚠️ ARCHITECTURE RULE 16: Link goes to Rama 2 (parcels list by state)

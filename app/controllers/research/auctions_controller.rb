@@ -122,10 +122,11 @@ module Research
       @auctions_by_state = @choropleth_auctions.group_by(&:state).each_with_object({}) do |(abbr, aucts), h|
         full_name = state_abbr_to_name[abbr] || abbr
         h[full_name] = {
-          count:         aucts.size,
-          total_parcels: aucts.sum { |a| a.parcel_count || 0 },
-          total_amount:  aucts.sum { |a| a.total_amount&.to_f || 0 },
-          auctions:      aucts
+          count:           aucts.size,
+          unique_counties: aucts.map(&:county).uniq.size,
+          total_parcels:   aucts.sum { |a| a.parcel_count || 0 },
+          total_amount:    aucts.sum { |a| a.total_amount&.to_f || 0 },
+          auctions:        aucts
         }
       end
 
