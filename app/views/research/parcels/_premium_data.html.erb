@@ -40,7 +40,14 @@
       <div class="fp-data-value"><%= @parcel.lot_shape.presence || "—" %></div>
 
       <div class="fp-data-label">Min. Lot Size</div>
-      <div class="fp-data-value"><%= @parcel.minimum_lot_size.presence || "—" %></div>
+      <div class="fp-data-value">
+        <% min_lot = @parcel.minimum_lot_size.to_s.strip %>
+        <% if min_lot.blank? || min_lot.start_with?('#') %>
+          —
+        <% else %>
+          <%= min_lot %>
+        <% end %>
+      </div>
 
       <div class="fp-data-label">Jurisdiction</div>
       <div class="fp-data-value"><%= @parcel.jurisdiction.presence || "—" %></div>
@@ -168,10 +175,19 @@
 
       <div class="fp-data-label">FEMA Risk Level</div>
       <div class="fp-data-value">
-        <% if @parcel.fema_risk_level.present? %>
-          <% fc = @parcel.fema_risk_level.downcase.include?("minimal") ? "success" : (@parcel.fema_risk_level.downcase.include?("high") ? "danger" : "warning") %>
-          <span class="fp-badge fp-badge--<%= fc %>"><%= @parcel.fema_risk_level %></span>
-        <% else %>—<% end %>
+        <% fema_val = @parcel.fema_risk_level.to_s.strip %>
+        <% if fema_val.blank? %>
+          —
+        <% elsif fema_val =~ /\Ahttps?:\/\//i %>
+          <%# Es una URL — mostrar como enlace %>
+          <a href="<%= fema_val %>" target="_blank" rel="noopener"
+             style="color:var(--fp-accent);font-size:12px;">
+            View FEMA Map ↗
+          </a>
+        <% else %>
+          <% fc = fema_val.downcase.include?("minimal") ? "success" : (fema_val.downcase.include?("high") ? "danger" : "warning") %>
+          <span class="fp-badge fp-badge--<%= fc %>"><%= fema_val %></span>
+        <% end %>
       </div>
 
       <% if @parcel.fema_notes.present? %>

@@ -1,0 +1,52 @@
+<%# ─ PARTIAL: _card_environmental.html.erb ───────────────────────────────────
+    Utilities + Riesgos ambientales — premium/blur.
+─────────────────────────────────────────────────────────────────────────── %>
+
+<div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-card-env">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">⚡</span>
+    <h3 class="fp-card__hdr-title">Utilities & Environmental Risk</h3>
+  </div>
+  <div class="fp-card__body">
+    <div class="fp-data-grid">
+      <% [
+        { label: "Electric", val: @parcel.electric },
+        { label: "Water",    val: @parcel.water    },
+        { label: "Sewer",    val: @parcel.sewer    },
+        { label: "HOA",      val: @parcel.hoa      }
+      ].each do |u| %>
+      <div class="fp-data-label"><%= u[:label] %></div>
+      <div class="fp-data-value">
+        <% if u[:val].present? %>
+          <% is_yes = %w[yes true y 1].include?(u[:val].to_s.downcase) %>
+          <span class="fp-badge fp-badge--<%= is_yes ? 'success' : 'danger' %>"><%= is_yes ? "Yes" : "No" %></span>
+        <% else %>—<% end %>
+      </div>
+      <% end %>
+
+      <div class="fp-data-label">Wetlands</div>
+      <div class="fp-data-value">
+        <% unless @parcel.wetlands.nil? %>
+          <span class="fp-badge fp-badge--<%= @parcel.wetlands ? 'warning' : 'success' %>"><%= @parcel.wetlands ? "Yes" : "No" %></span>
+        <% else %>—<% end %>
+      </div>
+
+      <div class="fp-data-label">FEMA Risk Level</div>
+      <div class="fp-data-value">
+        <% fema_val = @parcel.fema_risk_level.to_s.strip %>
+        <% if fema_val.blank? %>—
+        <% elsif fema_val =~ /\Ahttps?:\/\//i %>
+          <a href="<%= fema_val %>" target="_blank" rel="noopener" style="color:var(--fp-blue);font-size:12px;font-weight:600;">View FEMA Map ↗</a>
+        <% else %>
+          <% fc = fema_val.downcase.include?("minimal") ? "success" : (fema_val.downcase.include?("high") ? "danger" : "warning") %>
+          <span class="fp-badge fp-badge--<%= fc %>"><%= fema_val %></span>
+        <% end %>
+      </div>
+
+      <% if @parcel.fema_notes.present? %>
+      <div class="fp-data-label">FEMA Notes</div>
+      <div class="fp-data-value" style="font-size:11px;line-height:1.4;"><%= @parcel.fema_notes %></div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,353 @@
+<%#
+  Partial: State Overview Data (Rama 1 — Split Layout, Right Side)
+  Shows ONLY:
+    1. Active State header (e.g. "Florida Overview")
+    2. Counties with active auctions (condados con subastas)
+    3. Dates with active auctions (time-scoped: sale_date >= today)
+
+  ✅ ELIMINADO: "Aggregate Value" — no se muestra.
+  ✅ Terminología: "Condados con subastas" — NUNCA "Sale Events"
+%>
+<%
+  active_states = @auctions_by_state.keys.sort
+  default_state = active_states.include?("Florida") ? "Florida" : active_states.first
+  selected_state = params[:active_state].presence || default_state
+  state_data = @auctions_by_state[selected_state] || { count: 0, total_parcels: 0, auctions: [] }
+
+  # Filter counties for the active state from @county_rows
+  state_counties = @county_rows.select { |r| r[:state] == selected_state ||
+    (selected_state && @auctions_by_state[selected_state] &&
+     @auctions_by_state[selected_state][:auctions]&.any? { |a| a.county == r[:county] }) }
+
+  # If state_counties is empty, try building from the @auctions_by_state data directly
+  if state_counties.empty? && state_data[:auctions].present?
+    state_counties = state_data[:auctions]
+                       .group_by(&:county)
+                       .map do |county, auctions|
+                         {
+                           county: county,
+                           state: auctions.first.state,
+                           parcel_count: auctions.sum { |a| a.parcel_count || 0 },
+                           sale_dates: auctions.filter_map(&:sale_date).sort,
+                           display_date: auctions.filter_map(&:sale_date).select { |d| d >= Date.current }.min
+                         }
+                       end
+                       .sort_by { |c| c[:county] || "" }
+  end
+
+  # Build active dates (future only — time scope active)
+  active_dates = state_counties.flat_map { |c| c[:sale_dates] || [] }
+                               .select { |d| d >= Date.current }
+                               .uniq
+                               .sort
+%>
+
+<div class="r1-state-overview" id="r1-state-overview">
+
+  <%# ── 1. Active State Header ── %>
+  <div class="r1-state-overview-header">
+    <div class="r1-state-overview-icon">
+      <i data-lucide="map" style="width:24px;height:24px;color:var(--r1-color-primary, #6C3483);"></i>
+    </div>
+    <div>
+      <h2 class="r1-state-overview-title" id="r1-state-overview-title">
+        <%= selected_state || "Select a State" %> Overview
+      </h2>
+      <p class="r1-state-overview-subtitle">
+        <span id="r1-state-county-count"><%= state_counties.size %></span> condados con subastas ·
+        <span id="r1-state-property-count"><%= number_with_delimiter(state_data[:total_parcels] || 0) %></span> Properties Up for Bid
+      </p>
+    </div>
+  </div>
+
+  <%# ── 2. Counties with Active Auctions ── %>
+  <div class="r1-state-section">
+    <h3 class="r1-state-section-title">
+      <i data-lucide="building-2" style="width:16px;height:16px;"></i>
+      Condados con subastas
+      <span class="r1-section-badge"><%= state_counties.size %></span>
+    </h3>
+
+    <% if state_counties.any? %>
+      <div class="r1-county-list" id="r1-county-list">
+        <% state_counties.each do |county_row| %>
+          <a href="<%= research_parcels_path(county: county_row[:county], state: county_row[:state]) %>"
+             class="r1-county-card"
+             title="View properties in <%= county_row[:county] %> — Rama 2">
+            <div class="r1-county-card-name">
+              <i data-lucide="landmark" style="width:14px;height:14px;color:var(--r1-color-primary,#6C3483);"></i>
+              <%= county_row[:county] %>
+            </div>
+            <div class="r1-county-card-meta">
+              <span class="r1-county-meta-item">
+                <i data-lucide="layers" style="width:11px;height:11px;"></i>
+                <%= number_with_delimiter(county_row[:parcel_count]) %> properties
+              </span>
+              <% if county_row[:display_date] %>
+                <span class="r1-county-meta-item">
+                  <i data-lucide="calendar" style="width:11px;height:11px;"></i>
+                  Next: <%= county_row[:display_date].strftime('%b %d, %Y') %>
+                </span>
+              <% end %>
+            </div>
+          </a>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="r1-empty-state">
+        <i data-lucide="inbox" style="width:32px;height:32px;color:var(--r1-color-text-muted,#6C757D);"></i>
+        <p>No condados con subastas found for this state.</p>
+      </div>
+    <% end %>
+  </div>
+
+  <%# ── 3. Dates with Active Auctions (time-scoped: future only) ── %>
+  <div class="r1-state-section">
+    <h3 class="r1-state-section-title">
+      <i data-lucide="calendar-days" style="width:16px;height:16px;"></i>
+      Upcoming Auction Dates
+      <span class="r1-section-badge"><%= active_dates.size %></span>
+    </h3>
+
+    <% if active_dates.any? %>
+      <div class="r1-dates-list" id="r1-dates-list">
+        <% active_dates.each do |date| %>
+          <%
+            # Find counties that have this date
+            counties_on_date = state_counties.select { |c| c[:sale_dates]&.include?(date) }
+          %>
+          <div class="r1-date-card">
+            <div class="r1-date-card-date">
+              <div class="r1-date-card-month"><%= date.strftime('%b') %></div>
+              <div class="r1-date-card-day"><%= date.strftime('%d') %></div>
+              <div class="r1-date-card-year"><%= date.strftime('%Y') %></div>
+            </div>
+            <div class="r1-date-card-info">
+              <div class="r1-date-card-dow"><%= date.strftime('%A') %></div>
+              <div class="r1-date-card-counties">
+                <% counties_on_date.each do |c| %>
+                  <span class="r1-date-county-chip"><%= c[:county] %></span>
+                <% end %>
+              </div>
+              <% days_away = (date - Date.current).to_i %>
+              <div class="r1-date-card-countdown">
+                <% if days_away == 0 %>
+                  <span style="color:var(--r1-color-success,#15803D);font-weight:700;">Today</span>
+                <% elsif days_away == 1 %>
+                  Tomorrow
+                <% else %>
+                  In <%= days_away %> days
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="r1-empty-state">
+        <i data-lucide="calendar-x" style="width:32px;height:32px;color:var(--r1-color-text-muted,#6C757D);"></i>
+        <p>No upcoming auction dates for this state.</p>
+      </div>
+    <% end %>
+  </div>
+
+</div>
+
+<style>
+  /* ── State Overview Panel (Right Side) ── */
+  .r1-state-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  .r1-state-overview-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #F4ECF7 0%, #EBE5F0 100%);
+    border: 1px solid var(--r1-color-border, #DEE2E6);
+    border-radius: 12px;
+  }
+  .r1-state-overview-icon {
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(108,52,131,0.1);
+  }
+  .r1-state-overview-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--r1-color-text, #1A1A2E);
+    margin: 0;
+    line-height: 1.3;
+  }
+  .r1-state-overview-subtitle {
+    font-size: 0.8125rem;
+    color: var(--r1-color-text-muted, #6C757D);
+    margin: 2px 0 0;
+  }
+
+  /* ── Section Titles ── */
+  .r1-state-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--r1-color-text-muted, #6C757D);
+    margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--r1-color-border, #DEE2E6);
+  }
+  .r1-section-badge {
+    background: var(--r1-color-primary, #6C3483);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: auto;
+  }
+
+  /* ── County Cards ── */
+  .r1-county-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .r1-county-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid var(--r1-color-border, #DEE2E6);
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    cursor: pointer;
+  }
+  .r1-county-card:hover {
+    border-color: var(--r1-color-primary, #6C3483);
+    box-shadow: 0 2px 8px rgba(108,52,131,0.12);
+    transform: translateY(-1px);
+  }
+  .r1-county-card-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--r1-color-text, #1A1A2E);
+  }
+  .r1-county-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .r1-county-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--r1-color-text-muted, #6C757D);
+  }
+
+  /* ── Date Cards ── */
+  .r1-dates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .r1-date-card {
+    display: flex;
+    gap: 14px;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid var(--r1-color-border, #DEE2E6);
+    border-radius: 8px;
+    transition: border-color 0.15s;
+  }
+  .r1-date-card:hover {
+    border-color: var(--r1-color-primary, #6C3483);
+  }
+  .r1-date-card-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    background: linear-gradient(135deg, #6C3483 0%, #8E44AD 100%);
+    color: #fff;
+    border-radius: 8px;
+    padding: 6px 8px;
+    line-height: 1.1;
+  }
+  .r1-date-card-month {
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.85;
+  }
+  .r1-date-card-day {
+    font-size: 1.35rem;
+    font-weight: 800;
+  }
+  .r1-date-card-year {
+    font-size: 0.6rem;
+    opacity: 0.7;
+  }
+  .r1-date-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  .r1-date-card-dow {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--r1-color-text, #1A1A2E);
+  }
+  .r1-date-card-counties {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .r1-date-county-chip {
+    font-size: 0.6875rem;
+    background: #F4ECF7;
+    color: var(--r1-color-primary, #6C3483);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .r1-date-card-countdown {
+    font-size: 0.75rem;
+    color: var(--r1-color-text-muted, #6C757D);
+  }
+
+  /* ── Empty State ── */
+  .r1-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px;
+    text-align: center;
+    color: var(--r1-color-text-muted, #6C757D);
+    font-size: 0.8125rem;
+  }
+</style>

@@ -1,0 +1,36 @@
+<%# ─ PARTIAL: _resource_center.html.erb ──────────────────────────────────────
+    Centro de Recursos — links externos como mini-cards con íconos.
+    Estilo de la imagen de referencia: sidebar con tarjetas clickeables.
+    Siempre visible (no premium).
+─────────────────────────────────────────────────────────────────────────── %>
+
+<div class="fp-card" id="ficha-resource-center">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">🔗</span>
+    <h3 class="fp-card__hdr-title">Resource Center</h3>
+    <span class="fp-card__hdr-sub"><%= @parcel.county.presence || "" %></span>
+  </div>
+  <div class="fp-card__body fp-resource-list">
+    <% resources = [
+      { icon: "🏛", title: "Bid at Auction",       desc: "Ir al portal de subasta",           url: @parcel.auction&.bidding_url },
+      { icon: "🗺", title: "Property Appraiser",    desc: "Records de valorización y mejoras",  url: @parcel.regrid_url           },
+      { icon: "⚖",  title: "Clerk of Courts",       desc: "Búsqueda de records oficiales",      url: @parcel.clerk_url            },
+      { icon: "🧾", title: "Tax Collector",          desc: "Verificar impuestos pagados",        url: @parcel.tax_collector_url     },
+      { icon: "📍", title: "Google Maps",            desc: "Vista aérea y Street View",          url: @parcel.google_maps_url      },
+      { icon: "🌊", title: "FEMA Flood Map",         desc: "Riesgo de inundación",               url: @parcel.fema_url             }
+    ] %>
+
+    <% resources.each do |r| %>
+      <% if r[:url].present? %>
+        <a href="<%= r[:url] %>" target="_blank" rel="noopener" class="fp-resource-item">
+          <span class="fp-resource-icon"><%= r[:icon] %></span>
+          <div class="fp-resource-text">
+            <div class="fp-resource-title"><%= r[:title] %></div>
+            <div class="fp-resource-desc"><%= r[:desc] %></div>
+          </div>
+          <span class="fp-resource-arrow">↗</span>
+        </a>
+      <% end %>
+    <% end %>
+  </div>
+</div>

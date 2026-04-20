@@ -1,0 +1,48 @@
+<%# ─ PARTIAL: _card_investment.html.erb ──────────────────────────────────────
+    Resumen financiero de inversión — siempre premium/blur.
+    Opening Bid + Max Bids + Est. Sale + Price/Acre + Winning Bid.
+─────────────────────────────────────────────────────────────────────────── %>
+
+<div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-card-investment">
+  <div class="fp-card__hdr fp-card__hdr--accent">
+    <span class="fp-card__hdr-icon">💰</span>
+    <h3 class="fp-card__hdr-title">Investment Summary</h3>
+  </div>
+  <div class="fp-card__body">
+    <div class="fp-kpi-highlight">
+      <div class="fp-kpi-label">Opening Bid</div>
+      <div class="fp-kpi-value fp-kpi-value--big">
+        <%= @parcel.opening_bid ? number_to_currency(@parcel.opening_bid) : "—" %>
+      </div>
+    </div>
+
+    <div class="fp-kpi-grid">
+      <div class="fp-kpi-cell">
+        <div class="fp-kpi-label">Max Bid 30%</div>
+        <div class="fp-kpi-value"><%= @parcel.max_bid_30 ? number_to_currency(@parcel.max_bid_30) : "—" %></div>
+      </div>
+      <div class="fp-kpi-cell">
+        <div class="fp-kpi-label">Max Bid 35%</div>
+        <div class="fp-kpi-value"><%= @parcel.max_bid_35 ? number_to_currency(@parcel.max_bid_35) : "—" %></div>
+      </div>
+      <div class="fp-kpi-cell">
+        <div class="fp-kpi-label">Min Bid +16%</div>
+        <div class="fp-kpi-value"><%= @parcel.adjusted_value_16 ? number_to_currency(@parcel.adjusted_value_16) : "—" %></div>
+      </div>
+      <div class="fp-kpi-cell">
+        <div class="fp-kpi-label">Est. Sale Value</div>
+        <div class="fp-kpi-value"><%= @parcel.estimated_sale_value ? number_to_currency(@parcel.estimated_sale_value) : "—" %></div>
+      </div>
+      <div class="fp-kpi-cell">
+        <div class="fp-kpi-label">Price / Acre</div>
+        <div class="fp-kpi-value"><%= @parcel.price_per_acre ? number_to_currency(@parcel.price_per_acre) : "—" %></div>
+      </div>
+      <% if @parcel.winning_bid.present? %>
+      <div class="fp-kpi-cell fp-kpi-cell--success">
+        <div class="fp-kpi-label">Winning Bid</div>
+        <div class="fp-kpi-value"><%= number_to_currency(@parcel.winning_bid) %></div>
+      </div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,16 @@
+<%#
+  Partial: State Popup (Rama 1 — Map Hover Tooltip)
+  ✅ ELIMINADO: "Est. Aggregate Value" row
+  Popup shown on SVG state click/hover.
+%>
+<div class="r1-state-popup" id="r1-state-popup">
+  <h4 id="r1-popup-state-name"></h4>
+  <div class="r1-popup-row"><span>Condados con subastas</span><strong id="r1-popup-auctions">0</strong></div>
+  <div class="r1-popup-row"><span>Properties for Bid</span><strong id="r1-popup-parcels">0</strong></div>
+  <!--
+    ARCHITECTURE NOTE (Rule 16):
+    This link goes to /research/parcels?state=X (Rama 2 list view)
+    NEVER to Parcel#show — Rama 1 cannot access individual parcels.
+  -->
+  <a class="r1-popup-cta" id="r1-popup-cta-link" href="#">View Properties for Bid in State →</a>
+</div>

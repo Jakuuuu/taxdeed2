@@ -1,0 +1,120 @@
+<%#
+  Partial: List View / Table (Rama 1)
+  Server-side paginated table of county auction rows.
+  Row click → Rama 2 parcels (NEVER to Parcel#show).
+%>
+<div class="r1-table-container">
+  <div class="r1-table-toolbar">
+    <span class="r1-table-count">
+      Showing condados con subastas
+      <strong><%= ((@page - 1) * 25) + 1 %></strong>–<strong><%= [(@page * 25), @total_count].min %></strong>
+      of <strong><%= number_with_delimiter(@total_count) %></strong>
+      <span class="r1-table-count-sub">(each row = one county sale)</span>
+    </span>
+  </div>
+  <div class="r1-table-wrap">
+    <table id="r1-auction-table">
+      <thead id="r1-auction-thead">
+        <% if params[:sub_tab] == 'prior' %>
+          <tr>
+            <th><div class="r1-th-inner" onclick="r1SortRedirect('sale_date')">Sale Date <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="r1-th-inner" onclick="r1SortRedirect('state')">State <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="r1-th-inner" onclick="r1SortRedirect('county')">Jurisdiction <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th>Auction</th>
+            <th># of Properties</th>
+            <th>Raw Sale Results</th>
+          </tr>
+        <% else %>
+          <tr>
+            <th><div class="r1-th-inner" onclick="r1SortRedirect('county')">Jurisdiction <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="r1-th-inner" onclick="r1SortRedirect('state')">State <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="r1-th-inner" onclick="r1SortRedirect('sale_date')">Sale Date <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+            <th><div class="r1-th-inner" onclick="r1SortRedirect('parcel_count')"># of Properties <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
+          </tr>
+        <% end %>
+      </thead>
+      <tbody id="r1-auction-tbody">
+        <% @county_rows_page.each do |row| %>
+          <%# ⚠️ RULE 16: Row click → Rama 2 parcels list (county context) %>
+          <tr onclick="window.location.href='<%= research_parcels_path(county: row[:county], state: row[:state]) %>'"
+              title="Click to view properties for <%= row[:county] %>, <%= row[:state] %> in Rama 2"
+              style="cursor:pointer;">
+            <% if params[:sub_tab] == 'prior' %>
+              <td class="r1-td-date" style="font-weight:700;color:var(--r1-color-primary);">
+                <% if row[:sale_dates].size > 1 %>
+                  <%= row[:sale_dates].first.strftime('%m/%d/%Y') %> – <%= row[:sale_dates].last.strftime('%m/%d/%Y') %>
+                <% elsif row[:sale_dates].any? %>
+                  <%= row[:sale_dates].first.strftime('%m/%d/%Y') %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td class="r1-td-state" style="font-weight:700;"><%= row[:state] %></td>
+              <td class="r1-td-jurisdiction" style="font-weight:700;"><%= row[:county] %></td>
+              <td><span class="r1-td-badge r1-badge-deed">Deed</span></td>
+              <td><%= number_with_delimiter(row[:parcel_count]) %></td>
+              <td>
+                <button style="background:var(--r1-color-primary);color:#fff;border:none;padding:6px 16px;border-radius:4px;font-weight:700;font-size:12px;cursor:pointer;"
+                        onclick="event.stopPropagation(); alert('Buy now clicked');">
+                  Buy now $15.00
+                </button>
+              </td>
+            <% else %>
+              <td class="r1-td-jurisdiction"><%= row[:county] %></td>
+              <td class="r1-td-state"><%= row[:state] %></td>
+              <td class="r1-td-date">
+                <% if row[:display_date] %>
+                  <%= row[:display_date].strftime('%m/%d/%Y') %>
+                  <% if row[:sale_dates].size > 1 %>
+                    <span style="font-size:10px;color:var(--r1-color-text-muted);margin-left:4px;" title="<%= row[:sale_dates].map { |d| d.strftime('%m/%d/%Y') }.join(', ') %>">
+                      (+<%= row[:sale_dates].size - 1 %>)
+                    </span>
+                  <% end %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td class="r1-parcels-count"><%= number_with_delimiter(row[:parcel_count]) %></td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%# Server-side Pagination %>
+  <div class="r1-pagination-wrap">
+    <div class="r1-pagination-info">
+      Displaying condados
+      <strong><%= ((@page - 1) * 25) + 1 %></strong> –
+      <strong><%= [(@page * 25), @total_count].min %></strong>
+      of <strong><%= number_with_delimiter(@total_count) %></strong>
+    </div>
+    <div class="r1-pagination-btns">
+      <% if @page > 1 %>
+        <a href="<%= research_auctions_path(r1_pagination_params.merge(page: @page - 1, view: 'list')) %>" class="r1-page-btn">
+          <i data-lucide="chevron-left" style="width:12px;height:12px;"></i>
+        </a>
+      <% else %>
+        <span class="r1-page-btn disabled"><i data-lucide="chevron-left" style="width:12px;height:12px;"></i></span>
+      <% end %>
+
+      <% r1_page_range(@page, @total_pages).each do |p| %>
+        <% if p == :gap %>
+          <span class="r1-page-btn disabled">…</span>
+        <% else %>
+          <a href="<%= research_auctions_path(r1_pagination_params.merge(page: p, view: 'list')) %>"
+             class="r1-page-btn <%= 'active' if p == @page %>"><%= p %></a>
+        <% end %>
+      <% end %>
+
+      <% if @page < @total_pages %>
+        <a href="<%= research_auctions_path(r1_pagination_params.merge(page: @page + 1, view: 'list')) %>" class="r1-page-btn">
+          Next <i data-lucide="chevron-right" style="width:12px;height:12px;"></i>
+        </a>
+      <% else %>
+        <span class="r1-page-btn disabled">Next <i data-lucide="chevron-right" style="width:12px;height:12px;"></i></span>
+      <% end %>
+    </div>
+  </div>
+</div>

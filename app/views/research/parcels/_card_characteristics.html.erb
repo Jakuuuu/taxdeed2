@@ -1,0 +1,37 @@
+<%# ─ PARTIAL: _card_characteristics.html.erb ─────────────────────────────────
+    Características físicas del terreno/propiedad — premium/blur.
+─────────────────────────────────────────────────────────────────────────── %>
+
+<div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-card-chars">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">🏠</span>
+    <h3 class="fp-card__hdr-title">Property Characteristics</h3>
+  </div>
+  <div class="fp-card__body">
+    <div class="fp-data-grid">
+      <div class="fp-data-label">Sqft Living Area</div>
+      <div class="fp-data-value"><%= @parcel.living_area_sqft.present? ? number_with_delimiter(@parcel.living_area_sqft) + " sqft" : "—" %></div>
+
+      <div class="fp-data-label">Sqft Lot</div>
+      <div class="fp-data-value"><%= @parcel.sqft_lot.present? ? number_with_delimiter(@parcel.sqft_lot) + " sqft" : "—" %></div>
+
+      <div class="fp-data-label">Lot Area (Acres)</div>
+      <div class="fp-data-value"><%= @parcel.lot_area_acres.present? ? "#{@parcel.lot_area_acres} ac" : "—" %></div>
+
+      <div class="fp-data-label">Min. Lot Size</div>
+      <div class="fp-data-value">
+        <% min_lot = @parcel.minimum_lot_size.to_s.strip %>
+        <%= (min_lot.blank? || min_lot.start_with?('#')) ? "—" : min_lot %>
+      </div>
+
+      <div class="fp-data-label">Lot Shape</div>
+      <div class="fp-data-value"><%= @parcel.lot_shape.presence || "—" %></div>
+
+      <div class="fp-data-label">Zoning</div>
+      <div class="fp-data-value"><%= @parcel.zoning.presence || "—" %></div>
+
+      <div class="fp-data-label">Land Use</div>
+      <div class="fp-data-value"><%= @parcel.land_use.presence || "—" %></div>
+    </div>
+  </div>
+</div>

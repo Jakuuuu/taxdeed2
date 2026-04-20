@@ -1,70 +1,70 @@
 <%# ─ PARTIAL: _header_hero.html.erb ─────────────────────────────────────────
-    Datos básicos GRATUITOS — siempre visible. Incluye back button + hero card.
-    CSS INLINE OBLIGATORIO (drawer AJAX, render layout: false).
+    "Property Intelligence Report" header — estilo reporte de inteligencia.
+    Dark banner + golden badge de status + APN pill + address + meta badges.
 ─────────────────────────────────────────────────────────────────────────── %>
 
-<%# ── Back Button ──────────────────────────────────────────────────────── %>
 <% back_path = session[:last_parcels_path] || research_parcels_path(auction_id: @parcel.auction_id) %>
-<%= link_to back_path, class: "fp-back" do %>
-  ← Ver parcelas
-<% end %>
+<%= link_to back_path, class: "fp-back" do %>← Back to Properties<% end %>
 
-<%# ── Hero card ────────────────────────────────────────────────────────── %>
 <div class="fp-hero">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-    <div class="fp-apn-pill" style="margin-bottom:0;">
-      <div class="fp-apn-dot"></div>
+  <%# ── Top bar: brand + status badge ─────────────────────────────── %>
+  <div class="fp-hero__topbar">
+    <div class="fp-hero__brand">
+      <span class="fp-hero__brand-icon">L</span>
+      <span class="fp-hero__brand-name">LION LEGACY TAXDEED</span>
+    </div>
+    <div class="fp-hero__status-badge">
+      <span class="fp-hero__status-label">ANALYSIS STATUS</span>
+      <span class="fp-hero__status-value">
+        <%= @unlocked ? "COMPLETE ✓" : "LOCKED 🔒" %>
+      </span>
+    </div>
+  </div>
+
+  <%# ── Title + Address ───────────────────────────────────────────── %>
+  <h1 class="fp-hero__title">PROPERTY INTELLIGENCE REPORT</h1>
+  <div class="fp-hero__address-line">
+    <span class="fp-hero__pin">📍</span>
+    <span class="fp-hero__address"><%= @parcel.address.presence || "Address not available" %></span>
+  </div>
+  <p class="fp-hero__location">
+    <% location_parts = []
+       location_parts << @parcel.city if @parcel.city.present?
+       county_state = [@parcel.county.presence&.then { |c| "#{c} County" }, @parcel.state.presence].compact.join(", ")
+       location_parts << county_state if county_state.present?
+       location_parts << @parcel.zip if @parcel.zip.present?
+    %>
+    <%= location_parts.join(" · ") %>
+  </p>
+
+  <%# ── Meta pills row ───────────────────────────────────────────── %>
+  <div class="fp-hero__meta-row">
+    <div class="fp-hero__pill fp-hero__pill--apn">
+      <div class="fp-hero__pill-dot"></div>
       APN: <%= @parcel.parcel_id.presence || "—" %>
     </div>
+    <% if @parcel.auction&.sale_date.present? %>
+      <div class="fp-hero__pill">📅 <%= @parcel.auction.sale_date.strftime("%b %d, %Y") %></div>
+    <% end %>
+    <% if @parcel.property_type.present? %>
+      <div class="fp-hero__pill">🏠 <%= @parcel.property_type %></div>
+    <% end %>
+    <% s_cls = @parcel.auction_status == "available" ? "success" : (@parcel.auction_status == "sold" ? "danger" : "muted") %>
+    <span class="fp-badge fp-badge--<%= s_cls %>"><%= @parcel.auction_status&.titleize %></span>
+    <% if @parcel.crime_level.present? %>
+      <% c_cls = case @parcel.crime_level.downcase; when "low" then "success"; when "moderate" then "warning"; when "high" then "danger"; else "muted"; end %>
+      <span class="fp-badge fp-badge--<%= c_cls %>">Crime: <%= @parcel.crime_level.titleize %></span>
+    <% end %>
     <% if @admin_override %>
       <span class="fp-admin-badge">Admin Override</span>
     <% end %>
   </div>
 
-  <h1 class="fp-hero-address"><%= @parcel.address.presence || "Address not available" %></h1>
-  <p class="fp-hero-location">
-    <%= [@parcel.city, @parcel.county, @parcel.state, @parcel.zip_code].select(&:present?).join(", ") %>
-  </p>
-
-  <div class="fp-meta-grid">
-    <% if @parcel.auction&.sale_date.present? %>
-    <div class="fp-meta-item">
-      <div class="fp-meta-label">Sale Date</div>
-      <div class="fp-meta-value"><%= @parcel.auction.sale_date.strftime("%b %d, %Y") %></div>
-    </div>
-    <% end %>
-    <% if @parcel.property_type.present? %>
-    <div class="fp-meta-item">
-      <div class="fp-meta-label">Property Type</div>
-      <div class="fp-meta-value"><%= @parcel.property_type %></div>
-    </div>
-    <% end %>
-    <div class="fp-meta-item">
-      <div class="fp-meta-label">Auction Status</div>
-      <div class="fp-meta-value">
-        <% s_cls = @parcel.auction_status == "available" ? "success" : (@parcel.auction_status == "sold" ? "danger" : "muted") %>
-        <span class="fp-badge fp-badge--<%= s_cls %>" style="font-size:11px;"><%= @parcel.auction_status&.titleize %></span>
-      </div>
-    </div>
-    <% if @parcel.crime_level.present? %>
-    <div class="fp-meta-item">
-      <div class="fp-meta-label">Crime Level</div>
-      <div class="fp-meta-value">
-        <% c_cls = case @parcel.crime_level.downcase; when "low" then "success"; when "moderate" then "warning"; when "high" then "danger"; else "muted"; end %>
-        <span class="fp-badge fp-badge--<%= c_cls %>" style="font-size:11px;"><%= @parcel.crime_level.titleize %></span>
-      </div>
-    </div>
-    <% end %>
-  </div>
-
-  <%# Money Typography — "El precio inicia en $" %>
-  <div class="fp-bid-wrap">
-    <div class="fp-bid-label">Minimum Bid</div>
-    <div class="fp-bid-price-line">
-      <span class="fp-bid-starts">El precio inicia en&nbsp;$</span>
-      <span class="fp-bid-amount">
-        <%= @parcel.opening_bid ? number_to_currency(@parcel.opening_bid, unit: "", delimiter: ",", separator: ".") : "—" %>
-      </span>
-    </div>
+  <%# ── Opening Bid — prominent ──────────────────────────────────── %>
+  <div class="fp-hero__bid">
+    <span class="fp-hero__bid-label">Minimum Bid</span>
+    <span class="fp-hero__bid-amount">
+      <%= @parcel.opening_bid ? number_to_currency(@parcel.opening_bid) : "—" %>
+    </span>
   </div>
 </div>

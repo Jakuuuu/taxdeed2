@@ -1,0 +1,14 @@
+<%#
+  Partial: Sub-Navigation Tabs (Rama 1)
+  Tabs: Tax Sale Auctions | Prior Sale Results
+%>
+<div class="r1-sub-nav">
+  <a href="<%= research_auctions_path %>" class="r1-sub-tab <%= 'active' unless params[:sub_tab] == 'prior' %>" id="tab-taxsale"
+     onclick="r1SwitchSubTab('taxsale'); return false;">
+    <i data-lucide="gavel" style="width:14px;height:14px;margin-right:4px;"></i> Tax Sale Auctions
+  </a>
+  <a href="<%= research_auctions_path(sub_tab: 'prior') %>" class="r1-sub-tab <%= 'active' if params[:sub_tab] == 'prior' %>" id="tab-prior"
+     onclick="r1SwitchSubTab('prior'); return false;">
+    <i data-lucide="history" style="width:14px;height:14px;margin-right:4px;"></i> Prior Sale Results
+  </a>
+</div>

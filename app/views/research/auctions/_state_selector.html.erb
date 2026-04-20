@@ -1,0 +1,68 @@
+<%#
+  Partial: State Selector (Rama 1 — Split Layout)
+  Dropdown above the SVG map to switch the active state.
+  Default: first state with active auctions (or Florida).
+%>
+<%
+  # Build list of states that have active auctions, sorted alphabetically
+  active_states = @auctions_by_state.keys.sort
+  # Default to Florida if available, otherwise first state
+  default_state = active_states.include?("Florida") ? "Florida" : active_states.first
+  selected_state = params[:active_state].presence || default_state
+%>
+
+<div class="r1-state-selector" id="r1-state-selector">
+  <label for="r1-active-state-select" class="r1-state-selector-label">
+    <i data-lucide="map-pin" style="width:14px;height:14px;"></i>
+    Active State
+  </label>
+  <select id="r1-active-state-select" class="r1-state-selector-select" onchange="r1ChangeActiveState(this.value)">
+    <% active_states.each do |state_name| %>
+      <% data = @auctions_by_state[state_name] %>
+      <option value="<%= state_name %>" <%= 'selected' if state_name == selected_state %>>
+        <%= state_name %> (<%= data[:count] %> condados con subastas)
+      </option>
+    <% end %>
+  </select>
+</div>
+
+<style>
+  .r1-state-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #F8F9FB 0%, #EEF1F5 100%);
+    border: 1px solid var(--r1-color-border, #DEE2E6);
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  .r1-state-selector-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--r1-color-text-muted, #6C757D);
+    white-space: nowrap;
+  }
+  .r1-state-selector-select {
+    flex: 1;
+    background: #fff;
+    border: 1px solid var(--r1-color-border, #DEE2E6);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--r1-color-text, #1A1A2E);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .r1-state-selector-select:focus {
+    outline: none;
+    border-color: var(--r1-color-primary, #6C3483);
+    box-shadow: 0 0 0 3px rgba(108,52,131,0.1);
+  }
+</style>

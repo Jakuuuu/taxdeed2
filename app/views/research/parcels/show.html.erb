@@ -1,42 +1,54 @@
-<%# ══════════════════════════════════════════════════════════════════════════
-    show.html.erb — Ficha de Propiedad (Drawer AJAX, 95vw, render layout:false)
-    ARQUITECTURA: Orquestador de partials. Este archivo no contiene lógica ni
-    CSS — solo delega a sub-partials para mantener tokens bajo control.
-    GOTCHA: CSS INLINE en _ficha_styles — nunca content_for :head.
+<%# ═══ show.html.erb — Property Intelligence Report (Multi-Column Layout) ═══
+    Drawer AJAX 95vw · render layout:false · CSS inline obligatorio
+    Diseño: ficha maestra con uso horizontal del espacio (3-col / 2-col grids)
 ═══════════════════════════════════════════════════════════════════════════ %>
 <% content_for :title, "#{@parcel.address} — TaxDeed Lion" %>
 
-<%# 0. CSS inline — OBLIGATORIO para drawer AJAX (render layout:false) %>
 <%= render "research/parcels/ficha_styles" %>
 
 <div class="ficha-root">
   <div class="ficha-container">
 
-    <%# 1. HEADER — Back button + Hero (APN, dirección, bid) — GRATUITO %>
+    <%# ── HEADER: Intelligence Report banner ──────────────────────────── %>
     <%= render "research/parcels/header_hero" %>
 
-    <%# 2. MINI CRM — Tags & Notes — SIEMPRE VISIBLE (inmune al paywall) %>
-    <%= render "research/parcels/mini_crm" %>
-
-    <%# 3. PAYWALL CTA (Regla Naranja) + Unlocked banner %>
-    <%#    CRM y Mapa NUNCA quedan bajo este difuminado %>
+    <%# ── PAYWALL CTA (si locked) ─────────────────────────────────────── %>
     <%= render "research/parcels/paywall_cta" %>
 
-    <%# 4. DATOS AVANZADOS — blur si locked, claro si unlocked %>
-    <%#    Protección: .fp-premium.fp-locked { overflow: visible } %>
-    <%= render "research/parcels/premium_data" %>
+    <%# ── ROW 1: 3 columnas — Investment | Property Info | Legal ──────── %>
+    <div class="fp-grid fp-grid--3">
+      <%= render "research/parcels/card_investment" %>
+      <%= render "research/parcels/card_property_info" %>
+      <%= render "research/parcels/card_legal" %>
+    </div>
 
-    <%# 5. VA ANALYSIS — SIEMPRE VISIBLE (datos equipo, no paywall) %>
+    <%# ── ROW 2: 2 columnas — Characteristics | Valuation ─────────────── %>
+    <div class="fp-grid fp-grid--2">
+      <%= render "research/parcels/card_characteristics" %>
+      <%= render "research/parcels/card_valuation" %>
+    </div>
+
+    <%# ── ROW 3: 2 columnas — Environmental | Resource Center ─────────── %>
+    <div class="fp-grid fp-grid--2">
+      <%= render "research/parcels/card_environmental" %>
+      <%= render "research/parcels/resource_center" %>
+    </div>
+
+    <%# ── FULL WIDTH: Mini CRM (siempre visible) ──────────────────────── %>
+    <%= render "research/parcels/mini_crm" %>
+
+    <%# ── FULL WIDTH: VA Analysis (siempre visible, condicional) ──────── %>
     <%= render "research/parcels/va_analysis" %>
 
-    <%# 6. GIS MAP + STREET VIEW — SIEMPRE VISIBLES (regla absoluta) %>
-    <%= render "research/parcels/gis_and_streetview" %>
+    <%# ── ROW 4: 2 columnas — GIS Map | Street View ──────────────────── %>
+    <div class="fp-grid fp-grid--2">
+      <%= render "research/parcels/gis_and_streetview" %>
+    </div>
 
-    <%# 7. EXTERNAL LINKS + TITLE REPORT CTA (Regla Naranja, solo si unlocked) %>
-    <%= render "research/parcels/external_links" %>
+    <%# ── FULL WIDTH: Title Report CTA (solo si unlocked) ─────────────── %>
+    <%= render "research/parcels/title_report_cta" %>
 
-  </div><%# .ficha-container %>
-</div><%# .ficha-root %>
+  </div>
+</div>
 
-<%# 8. JavaScript inline — CRM optimistic UI, unlock flow, Google Maps, Regrid %>
 <%= render "research/parcels/ficha_javascript" %>

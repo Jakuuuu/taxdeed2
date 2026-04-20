@@ -1,0 +1,35 @@
+<%# ─ PARTIAL: _card_property_info.html.erb ───────────────────────────────────
+    Información de propiedad y ocupantes — premium/blur.
+    Owner, Mailing Address, Property Address, Type, Beds/Baths.
+─────────────────────────────────────────────────────────────────────────── %>
+
+<div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-card-propinfo">
+  <div class="fp-card__hdr">
+    <span class="fp-card__hdr-icon">👤</span>
+    <h3 class="fp-card__hdr-title">Property & Occupant Info</h3>
+  </div>
+  <div class="fp-card__body">
+    <div class="fp-data-grid fp-data-grid--compact">
+      <div class="fp-data-label">Owner</div>
+      <div class="fp-data-value"><%= @parcel.owner_name.presence || "—" %></div>
+
+      <div class="fp-data-label">Mailing Address</div>
+      <div class="fp-data-value" style="font-size:12px;"><%= @parcel.owner_mail_address.presence || "—" %></div>
+
+      <div class="fp-data-label">Property Address</div>
+      <div class="fp-data-value" style="font-size:12px;"><%= @parcel.property_address.presence || "—" %></div>
+
+      <div class="fp-data-label">Property Type</div>
+      <div class="fp-data-value"><%= @parcel.property_type.presence || "—" %></div>
+
+      <div class="fp-data-label">Bedrooms</div>
+      <div class="fp-data-value"><%= @parcel.bedrooms.presence || "—" %></div>
+
+      <div class="fp-data-label">Bathrooms</div>
+      <div class="fp-data-value"><%= @parcel.bathrooms.presence || "—" %></div>
+
+      <div class="fp-data-label">Year Built</div>
+      <div class="fp-data-value"><%= @parcel.year_built.presence || "—" %></div>
+    </div>
+  </div>
+</div>

@@ -1,824 +1,131 @@
 <%#
   Rama 1: US Overview — Condados con Subastas (Production View)
-  Migrated from approved prototype: rama1-auctions-test.html
+  ══════════════════════════════════════════════════════════════
+  REFACTORED: Modular architecture via Rails Partials.
+  LAYOUT: 50/50 split — Left: SVG Map + State Selector | Right: State Data
   ──────────────────────────────────────────────────────────────
   ARCHITECTURE RULES:
-  • Regla 16: This module is macro-statistical ONLY.
-    - Map click → /research/parcels?state=XX (Rama 2 list)
-    - Calendar click → /research/parcels?auction_id=:id (Rama 2)
-    - Table row click → /research/parcels?auction_id=:id (Rama 2)
-    - NEVER links to Parcel#show from Rama 1.
-  • Regla 17: Single Advanced Property Card (in Rama 2 only).
+  • ⛔ NO Google Maps / Leaflet — SVG choropleth inline ONLY
+  • ⛔ NO "Aggregate Value" — ELIMINATED
+  • ✅ Terminología: "Condados con subastas" (NEVER "Sale Events")
+  • Rule 16: Map/Calendar/Table clicks → Rama 2 (NEVER Parcel#show)
+  ──────────────────────────────────────────────────────────────
+  PARTIALS:
+    _sub_navigation     → Tabs (Tax Sale Auctions | Prior Sale Results)
+    _filter_bar         → Filters, dropdowns, view toggle
+    _state_selector     → State dropdown above SVG map
+    _svg_map_container  → SVG choropleth + summary stats (NO aggregate value)
+    _state_overview_data→ Right panel: state header, counties, dates
+    _calendar_view      → Calendar panel
+    _list_view          → Table + pagination
+    _state_popup        → Map hover tooltip (NO aggregate value)
+    _rama1_scripts      → All JS (view switching, zoom, filters, etc.)
 %>
 
 <%# ── Sub-Navigation Tabs ─────────────────────────────────────────────── %>
-<div class="r1-sub-nav">
-  <a href="<%= research_auctions_path %>" class="r1-sub-tab <%= 'active' unless params[:sub_tab] == 'prior' %>" id="tab-taxsale"
-     onclick="r1SwitchSubTab('taxsale'); return false;">
-    <i data-lucide="gavel" style="width:14px;height:14px;margin-right:4px;"></i> Tax Sale Auctions
-  </a>
-  <a href="<%= research_auctions_path(sub_tab: 'prior') %>" class="r1-sub-tab <%= 'active' if params[:sub_tab] == 'prior' %>" id="tab-prior"
-     onclick="r1SwitchSubTab('prior'); return false;">
-    <i data-lucide="history" style="width:14px;height:14px;margin-right:4px;"></i> Prior Sale Results
-  </a>
-</div>
+<%= render 'research/auctions/sub_navigation' %>
 
 <%# ── Filter Bar ──────────────────────────────────────────────────────── %>
-<div class="r1-filter-bar">
-  <div class="r1-filter-group">
-
-    <%# State multi-select dropdown %>
-    <div class="r1-custom-dropdown" id="dd-state">
-      <button class="r1-custom-dropdown-btn" id="btn-state" onclick="r1ToggleDropdown('state')">
-        <i data-lucide="map-pin" style="width:12px;height:12px;"></i> State
-        <i data-lucide="chevron-down" style="width:10px;height:10px;"></i>
-      </button>
-      <div class="r1-custom-dropdown-menu" id="menu-state">
-        <div class="r1-custom-dropdown-search">
-          <input type="text" placeholder="Search states..." oninput="r1FilterDropdown(this, 'list-state')">
-        </div>
-        <div class="r1-custom-dropdown-list" id="list-state">
-          <% @states_with_counts.each do |state_name, count| %>
-            <label class="r1-custom-dropdown-item">
-              <input type="checkbox" class="r1-state-checkbox" value="<%= state_name %>"
-                     <%= 'checked' if Array(params[:states]).include?(state_name) %>
-                     onchange="r1OnStateChange(this)">
-              <%= state_name %>
-              <span class="r1-badge"><%= count %></span>
-            </label>
-          <% end %>
-        </div>
-      </div>
-    </div>
-
-    <%# Jurisdiction dropdown (populated via AJAX) %>
-    <div class="r1-custom-dropdown" id="dd-jurisdiction">
-      <button class="r1-custom-dropdown-btn" id="btn-jurisdiction" onclick="r1ToggleDropdown('jurisdiction')">
-        <i data-lucide="building" style="width:12px;height:12px;"></i> Jurisdiction
-        <i data-lucide="chevron-down" style="width:10px;height:10px;"></i>
-      </button>
-      <div class="r1-custom-dropdown-menu" id="menu-jurisdiction">
-        <div class="r1-custom-dropdown-search">
-          <input type="text" placeholder="Search jurisdictions..." oninput="r1FilterDropdown(this, 'list-jurisdiction')">
-        </div>
-        <div class="r1-custom-dropdown-list" id="list-jurisdiction">
-          <div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">
-            Select a state first
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <%# Status filter (hidden in Prior tab) %>
-    <select class="r1-filter-select" id="filter-status" onchange="r1ApplyFilters()">
-      <option value="">Status</option>
-      <option value="upcoming" <%= 'selected' if params[:status] == 'upcoming' %>>Upcoming</option>
-      <option value="active" <%= 'selected' if params[:status] == 'active' %>>Active</option>
-    </select>
-
-
-
-    <%# Date range %>
-    <div class="r1-filter-date-wrap">
-      <input type="date" class="r1-filter-date" id="filter-from" placeholder="From"
-             value="<%= params[:from_date] %>" onchange="r1ApplyFilters()">
-      <button class="r1-filter-clear" onclick="r1ClearDate('filter-from')" title="Clear">✕</button>
-    </div>
-    <div class="r1-filter-date-wrap">
-      <input type="date" class="r1-filter-date" id="filter-to" placeholder="To"
-             value="<%= params[:to_date] %>" onchange="r1ApplyFilters()">
-      <button class="r1-filter-clear" onclick="r1ClearDate('filter-to')" title="Clear">✕</button>
-    </div>
-  </div>
-
-  <div class="r1-filter-spacer"></div>
-
-  <%# Action buttons: Settings, Save, Presets %>
-  <div class="r1-filter-group" style="position:relative;">
-    <%# Settings (column visibility) popup %>
-    <div style="position:relative;">
-      <button class="r1-custom-dropdown-btn" id="btn-filter" onclick="r1ToggleSettingsPopup()" title="Table Settings">
-        <i data-lucide="settings" style="width:14px;height:14px;"></i>
-      </button>
-      <div class="r1-settings-popup" id="menu-settings-popup">
-        <h4>Table Columns</h4>
-        <div class="r1-settings-list" id="r1-column-settings">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-    </div>
-
-    <%# Save search popup %>
-    <div style="position:relative;">
-      <button class="r1-custom-dropdown-btn" id="btn-save" onclick="r1ToggleSavePopup()" title="Saved Searches">
-        <i data-lucide="bookmark" style="width:14px;height:14px;"></i>
-      </button>
-      <div class="r1-save-popup" id="menu-save-popup">
-        <h4>Saved Searches</h4>
-        <div class="r1-save-form-row">
-          <input type="text" id="r1-save-name" placeholder="Name this search...">
-          <button onclick="r1SaveSearch()">Save</button>
-        </div>
-        <div id="r1-saved-list">
-          <!-- Populated by JS from localStorage -->
-        </div>
-      </div>
-    </div>
-
-    <%# Preset chip %>
-    <a href="<%= research_auctions_path %>" class="r1-preset-chip" title="Reset all filters">
-      <i data-lucide="filter-x" style="width:12px;height:12px;"></i> Reset
-    </a>
-
-    <%# View toggle buttons %>
-    <div class="r1-view-btn-group">
-      <button class="r1-view-btn active" id="btn-map" onclick="r1SwitchView('map')" title="Map View">
-        <i data-lucide="map" style="width:14px;height:14px;"></i>
-      </button>
-      <button class="r1-view-btn" id="btn-calendar" onclick="r1SwitchView('calendar')" title="Calendar">
-        <i data-lucide="calendar" style="width:14px;height:14px;"></i>
-      </button>
-      <button class="r1-view-btn" id="btn-list" onclick="r1SwitchView('list')" title="List View">
-        <i data-lucide="list" style="width:14px;height:14px;"></i>
-      </button>
-    </div>
-  </div>
-</div>
+<%= render 'research/auctions/filter_bar' %>
 
 
 <%# ═══════════════════ MAIN CONTENT ═══════════════════════════════════ %>
 <div class="r1-main-content">
 
-  <%# ══ VIEW: MAP (Choropleth) ══ %>
+  <%# ══ VIEW: MAP — 50/50 Split Layout ══ %>
   <div class="r1-view-panel active" id="panel-map">
-    <div class="r1-map-container">
-      <div class="r1-map-header">
-        <h2>Tax Deed Auction Heat Map — United States</h2>
-        <div class="r1-map-legend">
-          <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#CBD5E0;"></div> No Auctions</div>
-          <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#90BEE8;"></div> 1–5</div>
-          <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#3A82C3;"></div> 6–20</div>
-          <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#1E4E8C;"></div> 21+</div>
-        </div>
-      </div>
-      <div class="r1-map-svg-wrap">
-        <%= render partial: 'research/auctions/us_choropleth_svg' %>
-      </div>
-    </div>
+    <div class="r1-split-layout">
 
-    <%# Summary Stats %>
-    <div class="r1-stats-row">
-      <div class="r1-stat-card">
-        <div class="r1-stat-label">Condados con subastas</div>
-        <div class="r1-stat-value"><%= @count_total %></div>
-        <div class="r1-stat-sub">County-level tax sales</div>
+      <%# ── LEFT SIDE (50%): State Selector + SVG Map ── %>
+      <div class="r1-split-left">
+        <%= render 'research/auctions/state_selector' %>
+        <%= render 'research/auctions/svg_map_container' %>
       </div>
-      <div class="r1-stat-card">
-        <div class="r1-stat-label">States Active</div>
-        <div class="r1-stat-value"><%= @states_with_counts.size %></div>
-        <div class="r1-stat-sub">With scheduled sales</div>
+
+      <%# ── RIGHT SIDE (50%): State Overview Data ── %>
+      <div class="r1-split-right">
+        <%= render 'research/auctions/state_overview_data' %>
       </div>
-      <div class="r1-stat-card">
-        <div class="r1-stat-label">Properties Up for Bid</div>
-        <div class="r1-stat-value"><%= number_with_delimiter(@count_total_parcels) %></div>
-        <div class="r1-stat-sub">Individual properties</div>
-      </div>
-      <div class="r1-stat-card">
-        <div class="r1-stat-label">Est. Aggregate Value</div>
-        <div class="r1-stat-value">
-          <% if @total_amount && @total_amount >= 1_000_000 %>
-            $<%= (@total_amount / 1_000_000.0).round(1) %>M
-          <% elsif @total_amount && @total_amount > 0 %>
-            $<%= number_with_delimiter(@total_amount.to_i) %>
-          <% else %>
-            —
-          <% end %>
-        </div>
-        <div class="r1-stat-sub">Sum of opening bids</div>
-      </div>
+
     </div>
   </div>
 
   <%# ══ VIEW: CALENDAR ══ %>
   <div class="r1-view-panel" id="panel-calendar">
-    <div class="r1-calendar-container">
-      <div class="r1-calendar-header">
-        <button class="r1-cal-nav-btn" title="Previous month" onclick="r1ChangeMonth(-1)">
-          <i data-lucide="chevron-left" style="width:14px;height:14px;"></i>
-        </button>
-        <button class="r1-cal-today-btn" onclick="r1GoToday()">Today</button>
-        <button class="r1-cal-nav-btn" title="Next month" onclick="r1ChangeMonth(1)">
-          <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
-        </button>
-        <span class="r1-cal-month-title" id="r1-cal-title"></span>
-        <div class="r1-cal-legend">
-          <div class="r1-cal-legend-item">
-            <div class="r1-cal-legend-dot" style="background:#15803D;"></div> Deed
-          </div>
-        </div>
-        <div class="r1-cal-view-toggle">
-          <button class="r1-cal-view-btn active" onclick="r1CalViewMode('month', this)">Month</button>
-        </div>
-      </div>
-      <div id="r1-cal-grid" class="r1-calendar-grid">
-        <!-- Generated by JS -->
-      </div>
-    </div>
+    <%= render 'research/auctions/calendar_view' %>
   </div>
 
   <%# ══ VIEW: LIST (Table) ══ %>
   <div class="r1-view-panel" id="panel-list">
-    <div class="r1-table-container">
-      <div class="r1-table-toolbar">
-        <span class="r1-table-count">
-          Showing condados con subastas
-          <strong><%= ((@page - 1) * 25) + 1 %></strong>–<strong><%= [(@page * 25), @total_count].min %></strong>
-          of <strong><%= number_with_delimiter(@total_count) %></strong>
-          <span class="r1-table-count-sub">(each row = one county sale)</span>
-        </span>
-      </div>
-      <div class="r1-table-wrap">
-        <table id="r1-auction-table">
-          <thead id="r1-auction-thead">
-            <% if params[:sub_tab] == 'prior' %>
-              <tr>
-                <th><div class="r1-th-inner" onclick="r1SortRedirect('sale_date')">Sale Date <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
-                <th><div class="r1-th-inner" onclick="r1SortRedirect('state')">State <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
-                <th><div class="r1-th-inner" onclick="r1SortRedirect('county')">Jurisdiction <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
-                <th>Auction</th>
-                <th># of Properties</th>
-                <th>Raw Sale Results</th>
-              </tr>
-            <% else %>
-              <tr>
-                <th><div class="r1-th-inner" onclick="r1SortRedirect('county')">Jurisdiction <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
-                <th><div class="r1-th-inner" onclick="r1SortRedirect('state')">State <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
-                <th><div class="r1-th-inner" onclick="r1SortRedirect('sale_date')">Sale Date <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
-                <th><div class="r1-th-inner" onclick="r1SortRedirect('parcel_count')"># of Properties <i data-lucide="chevrons-up-down" class="r1-sort-icon" style="width:12px;height:12px;"></i></div></th>
-              </tr>
-            <% end %>
-          </thead>
-          <tbody id="r1-auction-tbody">
-            <% @county_rows_page.each do |row| %>
-              <%# ⚠️ RULE 16: Row click → Rama 2 parcels list (county context) %>
-              <tr onclick="window.location.href='<%= research_parcels_path(county: row[:county], state: row[:state]) %>'"
-                  title="Click to view properties for <%= row[:county] %>, <%= row[:state] %> in Rama 2"
-                  style="cursor:pointer;">
-                <% if params[:sub_tab] == 'prior' %>
-                  <td class="r1-td-date" style="font-weight:700;color:var(--r1-color-primary);">
-                    <% if row[:sale_dates].size > 1 %>
-                      <%= row[:sale_dates].first.strftime('%m/%d/%Y') %> – <%= row[:sale_dates].last.strftime('%m/%d/%Y') %>
-                    <% elsif row[:sale_dates].any? %>
-                      <%= row[:sale_dates].first.strftime('%m/%d/%Y') %>
-                    <% else %>
-                      —
-                    <% end %>
-                  </td>
-                  <td class="r1-td-state" style="font-weight:700;"><%= row[:state] %></td>
-                  <td class="r1-td-jurisdiction" style="font-weight:700;"><%= row[:county] %></td>
-                  <td><span class="r1-td-badge r1-badge-deed">Deed</span></td>
-                  <td><%= number_with_delimiter(row[:parcel_count]) %></td>
-                  <td>
-                    <button style="background:var(--r1-color-primary);color:#fff;border:none;padding:6px 16px;border-radius:4px;font-weight:700;font-size:12px;cursor:pointer;"
-                            onclick="event.stopPropagation(); alert('Buy now clicked');">
-                      Buy now $15.00
-                    </button>
-                  </td>
-                <% else %>
-                  <td class="r1-td-jurisdiction"><%= row[:county] %></td>
-                  <td class="r1-td-state"><%= row[:state] %></td>
-                  <td class="r1-td-date">
-                    <% if row[:display_date] %>
-                      <%= row[:display_date].strftime('%m/%d/%Y') %>
-                      <% if row[:sale_dates].size > 1 %>
-                        <span style="font-size:10px;color:var(--r1-color-text-muted);margin-left:4px;" title="<%= row[:sale_dates].map { |d| d.strftime('%m/%d/%Y') }.join(', ') %>">
-                          (+<%= row[:sale_dates].size - 1 %>)
-                        </span>
-                      <% end %>
-                    <% else %>
-                      —
-                    <% end %>
-                  </td>
-                  <td class="r1-parcels-count"><%= number_with_delimiter(row[:parcel_count]) %></td>
-                <% end %>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-
-      <%# Server-side Pagination %>
-      <div class="r1-pagination-wrap">
-        <div class="r1-pagination-info">
-          Displaying condados
-          <strong><%= ((@page - 1) * 25) + 1 %></strong> –
-          <strong><%= [(@page * 25), @total_count].min %></strong>
-          of <strong><%= number_with_delimiter(@total_count) %></strong>
-        </div>
-        <div class="r1-pagination-btns">
-          <% if @page > 1 %>
-            <a href="<%= research_auctions_path(r1_pagination_params.merge(page: @page - 1, view: 'list')) %>" class="r1-page-btn">
-              <i data-lucide="chevron-left" style="width:12px;height:12px;"></i>
-            </a>
-          <% else %>
-            <span class="r1-page-btn disabled"><i data-lucide="chevron-left" style="width:12px;height:12px;"></i></span>
-          <% end %>
-
-          <% r1_page_range(@page, @total_pages).each do |p| %>
-            <% if p == :gap %>
-              <span class="r1-page-btn disabled">…</span>
-            <% else %>
-              <a href="<%= research_auctions_path(r1_pagination_params.merge(page: p, view: 'list')) %>"
-                 class="r1-page-btn <%= 'active' if p == @page %>"><%= p %></a>
-            <% end %>
-          <% end %>
-
-          <% if @page < @total_pages %>
-            <a href="<%= research_auctions_path(r1_pagination_params.merge(page: @page + 1, view: 'list')) %>" class="r1-page-btn">
-              Next <i data-lucide="chevron-right" style="width:12px;height:12px;"></i>
-            </a>
-          <% else %>
-            <span class="r1-page-btn disabled">Next <i data-lucide="chevron-right" style="width:12px;height:12px;"></i></span>
-          <% end %>
-        </div>
-      </div>
-    </div>
+    <%= render 'research/auctions/list_view' %>
   </div>
 
 </div><!-- /r1-main-content -->
 
 
-<%# ── State popup (for map hover) ─────────────────────────────────── %>
-<div class="r1-state-popup" id="r1-state-popup">
-  <h4 id="r1-popup-state-name"></h4>
-  <div class="r1-popup-row"><span>Condados con subastas</span><strong id="r1-popup-auctions">0</strong></div>
-  <div class="r1-popup-row"><span>Properties for Bid</span><strong id="r1-popup-parcels">0</strong></div>
-  <div class="r1-popup-row"><span>Est. Aggregate Value</span><strong id="r1-popup-amount">$0</strong></div>
-  <!--
-    ARCHITECTURE NOTE (Rule 16):
-    This link goes to /research/parcels?state=X (Rama 2 list view)
-    NEVER to Parcel#show — Rama 1 cannot access individual parcels.
-  -->
-  <a class="r1-popup-cta" id="r1-popup-cta-link" href="#">View Properties for Bid in State →</a>
-</div>
+<%# ── State Popup (map hover tooltip) ─────────────────────────────── %>
+<%= render 'research/auctions/state_popup' %>
 
 
-<script>
-// ═══════════════════ RAMA 1: AUCTIONS MODULE — Production JS ═══════════════
-// Migrated from approved prototype with real data bindings.
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ─── Initialize Lucide Icons ────────────────────────────────────────────
-if (typeof lucide !== 'undefined') lucide.createIcons();
-
-// ─── REAL DATA FROM RAILS ───────────────────────────────────────────────
-const R1_AUCTIONS_BY_STATE = <%= raw @auctions_by_state.to_json %>;
-const R1_CALENDAR_EVENTS   = <%= raw @calendar_events.to_json %>;
-const R1_CURRENT_PAGE      = <%= @page %>;
-const R1_TOTAL_PAGES       = <%= @total_pages %>;
-
-// ─── VIEW SWITCHING ─────────────────────────────────────────────────────
-let r1CurrentView = 'map';
-
-function r1SwitchView(view) {
-  document.querySelectorAll('.r1-view-panel').forEach(p => p.classList.remove('active'));
-  ['btn-map','btn-calendar','btn-list'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.classList.remove('active');
-  });
-  r1CurrentView = view;
-  if(view === 'map') {
-    document.getElementById('panel-map').classList.add('active');
-    document.getElementById('btn-map').classList.add('active');
-  } else if(view === 'calendar') {
-    document.getElementById('panel-calendar').classList.add('active');
-    document.getElementById('btn-calendar').classList.add('active');
-    r1RenderCalendar();
-  } else if(view === 'list') {
-    document.getElementById('panel-list').classList.add('active');
-    document.getElementById('btn-list').classList.add('active');
-  }
-  if (typeof lucide !== 'undefined') lucide.createIcons();
-  // Persist view preference
-  try { localStorage.setItem('r1_view', view); } catch(e) {}
-}
-
-// ─── SUB-TAB SWITCHING ──────────────────────────────────────────────────
-let r1CurrentSubTab = '<%= params[:sub_tab] == "prior" ? "prior" : "taxsale" %>';
-
-function r1SwitchSubTab(tab) {
-  if (tab === 'prior') {
-    // Redirect server-side for proper data
-    window.location.href = '<%= research_auctions_path(sub_tab: "prior") %>';
-  } else {
-    window.location.href = '<%= research_auctions_path %>';
-  }
-}
-
-// ─── FILTER FUNCTIONS ───────────────────────────────────────────────────
-function r1ApplyFilters() {
-  const params = new URLSearchParams();
-
-  // Collect checked states
-  document.querySelectorAll('.r1-state-checkbox:checked').forEach(chk => {
-    params.append('states[]', chk.value);
-  });
-
-  // Collect checked jurisdictions
-  document.querySelectorAll('.r1-jurisdiction-checkbox:checked').forEach(chk => {
-    params.append('county', chk.value);
-  });
-
-  const status = document.getElementById('filter-status')?.value;
-  if (status) params.set('status', status);
-
-  const fromDate = document.getElementById('filter-from')?.value;
-  if (fromDate) params.set('from_date', fromDate);
-
-  const toDate = document.getElementById('filter-to')?.value;
-  if (toDate) params.set('to_date', toDate);
-
-  if (r1CurrentSubTab === 'prior') params.set('sub_tab', 'prior');
-
-  // Preserve current view across filter changes
-  if (r1CurrentView && r1CurrentView !== 'map') params.set('view', r1CurrentView);
-
-  window.location.href = '<%= research_auctions_path %>?' + params.toString();
-}
-
-function r1ClearDate(id) {
-  document.getElementById(id).value = '';
-  r1ApplyFilters();
-}
-
-// ─── AJAX: PREDICTIVE JURISDICTION FILTERING ────────────────────────────
-function r1OnStateChange(checkbox) {
-  r1LoadJurisdictions();
-  // After a short delay, open jurisdiction dropdown (UX continuity)
-  if (checkbox.checked) {
-    setTimeout(() => {
-      document.getElementById('menu-jurisdiction')?.classList.add('show');
-      document.getElementById('btn-jurisdiction')?.classList.add('open');
-    }, 300);
-  }
-}
-
-function r1LoadJurisdictions() {
-  const checked = document.querySelectorAll('.r1-state-checkbox:checked');
-  const states = Array.from(checked).map(c => c.value);
-  const listEl = document.getElementById('list-jurisdiction');
-
-  if (states.length === 0) {
-    listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">Select a state first</div>';
-    return;
+<%# ── 50/50 Split Layout CSS ─────────────────────────────────────── %>
+<style>
+  /* ── Split Layout Container ── */
+  .r1-split-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    min-height: 600px;
   }
 
-  listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">Loading...</div>';
-
-  const params = new URLSearchParams();
-  states.forEach(s => params.append('states[]', s));
-
-  fetch('<%= jurisdictions_research_auctions_path(format: :json) %>?' + params.toString())
-    .then(r => r.json())
-    .then(data => {
-      if (data.length === 0) {
-        listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">No jurisdictions found</div>';
-        return;
-      }
-      listEl.innerHTML = data.map(j =>
-        `<label class="r1-custom-dropdown-item">
-          <input type="checkbox" class="r1-jurisdiction-checkbox" value="${j.name.split(',')[0].trim()}">
-          ${j.name}
-          <span class="r1-badge">${j.count}</span>
-        </label>`
-      ).join('');
-    })
-    .catch(() => {
-      listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-danger);font-size:12px;">Error loading</div>';
-    });
-}
-
-// ─── MAP TOOLTIP ────────────────────────────────────────────────────────
-function r1StateClick(event, stateName) {
-  event.stopPropagation();
-
-  const data = R1_AUCTIONS_BY_STATE[stateName] || { count: 0, total_parcels: 0, total_amount: 0 };
-  const popup = document.getElementById('r1-state-popup');
-  popup.style.display = 'block';
-  popup.style.pointerEvents = 'auto';
-  popup.style.left = (event.clientX + 12) + 'px';
-  popup.style.top  = (event.clientY - 30) + 'px';
-
-  document.getElementById('r1-popup-state-name').textContent = stateName;
-  document.getElementById('r1-popup-auctions').textContent   = data.count;
-  document.getElementById('r1-popup-parcels').textContent    = (data.total_parcels || 0).toLocaleString();
-
-  const amt = data.total_amount || 0;
-  document.getElementById('r1-popup-amount').textContent = amt >= 1e6
-    ? '$' + (amt / 1e6).toFixed(1) + 'M'
-    : '$' + amt.toLocaleString();
-
-  // ⚠️ ARCHITECTURE RULE 16: Link goes to Rama 2 (parcels list by state)
-  const link = document.getElementById('r1-popup-cta-link');
-  if (data.count > 0) {
-    link.href = '/research/parcels?state=' + encodeURIComponent(stateName);
-    link.style.display = 'block';
-  } else {
-    link.style.display = 'none';
+  .r1-split-left {
+    display: flex;
+    flex-direction: column;
+    padding-right: 20px;
+    border-right: 1px solid var(--r1-color-border, #DEE2E6);
+    gap: 12px;
   }
-}
 
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.r1-state-popup') && !e.target.closest('.r1-state-path')) {
-    document.getElementById('r1-state-popup').style.display = 'none';
+  .r1-split-right {
+    display: flex;
+    flex-direction: column;
+    max-height: 800px;
+    overflow-y: auto;
   }
-});
 
-// ─── CALENDAR ───────────────────────────────────────────────────────────
-let r1CalYear, r1CalMonth;
-(function() {
-  const now = new Date();
-  r1CalYear  = now.getFullYear();
-  r1CalMonth = now.getMonth();
-})();
-
-const R1_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const R1_DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
-function r1RenderCalendar() {
-  document.getElementById('r1-cal-title').textContent = R1_MONTH_NAMES[r1CalMonth] + ' ' + r1CalYear;
-  const grid = document.getElementById('r1-cal-grid');
-  grid.innerHTML = '';
-
-  // Day headers
-  R1_DAY_NAMES.forEach(d => {
-    const hdr = document.createElement('div');
-    hdr.className = 'r1-cal-day-header';
-    hdr.textContent = d;
-    grid.appendChild(hdr);
-  });
-
-  const firstDay     = new Date(r1CalYear, r1CalMonth, 1).getDay();
-  const daysInMonth  = new Date(r1CalYear, r1CalMonth + 1, 0).getDate();
-  const daysInPrev   = new Date(r1CalYear, r1CalMonth, 0).getDate();
-  const today        = new Date();
-  let dayCount = 1, nextCount = 1;
-  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
-
-  for (let i = 0; i < totalCells; i++) {
-    const cell = document.createElement('div');
-    cell.className = 'r1-cal-cell';
-    let dayNum, isOther = false, dateKey = '';
-
-    if (i < firstDay) {
-      dayNum = daysInPrev - firstDay + i + 1;
-      isOther = true;
-      const pm = r1CalMonth === 0 ? 11 : r1CalMonth - 1;
-      const py = r1CalMonth === 0 ? r1CalYear - 1 : r1CalYear;
-      dateKey = `${py}-${String(pm+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
-    } else if (dayCount <= daysInMonth) {
-      dayNum = dayCount++;
-      dateKey = `${r1CalYear}-${String(r1CalMonth+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
-      if (r1CalYear === today.getFullYear() && r1CalMonth === today.getMonth() && dayNum === today.getDate()) {
-        cell.classList.add('today');
-      }
-    } else {
-      dayNum = nextCount++;
-      isOther = true;
-      const nm = r1CalMonth === 11 ? 0 : r1CalMonth + 1;
-      const ny = r1CalMonth === 11 ? r1CalYear + 1 : r1CalYear;
-      dateKey = `${ny}-${String(nm+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+  /* ── Responsive: stack on small screens ── */
+  @media (max-width: 1024px) {
+    .r1-split-layout {
+      grid-template-columns: 1fr;
     }
-
-    if (isOther) cell.classList.add('other-month');
-
-    const numWrap = document.createElement('div');
-    numWrap.className = 'r1-cal-day-num';
-    numWrap.textContent = dayNum;
-    cell.appendChild(numWrap);
-
-    // Add real events from Rails data
-    const events = R1_CALENDAR_EVENTS[dateKey] || [];
-    const maxShow = 3;
-    events.slice(0, maxShow).forEach(ev => {
-      const evEl = document.createElement('div');
-      evEl.className = 'r1-cal-event type-deed';
-      evEl.textContent = ev.jurisdiction;
-      evEl.title = `Click to view properties for this auction in Rama 2`;
-      // ⚠️ RULE 16: Click goes to Rama 2 parcels list, NOT individual parcel
-      evEl.onclick = (e) => {
-        e.stopPropagation();
-        window.location.href = '/research/parcels?auction_id=' + ev.id;
-      };
-      cell.appendChild(evEl);
-    });
-
-    if (events.length > maxShow) {
-      const moreEl = document.createElement('div');
-      moreEl.className = 'r1-cal-event-more';
-      moreEl.textContent = `+${events.length - maxShow} more`;
-      cell.appendChild(moreEl);
-    }
-
-    grid.appendChild(cell);
-  }
-  if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-
-function r1ChangeMonth(delta) {
-  r1CalMonth += delta;
-  if (r1CalMonth > 11) { r1CalMonth = 0; r1CalYear++; }
-  if (r1CalMonth < 0)  { r1CalMonth = 11; r1CalYear--; }
-  r1RenderCalendar();
-}
-
-function r1GoToday() {
-  const now = new Date();
-  r1CalYear  = now.getFullYear();
-  r1CalMonth = now.getMonth();
-  r1RenderCalendar();
-}
-
-// ─── MAP: State Click → Rama 2 (Rule 16) ────────────────────────────────
-// ⚠️ ARCHITECTURE: Clicks on map states ALWAYS redirect to Rama 2 parcel search.
-// NEVER to Parcel#show or any internal auction detail.
-function r1StateClick(event, stateName) {
-  event.stopPropagation();
-  // Build the state abbreviation lookup
-  const stateAbbrevs = {
-    'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
-    'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
-    'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
-    'Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
-    'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT',
-    'Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
-    'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
-    'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
-    'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
-    'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
-    'District of Columbia':'DC'
-  };
-  const abbr = stateAbbrevs[stateName];
-  if (abbr) {
-    window.location.href = '<%= research_parcels_path %>?state=' + abbr;
-  }
-}
-
-function r1CalViewMode(mode, btn) {
-  document.querySelectorAll('.r1-cal-view-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-}
-
-// ─── SORT (server-side redirect) ────────────────────────────────────────
-function r1SortRedirect(field) {
-  const params = new URLSearchParams(window.location.search);
-  const currentSort = params.get('sort');
-  const currentDir  = params.get('dir') || 'asc';
-  if (currentSort === field) {
-    params.set('dir', currentDir === 'asc' ? 'desc' : 'asc');
-  } else {
-    params.set('sort', field);
-    params.set('dir', 'asc');
-  }
-  // Preserve current view (sorting is only available in list view)
-  if (r1CurrentView && r1CurrentView !== 'map') params.set('view', r1CurrentView);
-  window.location.href = '<%= research_auctions_path %>?' + params.toString();
-}
-
-// ─── DROPDOWN MANAGEMENT ────────────────────────────────────────────────
-function r1ToggleDropdown(id) {
-  document.getElementById('menu-' + id)?.classList.toggle('show');
-  document.getElementById('btn-' + id)?.classList.toggle('open');
-}
-
-function r1FilterDropdown(input, listId) {
-  const filter = input.value.toLowerCase();
-  const labels = document.getElementById(listId)?.getElementsByTagName('label') || [];
-  for (let i = 0; i < labels.length; i++) {
-    const text = labels[i].textContent || labels[i].innerText;
-    labels[i].style.display = text.toLowerCase().includes(filter) ? '' : 'none';
-  }
-}
-
-function r1ToggleSettingsPopup() {
-  document.getElementById('menu-settings-popup')?.classList.toggle('show');
-  document.getElementById('btn-filter')?.classList.toggle('r1-btn-active-red');
-}
-
-function r1ToggleSavePopup() {
-  document.getElementById('menu-save-popup')?.classList.toggle('show');
-  document.getElementById('btn-save')?.classList.toggle('r1-btn-active-blue');
-}
-
-// Close all dropdowns on outside click
-document.addEventListener('click', function(event) {
-  if (!event.target.closest('.r1-custom-dropdown')) {
-    document.querySelectorAll('.r1-custom-dropdown-menu').forEach(m => m.classList.remove('show'));
-    document.querySelectorAll('.r1-custom-dropdown-btn').forEach(b => b.classList.remove('open'));
-  }
-  if (!event.target.closest('#menu-settings-popup') && !event.target.closest('#btn-filter')) {
-    const popup = document.getElementById('menu-settings-popup');
-    const btn = document.getElementById('btn-filter');
-    if (popup?.classList.contains('show')) {
-      popup.classList.remove('show');
-      btn?.classList.remove('r1-btn-active-red');
+    .r1-split-left {
+      border-right: none;
+      padding-right: 0;
+      border-bottom: 1px solid var(--r1-color-border, #DEE2E6);
+      padding-bottom: 20px;
     }
   }
-  if (!event.target.closest('#menu-save-popup') && !event.target.closest('#btn-save')) {
-    const popup = document.getElementById('menu-save-popup');
-    const btn = document.getElementById('btn-save');
-    if (popup?.classList.contains('show')) {
-      popup.classList.remove('show');
-      btn?.classList.remove('r1-btn-active-blue');
-    }
+
+  /* Ensure SVG map fills its container properly and centers the state */
+  .r1-split-left .r1-map-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
-});
-
-// ─── SAVED SEARCHES (localStorage) ──────────────────────────────────────
-function r1SaveSearch() {
-  const nameInput = document.getElementById('r1-save-name');
-  const name = nameInput?.value?.trim();
-  if (!name) return;
-
-  try {
-    const saved = JSON.parse(localStorage.getItem('r1_saved_searches') || '[]');
-    saved.push({ name: name, url: window.location.href, date: new Date().toISOString() });
-    localStorage.setItem('r1_saved_searches', JSON.stringify(saved));
-    nameInput.value = '';
-    r1RenderSavedSearches();
-  } catch(e) { console.warn('Save failed:', e); }
-}
-
-function r1DeleteSavedSearch(index) {
-  try {
-    const saved = JSON.parse(localStorage.getItem('r1_saved_searches') || '[]');
-    saved.splice(index, 1);
-    localStorage.setItem('r1_saved_searches', JSON.stringify(saved));
-    r1RenderSavedSearches();
-  } catch(e) {}
-}
-
-function r1RenderSavedSearches() {
-  const container = document.getElementById('r1-saved-list');
-  if (!container) return;
-  try {
-    const saved = JSON.parse(localStorage.getItem('r1_saved_searches') || '[]');
-    if (saved.length === 0) {
-      container.innerHTML = '<div style="text-align:center;color:var(--r1-color-text-muted);font-size:12px;padding:8px 0;">No saved searches yet</div>';
-      return;
-    }
-    container.innerHTML = saved.map((s, i) => `
-      <div class="r1-saved-search-item" style="margin-bottom:6px;">
-        <div class="r1-saved-search-name">
-          <i data-lucide="search" style="width:12px;height:12px;color:var(--r1-color-text-muted);"></i>
-          ${s.name}
-        </div>
-        <div class="r1-saved-search-actions">
-          <button class="r1-btn-edit" onclick="window.location.href='${s.url}'">Load</button>
-          <button class="r1-btn-delete" onclick="r1DeleteSavedSearch(${i})">✕</button>
-        </div>
-      </div>
-    `).join('');
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-  } catch(e) {}
-}
-
-// ─── INIT ───────────────────────────────────────────────────────────────
-function r1Init() {
-  if (window.r1Initialized) return;
-  window.r1Initialized = true;
-  
-  if (typeof lucide !== 'undefined') lucide.createIcons();
-  r1RenderSavedSearches();
-
-  // Restore view: URL param takes priority (pagination preserves view), then localStorage
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlView = urlParams.get('view');
-    if (urlView && ['map', 'calendar', 'list'].includes(urlView)) {
-      r1SwitchView(urlView);
-    } else {
-      const savedView = localStorage.getItem('r1_view');
-      if (savedView && savedView !== 'map') {
-        r1SwitchView(savedView);
-      }
-    }
-  } catch(e) {}
-
-  // If on Prior tab, enforce list view only
-  if (r1CurrentSubTab === 'prior') {
-    document.getElementById('btn-map')?.style.setProperty('display', 'none');
-    document.getElementById('btn-calendar')?.style.setProperty('display', 'none');
-    document.getElementById('filter-status')?.style.setProperty('display', 'none');
-    r1SwitchView('list');
+  .r1-split-left .r1-map-svg-wrap {
+    height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
   }
-}
+  .r1-split-left .r1-map-svg-wrap svg {
+    width: 100%;
+    height: 100%;
+    max-height: 420px;
+    transition: viewBox 0.4s ease;
+  }
+</style>
 
-// Ensure init runs on both fresh load and Turbo render
-r1Init();
-// If Turbo is used, state is cleared so we need to allow re-init on next visit
-document.addEventListener('turbo:render', function() {
-  window.r1Initialized = false;
-  r1Init();
-});
-</script>
+
+<%# ── All JavaScript ──────────────────────────────────────────────── %>
+<%= render 'research/auctions/rama1_scripts' %>

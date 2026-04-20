@@ -1,0 +1,61 @@
+<%#
+  Partial: SVG Map Container (Rama 1 — Split Layout, Left Side)
+  Renders the SVG choropleth with zoom-to-state logic.
+  ⛔ NO Google Maps — SVG choropleth inline only.
+  The map zooms to the active state by default via JS viewBox manipulation.
+%>
+<%
+  active_states = @auctions_by_state.keys.sort
+  default_state = active_states.include?("Florida") ? "Florida" : active_states.first
+  selected_state = params[:active_state].presence || default_state
+%>
+
+<div class="r1-map-container" id="r1-map-container">
+  <div class="r1-map-header">
+    <h2>Tax Deed Auction Heat Map — <span id="r1-map-state-title"><%= selected_state || "United States" %></span></h2>
+    <div class="r1-map-legend">
+      <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#CBD5E0;"></div> No Auctions</div>
+      <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#90BEE8;"></div> 1–5</div>
+      <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#3A82C3;"></div> 6–20</div>
+      <div class="r1-legend-item"><div class="r1-legend-dot" style="background:#1E4E8C;"></div> 21+</div>
+    </div>
+  </div>
+  <div class="r1-map-svg-wrap" id="r1-map-svg-wrap">
+    <%= render partial: 'research/auctions/us_choropleth_svg' %>
+  </div>
+</div>
+
+<%# Summary Stats — ✅ ELIMINADO: "Est. Aggregate Value" (por requerimiento) %>
+<div class="r1-stats-row" id="r1-stats-row">
+  <div class="r1-stat-card">
+    <div class="r1-stat-label">Condados con subastas</div>
+    <div class="r1-stat-value"><%= @count_total %></div>
+    <div class="r1-stat-sub">County-level tax sales</div>
+  </div>
+  <div class="r1-stat-card">
+    <div class="r1-stat-label">States Active</div>
+    <div class="r1-stat-value"><%= @states_with_counts.size %></div>
+    <div class="r1-stat-sub">With scheduled sales</div>
+  </div>
+  <div class="r1-stat-card">
+    <div class="r1-stat-label">Properties Up for Bid</div>
+    <div class="r1-stat-value"><%= number_with_delimiter(@count_total_parcels) %></div>
+    <div class="r1-stat-sub">Individual properties</div>
+  </div>
+</div>
+
+<style>
+  /* Zoom-to-state: highlight active state, dim others */
+  .r1-map-svg-wrap svg .r1-state-path {
+    transition: opacity 0.3s ease, stroke-width 0.2s ease;
+  }
+  .r1-map-svg-wrap.state-zoomed svg .r1-state-path {
+    opacity: 0.15 !important;
+  }
+  .r1-map-svg-wrap.state-zoomed svg .r1-state-path.r1-state-active {
+    opacity: 1 !important;
+    stroke: var(--r1-color-primary, #6C3483) !important;
+    stroke-width: 2.5 !important;
+    filter: drop-shadow(0 2px 6px rgba(108,52,131,0.3));
+  }
+</style>

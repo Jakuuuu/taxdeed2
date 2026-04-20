@@ -1,0 +1,553 @@
+<%#
+  Partial: Rama 1 Scripts (All JS extracted from monolith)
+  Contains: view switching, sub-tab, filters, AJAX jurisdictions,
+  map tooltip (NO aggregate value), calendar, sort, dropdowns, saved searches,
+  state zoom logic, and initialization.
+%>
+<script>
+// ═══════════════════ RAMA 1: AUCTIONS MODULE — Production JS ═══════════════
+// Modularized from monolithic index.html.erb
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Initialize Lucide Icons ────────────────────────────────────────────
+if (typeof lucide !== 'undefined') lucide.createIcons();
+
+// ─── REAL DATA FROM RAILS ───────────────────────────────────────────────
+const R1_AUCTIONS_BY_STATE = <%= raw @auctions_by_state.to_json %>;
+const R1_CALENDAR_EVENTS   = <%= raw @calendar_events.to_json %>;
+const R1_CURRENT_PAGE      = <%= @page %>;
+const R1_TOTAL_PAGES       = <%= @total_pages %>;
+
+// ─── STATE ZOOM: SVG viewBox manipulation ───────────────────────────────
+// Full name → abbreviation lookup (SVG paths use data-state="FL", not "Florida")
+const R1_NAME_TO_ABBR = {
+  'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+  'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+  'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
+  'Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
+  'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT',
+  'Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
+  'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+  'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+  'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+  'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+  'District of Columbia':'DC'
+};
+
+function r1ZoomToState(stateName) {
+  console.log('[r1Zoom] Called with stateName:', JSON.stringify(stateName));
+  const svgWrap = document.getElementById('r1-map-svg-wrap');
+  const svg = svgWrap?.querySelector('svg');
+  if (!svg) { console.error('[r1Zoom] ABORT: No SVG found'); return; }
+
+  // Store original viewBox if not stored
+  if (!svg.dataset.originalViewbox) {
+    svg.dataset.originalViewbox = svg.getAttribute('viewBox') || '0 0 959 593';
+  }
+
+  // 1) First find the target path and apply classes
+  const targetAbbr = R1_NAME_TO_ABBR[stateName] || stateName;
+  const allPaths = svg.querySelectorAll('.r1-state-path');
+  let targetPath = null;
+  let matched = false;
+
+  allPaths.forEach(p => {
+    const pathAbbr = p.getAttribute('data-state') || '';
+    if (pathAbbr && pathAbbr.toUpperCase() === targetAbbr.toUpperCase()) {
+      p.classList.add('r1-state-active');
+      targetPath = p;
+      matched = true;
+    } else {
+      p.classList.remove('r1-state-active');
+    }
+  });
+
+  // 2) If no state or "All", reset
+  if (!stateName || !targetPath) {
+    svg.setAttribute('viewBox', svg.dataset.originalViewbox);
+    svgWrap.classList.remove('state-zoomed');
+    document.getElementById('r1-map-state-title').textContent = 'United States';
+    return;
+  }
+
+  // 3) Dynamically calculate the bounding box to perfectly center the state
+  try {
+    const bbox = targetPath.getBBox();
+    
+    // If bbox is 0 (e.g. not rendered yet), defer and retry
+    if (bbox.width === 0 && bbox.height === 0) {
+      setTimeout(() => r1ZoomToState(stateName), 50);
+      return;
+    }
+    
+    // Add proportional padding to ensure context
+    const pad = Math.min(100, Math.max(30, Math.min(bbox.width, bbox.height) * 0.25));
+    
+    // Target aspect ratio of the original US Map (959 / 593)
+    const targetRatio = 959 / 593;
+    
+    let newW = bbox.width + pad * 2;
+    let newH = bbox.height + pad * 2;
+    
+    // Adjust dimensions to match the target aspect ratio
+    // This prevents SVG "meet" from creating uneven margins and perfectly centers the state
+    if (newW / newH > targetRatio) {
+      newH = newW / targetRatio;
+    } else {
+      newW = newH * targetRatio;
+    }
+    
+    const cx = bbox.x + bbox.width / 2;
+    const cy = bbox.y + bbox.height / 2;
+    
+    const newX = cx - newW / 2;
+    const newY = cy - newH / 2;
+    
+    const newViewBox = `${newX} ${newY} ${newW} ${newH}`;
+    console.log('[r1Zoom] Setting dynamic viewBox to:', newViewBox);
+    svg.setAttribute('viewBox', newViewBox);
+    svgWrap.classList.add('state-zoomed');
+  } catch (e) {
+    console.error('[r1Zoom] Error calculating BBox:', e);
+    // If error due to display:none, retry shortly
+    setTimeout(() => r1ZoomToState(stateName), 50);
+  }
+
+  const stateTitle = document.getElementById('r1-map-state-title');
+  if (stateTitle) stateTitle.textContent = stateName;
+}
+
+function r1ChangeActiveState(stateName) {
+  // Zoom map
+  r1ZoomToState(stateName);
+
+  // Update right panel title
+  const titleEl = document.getElementById('r1-state-overview-title');
+  if (titleEl) titleEl.textContent = stateName + ' Overview';
+
+  // Update URL without reload (for state persistence)
+  const url = new URL(window.location);
+  url.searchParams.set('active_state', stateName);
+  history.replaceState(null, '', url);
+}
+
+// ─── VIEW SWITCHING ─────────────────────────────────────────────────────
+let r1CurrentView = 'map';
+
+function r1SwitchView(view) {
+  document.querySelectorAll('.r1-view-panel').forEach(p => p.classList.remove('active'));
+  ['btn-map','btn-calendar','btn-list'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.classList.remove('active');
+  });
+  r1CurrentView = view;
+  if(view === 'map') {
+    document.getElementById('panel-map').classList.add('active');
+    document.getElementById('btn-map').classList.add('active');
+  } else if(view === 'calendar') {
+    document.getElementById('panel-calendar').classList.add('active');
+    document.getElementById('btn-calendar').classList.add('active');
+    r1RenderCalendar();
+  } else if(view === 'list') {
+    document.getElementById('panel-list').classList.add('active');
+    document.getElementById('btn-list').classList.add('active');
+  }
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  // Persist view preference
+  try { localStorage.setItem('r1_view', view); } catch(e) {}
+}
+
+// ─── SUB-TAB SWITCHING ──────────────────────────────────────────────────
+let r1CurrentSubTab = '<%= params[:sub_tab] == "prior" ? "prior" : "taxsale" %>';
+
+function r1SwitchSubTab(tab) {
+  if (tab === 'prior') {
+    window.location.href = '<%= research_auctions_path(sub_tab: "prior") %>';
+  } else {
+    window.location.href = '<%= research_auctions_path %>';
+  }
+}
+
+// ─── FILTER FUNCTIONS ───────────────────────────────────────────────────
+function r1ApplyFilters() {
+  const params = new URLSearchParams();
+
+  // Collect checked states
+  document.querySelectorAll('.r1-state-checkbox:checked').forEach(chk => {
+    params.append('states[]', chk.value);
+  });
+
+  // Collect checked jurisdictions
+  document.querySelectorAll('.r1-jurisdiction-checkbox:checked').forEach(chk => {
+    params.append('county', chk.value);
+  });
+
+  const status = document.getElementById('filter-status')?.value;
+  if (status) params.set('status', status);
+
+  const fromDate = document.getElementById('filter-from')?.value;
+  if (fromDate) params.set('from_date', fromDate);
+
+  const toDate = document.getElementById('filter-to')?.value;
+  if (toDate) params.set('to_date', toDate);
+
+  if (r1CurrentSubTab === 'prior') params.set('sub_tab', 'prior');
+
+  // Preserve current view across filter changes
+  if (r1CurrentView && r1CurrentView !== 'map') params.set('view', r1CurrentView);
+
+  window.location.href = '<%= research_auctions_path %>?' + params.toString();
+}
+
+function r1ClearDate(id) {
+  document.getElementById(id).value = '';
+  r1ApplyFilters();
+}
+
+// ─── AJAX: PREDICTIVE JURISDICTION FILTERING ────────────────────────────
+function r1OnStateChange(checkbox) {
+  r1LoadJurisdictions();
+  if (checkbox.checked) {
+    setTimeout(() => {
+      document.getElementById('menu-jurisdiction')?.classList.add('show');
+      document.getElementById('btn-jurisdiction')?.classList.add('open');
+    }, 300);
+  }
+}
+
+function r1LoadJurisdictions() {
+  const checked = document.querySelectorAll('.r1-state-checkbox:checked');
+  const states = Array.from(checked).map(c => c.value);
+  const listEl = document.getElementById('list-jurisdiction');
+
+  if (states.length === 0) {
+    listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">Select a state first</div>';
+    return;
+  }
+
+  listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">Loading...</div>';
+
+  const params = new URLSearchParams();
+  states.forEach(s => params.append('states[]', s));
+
+  fetch('<%= jurisdictions_research_auctions_path(format: :json) %>?' + params.toString())
+    .then(r => r.json())
+    .then(data => {
+      if (data.length === 0) {
+        listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">No jurisdictions found</div>';
+        return;
+      }
+      listEl.innerHTML = data.map(j =>
+        `<label class="r1-custom-dropdown-item">
+          <input type="checkbox" class="r1-jurisdiction-checkbox" value="${j.name.split(',')[0].trim()}">
+          ${j.name}
+          <span class="r1-badge">${j.count}</span>
+        </label>`
+      ).join('');
+    })
+    .catch(() => {
+      listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--r1-color-danger);font-size:12px;">Error loading</div>';
+    });
+}
+
+// ─── MAP TOOLTIP ────────────────────────────────────────────────────────
+// ✅ ELIMINADO: "Est. Aggregate Value" — no longer shown in popup
+function r1StateClick(event, stateName) {
+  event.stopPropagation();
+
+  const data = R1_AUCTIONS_BY_STATE[stateName] || { count: 0, total_parcels: 0 };
+  const popup = document.getElementById('r1-state-popup');
+  popup.style.display = 'block';
+  popup.style.pointerEvents = 'auto';
+  popup.style.left = (event.clientX + 12) + 'px';
+  popup.style.top  = (event.clientY - 30) + 'px';
+
+  document.getElementById('r1-popup-state-name').textContent = stateName;
+  document.getElementById('r1-popup-auctions').textContent   = data.count;
+  document.getElementById('r1-popup-parcels').textContent    = (data.total_parcels || 0).toLocaleString();
+
+  // ⚠️ ARCHITECTURE RULE 16: Link goes to Rama 2 (parcels list by state)
+  const link = document.getElementById('r1-popup-cta-link');
+  if (data.count > 0) {
+    const abbr = R1_NAME_TO_ABBR[stateName];
+    link.href = '<%= research_parcels_path %>?state=' + (abbr || encodeURIComponent(stateName));
+    link.style.display = 'block';
+  } else {
+    link.style.display = 'none';
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.r1-state-popup') && !e.target.closest('.r1-state-path')) {
+    document.getElementById('r1-state-popup').style.display = 'none';
+  }
+});
+
+// ─── CALENDAR ───────────────────────────────────────────────────────────
+let r1CalYear, r1CalMonth;
+(function() {
+  const now = new Date();
+  r1CalYear  = now.getFullYear();
+  r1CalMonth = now.getMonth();
+})();
+
+const R1_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const R1_DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function r1RenderCalendar() {
+  document.getElementById('r1-cal-title').textContent = R1_MONTH_NAMES[r1CalMonth] + ' ' + r1CalYear;
+  const grid = document.getElementById('r1-cal-grid');
+  grid.innerHTML = '';
+
+  R1_DAY_NAMES.forEach(d => {
+    const hdr = document.createElement('div');
+    hdr.className = 'r1-cal-day-header';
+    hdr.textContent = d;
+    grid.appendChild(hdr);
+  });
+
+  const firstDay     = new Date(r1CalYear, r1CalMonth, 1).getDay();
+  const daysInMonth  = new Date(r1CalYear, r1CalMonth + 1, 0).getDate();
+  const daysInPrev   = new Date(r1CalYear, r1CalMonth, 0).getDate();
+  const today        = new Date();
+  let dayCount = 1, nextCount = 1;
+  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+
+  for (let i = 0; i < totalCells; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'r1-cal-cell';
+    let dayNum, isOther = false, dateKey = '';
+
+    if (i < firstDay) {
+      dayNum = daysInPrev - firstDay + i + 1;
+      isOther = true;
+      const pm = r1CalMonth === 0 ? 11 : r1CalMonth - 1;
+      const py = r1CalMonth === 0 ? r1CalYear - 1 : r1CalYear;
+      dateKey = `${py}-${String(pm+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+    } else if (dayCount <= daysInMonth) {
+      dayNum = dayCount++;
+      dateKey = `${r1CalYear}-${String(r1CalMonth+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+      if (r1CalYear === today.getFullYear() && r1CalMonth === today.getMonth() && dayNum === today.getDate()) {
+        cell.classList.add('today');
+      }
+    } else {
+      dayNum = nextCount++;
+      isOther = true;
+      const nm = r1CalMonth === 11 ? 0 : r1CalMonth + 1;
+      const ny = r1CalMonth === 11 ? r1CalYear + 1 : r1CalYear;
+      dateKey = `${ny}-${String(nm+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+    }
+
+    if (isOther) cell.classList.add('other-month');
+
+    const numWrap = document.createElement('div');
+    numWrap.className = 'r1-cal-day-num';
+    numWrap.textContent = dayNum;
+    cell.appendChild(numWrap);
+
+    const events = R1_CALENDAR_EVENTS[dateKey] || [];
+    const maxShow = 3;
+    events.slice(0, maxShow).forEach(ev => {
+      const evEl = document.createElement('div');
+      evEl.className = 'r1-cal-event type-deed';
+      evEl.textContent = ev.jurisdiction;
+      evEl.title = `Click to view properties for this auction in Rama 2`;
+      // ⚠️ RULE 16: Click goes to Rama 2 parcels list, NOT individual parcel
+      evEl.onclick = (e) => {
+        e.stopPropagation();
+        window.location.href = '/research/parcels?auction_id=' + ev.id;
+      };
+      cell.appendChild(evEl);
+    });
+
+    if (events.length > maxShow) {
+      const moreEl = document.createElement('div');
+      moreEl.className = 'r1-cal-event-more';
+      moreEl.textContent = `+${events.length - maxShow} more`;
+      cell.appendChild(moreEl);
+    }
+
+    grid.appendChild(cell);
+  }
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function r1ChangeMonth(delta) {
+  r1CalMonth += delta;
+  if (r1CalMonth > 11) { r1CalMonth = 0; r1CalYear++; }
+  if (r1CalMonth < 0)  { r1CalMonth = 11; r1CalYear--; }
+  r1RenderCalendar();
+}
+
+function r1GoToday() {
+  const now = new Date();
+  r1CalYear  = now.getFullYear();
+  r1CalMonth = now.getMonth();
+  r1RenderCalendar();
+}
+
+function r1CalViewMode(mode, btn) {
+  document.querySelectorAll('.r1-cal-view-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// ─── SORT (server-side redirect) ────────────────────────────────────────
+function r1SortRedirect(field) {
+  const params = new URLSearchParams(window.location.search);
+  const currentSort = params.get('sort');
+  const currentDir  = params.get('dir') || 'asc';
+  if (currentSort === field) {
+    params.set('dir', currentDir === 'asc' ? 'desc' : 'asc');
+  } else {
+    params.set('sort', field);
+    params.set('dir', 'asc');
+  }
+  if (r1CurrentView && r1CurrentView !== 'map') params.set('view', r1CurrentView);
+  window.location.href = '<%= research_auctions_path %>?' + params.toString();
+}
+
+// ─── DROPDOWN MANAGEMENT ────────────────────────────────────────────────
+function r1ToggleDropdown(id) {
+  document.getElementById('menu-' + id)?.classList.toggle('show');
+  document.getElementById('btn-' + id)?.classList.toggle('open');
+}
+
+function r1FilterDropdown(input, listId) {
+  const filter = input.value.toLowerCase();
+  const labels = document.getElementById(listId)?.getElementsByTagName('label') || [];
+  for (let i = 0; i < labels.length; i++) {
+    const text = labels[i].textContent || labels[i].innerText;
+    labels[i].style.display = text.toLowerCase().includes(filter) ? '' : 'none';
+  }
+}
+
+function r1ToggleSettingsPopup() {
+  document.getElementById('menu-settings-popup')?.classList.toggle('show');
+  document.getElementById('btn-filter')?.classList.toggle('r1-btn-active-red');
+}
+
+function r1ToggleSavePopup() {
+  document.getElementById('menu-save-popup')?.classList.toggle('show');
+  document.getElementById('btn-save')?.classList.toggle('r1-btn-active-blue');
+}
+
+// Close all dropdowns on outside click
+document.addEventListener('click', function(event) {
+  if (!event.target.closest('.r1-custom-dropdown')) {
+    document.querySelectorAll('.r1-custom-dropdown-menu').forEach(m => m.classList.remove('show'));
+    document.querySelectorAll('.r1-custom-dropdown-btn').forEach(b => b.classList.remove('open'));
+  }
+  if (!event.target.closest('#menu-settings-popup') && !event.target.closest('#btn-filter')) {
+    const popup = document.getElementById('menu-settings-popup');
+    const btn = document.getElementById('btn-filter');
+    if (popup?.classList.contains('show')) {
+      popup.classList.remove('show');
+      btn?.classList.remove('r1-btn-active-red');
+    }
+  }
+  if (!event.target.closest('#menu-save-popup') && !event.target.closest('#btn-save')) {
+    const popup = document.getElementById('menu-save-popup');
+    const btn = document.getElementById('btn-save');
+    if (popup?.classList.contains('show')) {
+      popup.classList.remove('show');
+      btn?.classList.remove('r1-btn-active-blue');
+    }
+  }
+});
+
+// ─── SAVED SEARCHES (localStorage) ──────────────────────────────────────
+function r1SaveSearch() {
+  const nameInput = document.getElementById('r1-save-name');
+  const name = nameInput?.value?.trim();
+  if (!name) return;
+
+  try {
+    const saved = JSON.parse(localStorage.getItem('r1_saved_searches') || '[]');
+    saved.push({ name: name, url: window.location.href, date: new Date().toISOString() });
+    localStorage.setItem('r1_saved_searches', JSON.stringify(saved));
+    nameInput.value = '';
+    r1RenderSavedSearches();
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function r1DeleteSavedSearch(index) {
+  try {
+    const saved = JSON.parse(localStorage.getItem('r1_saved_searches') || '[]');
+    saved.splice(index, 1);
+    localStorage.setItem('r1_saved_searches', JSON.stringify(saved));
+    r1RenderSavedSearches();
+  } catch(e) {}
+}
+
+function r1RenderSavedSearches() {
+  const container = document.getElementById('r1-saved-list');
+  if (!container) return;
+  try {
+    const saved = JSON.parse(localStorage.getItem('r1_saved_searches') || '[]');
+    if (saved.length === 0) {
+      container.innerHTML = '<div style="text-align:center;color:var(--r1-color-text-muted);font-size:12px;padding:8px 0;">No saved searches yet</div>';
+      return;
+    }
+    container.innerHTML = saved.map((s, i) => `
+      <div class="r1-saved-search-item" style="margin-bottom:6px;">
+        <div class="r1-saved-search-name">
+          <i data-lucide="search" style="width:12px;height:12px;color:var(--r1-color-text-muted);"></i>
+          ${s.name}
+        </div>
+        <div class="r1-saved-search-actions">
+          <button class="r1-btn-edit" onclick="window.location.href='${s.url}'">Load</button>
+          <button class="r1-btn-delete" onclick="r1DeleteSavedSearch(${i})">✕</button>
+        </div>
+      </div>
+    `).join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  } catch(e) {}
+}
+
+// ─── INIT ───────────────────────────────────────────────────────────────
+function r1Init() {
+  if (window.r1Initialized) return;
+  window.r1Initialized = true;
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  r1RenderSavedSearches();
+
+  // Restore view: URL param takes priority (pagination preserves view), then localStorage
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlView = urlParams.get('view');
+    if (urlView && ['map', 'calendar', 'list'].includes(urlView)) {
+      r1SwitchView(urlView);
+    } else {
+      const savedView = localStorage.getItem('r1_view');
+      if (savedView && savedView !== 'map') {
+        r1SwitchView(savedView);
+      }
+    }
+  } catch(e) {}
+
+  // If on Prior tab, enforce list view only
+  if (r1CurrentSubTab === 'prior') {
+    document.getElementById('btn-map')?.style.setProperty('display', 'none');
+    document.getElementById('btn-calendar')?.style.setProperty('display', 'none');
+    document.getElementById('filter-status')?.style.setProperty('display', 'none');
+    r1SwitchView('list');
+  }
+
+  // Zoom to active state on initial load (split layout), defer slightly to ensure rendering
+  const activeStateSelect = document.getElementById('r1-active-state-select');
+  if (activeStateSelect && activeStateSelect.value) {
+    setTimeout(() => {
+      r1ZoomToState(activeStateSelect.value);
+    }, 100);
+  }
+}
+
+// Ensure init runs on both fresh load and Turbo render
+r1Init();
+// If Turbo is used, state is cleared so we need to allow re-init on next visit
+document.addEventListener('turbo:render', function() {
+  window.r1Initialized = false;
+  r1Init();
+});
+</script>
