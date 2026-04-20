@@ -12,9 +12,6 @@
   </div>
   <div class="fp-premium-body" style="position:relative;">
     <div class="fp-data-grid">
-      <div class="fp-data-label">Year Built</div>
-      <div class="fp-data-value"><%= @parcel.year_built.presence || "—" %></div>
-
       <div class="fp-data-label">Sqft Living Area</div>
       <div class="fp-data-value"><%= @parcel.living_area_sqft.present? ? number_with_delimiter(@parcel.living_area_sqft) + " sqft" : "—" %></div>
 
@@ -82,16 +79,7 @@
       <div class="fp-data-label">Market Value</div>
       <div class="fp-data-value"><%= @parcel.market_value ? number_to_currency(@parcel.market_value) : "—" %></div>
 
-      <div class="fp-data-label">Land Value</div>
-      <div class="fp-data-value"><%= @parcel.land_value ? number_to_currency(@parcel.land_value) : "—" %></div>
 
-      <div class="fp-data-label">Improvement Value</div>
-      <div class="fp-data-value"><%= @parcel.improvement_value ? number_to_currency(@parcel.improvement_value) : "—" %></div>
-
-      <div class="fp-data-label">Delinquent Amount</div>
-      <div class="fp-data-value" style="color:#C0392B;font-weight:600;">
-        <%= @parcel.delinquent_amount ? number_to_currency(@parcel.delinquent_amount) : "—" %>
-      </div>
 
       <div class="fp-data-label">Est. Sale Value</div>
       <div class="fp-data-value"><%= @parcel.estimated_sale_value ? number_to_currency(@parcel.estimated_sale_value) : "—" %></div>

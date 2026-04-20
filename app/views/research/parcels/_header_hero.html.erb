@@ -49,8 +49,9 @@
     <% if @parcel.property_type.present? %>
       <div class="fp-hero__pill">🏠 <%= @parcel.property_type %></div>
     <% end %>
-    <% s_cls = @parcel.auction_status == "available" ? "success" : (@parcel.auction_status == "sold" ? "danger" : "muted") %>
-    <span class="fp-badge fp-badge--<%= s_cls %>"><%= @parcel.auction_status&.titleize %></span>
+    <% ds = @parcel.display_auction_status %>
+    <% s_cls = case ds; when "available" then "success"; when "sold" then "danger"; when "expired" then "muted"; else "muted"; end %>
+    <span class="fp-badge fp-badge--<%= s_cls %>"><%= ds == "expired" ? "No Disponible" : ds&.titleize %></span>
     <% if @parcel.crime_level.present? %>
       <% c_cls = case @parcel.crime_level.downcase; when "low" then "success"; when "moderate" then "warning"; when "high" then "danger"; else "muted"; end %>
       <span class="fp-badge fp-badge--<%= c_cls %>">Crime: <%= @parcel.crime_level.titleize %></span>

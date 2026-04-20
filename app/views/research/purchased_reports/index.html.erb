@@ -224,9 +224,11 @@
                   <% end %>
                 </td>
                 <td>
-                  <% status = vp.parcel&.auction_status&.to_s %>
+                  <% status = vp.parcel&.display_auction_status.to_s %>
                   <% if status == "sold" %>
                     <span class="badge badge-sold">✓ Sold</span>
+                  <% elsif status == "expired" %>
+                    <span class="badge badge-unsold">No Disponible</span>
                   <% elsif status == "unsold" %>
                     <span class="badge badge-unsold">✗ Unsold</span>
                   <% else %>

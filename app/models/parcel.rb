@@ -71,6 +71,26 @@ class Parcel < ApplicationRecord
     (assessed_value * 0.35).round(2)
   end
 
+  # ── Status dinámico (Motor de Tiempo) ──────────────────────────
+  # Calcula el auction_status en tiempo real según la fecha de subasta.
+  #   - "sold"      → estado final, se preserva siempre
+  #   - "expired"   → sale_date < hoy (subasta ya pasó)
+  #   - "available"  → sale_date >= hoy o sin fecha
+  # No requiere cron ni background job: siempre preciso.
+  def display_auction_status
+    stored = read_attribute(:auction_status) || "available"
+
+    # "sold" es un estado final — nunca se sobreescribe
+    return "sold" if stored == "sold"
+
+    # Si la subasta ya pasó → "expired" (No disponible)
+    if auction&.sale_date.present? && auction.sale_date < Date.current
+      "expired"
+    else
+      stored
+    end
+  end
+
   # ── Helpers ───────────────────────────────────────────────────
   def full_address
     parts = [address, city, state, zip_code].compact.reject(&:blank?)
