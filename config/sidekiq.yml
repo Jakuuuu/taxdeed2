@@ -22,6 +22,12 @@
     queue: data_sync
     description: "Importar propiedades desde Google Sheets a PostgreSQL (cada 12h)"
 
+  expire_auctions:
+    cron: "0 6 * * *"   # Diario a las 6:00 UTC = 2:00 AM ET
+    class: ExpireAuctionsJob
+    queue: default
+    description: "Marcar como completed las subastas con sale_date pasada"
+
   regrid_key_health_check:
     cron: "0 12 1 * *"  # Día 1 de cada mes, 12:00 UTC = 8:00 AM ET
     class: RegridKeyHealthCheckJob

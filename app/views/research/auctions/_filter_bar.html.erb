@@ -1,76 +1,10 @@
 <%#
   Partial: Filter Bar (Rama 1)
-  State multi-select, Jurisdiction AJAX, Status, Date range, Settings, Save, Reset, View toggle
+  Settings, Save, Reset, View toggle
 %>
 <div class="r1-filter-bar">
-  <div class="r1-filter-group">
-
-    <%# State multi-select dropdown %>
-    <div class="r1-custom-dropdown" id="dd-state">
-      <button class="r1-custom-dropdown-btn" id="btn-state" onclick="r1ToggleDropdown('state')">
-        <i data-lucide="map-pin" style="width:12px;height:12px;"></i> State
-        <i data-lucide="chevron-down" style="width:10px;height:10px;"></i>
-      </button>
-      <div class="r1-custom-dropdown-menu" id="menu-state">
-        <div class="r1-custom-dropdown-search">
-          <input type="text" placeholder="Search states..." oninput="r1FilterDropdown(this, 'list-state')">
-        </div>
-        <div class="r1-custom-dropdown-list" id="list-state">
-          <% @states_with_counts.each do |state_name, count| %>
-            <label class="r1-custom-dropdown-item">
-              <input type="checkbox" class="r1-state-checkbox" value="<%= state_name %>"
-                     <%= 'checked' if Array(params[:states]).include?(state_name) %>
-                     onchange="r1OnStateChange(this)">
-              <%= state_name %>
-              <span class="r1-badge"><%= count %></span>
-            </label>
-          <% end %>
-        </div>
-      </div>
-    </div>
-
-    <%# Jurisdiction dropdown (populated via AJAX) %>
-    <div class="r1-custom-dropdown" id="dd-jurisdiction">
-      <button class="r1-custom-dropdown-btn" id="btn-jurisdiction" onclick="r1ToggleDropdown('jurisdiction')">
-        <i data-lucide="building" style="width:12px;height:12px;"></i> Jurisdiction
-        <i data-lucide="chevron-down" style="width:10px;height:10px;"></i>
-      </button>
-      <div class="r1-custom-dropdown-menu" id="menu-jurisdiction">
-        <div class="r1-custom-dropdown-search">
-          <input type="text" placeholder="Search jurisdictions..." oninput="r1FilterDropdown(this, 'list-jurisdiction')">
-        </div>
-        <div class="r1-custom-dropdown-list" id="list-jurisdiction">
-          <div style="padding:12px;text-align:center;color:var(--r1-color-text-muted);font-size:12px;">
-            Select a state first
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <%# Status filter (hidden in Prior tab) %>
-    <select class="r1-filter-select" id="filter-status" onchange="r1ApplyFilters()">
-      <option value="">Status</option>
-      <option value="upcoming" <%= 'selected' if params[:status] == 'upcoming' %>>Upcoming</option>
-      <option value="active" <%= 'selected' if params[:status] == 'active' %>>Active</option>
-    </select>
-
-    <%# Date range %>
-    <div class="r1-filter-date-wrap">
-      <input type="date" class="r1-filter-date" id="filter-from" placeholder="From"
-             value="<%= params[:from_date] %>" onchange="r1ApplyFilters()">
-      <button class="r1-filter-clear" onclick="r1ClearDate('filter-from')" title="Clear">✕</button>
-    </div>
-    <div class="r1-filter-date-wrap">
-      <input type="date" class="r1-filter-date" id="filter-to" placeholder="To"
-             value="<%= params[:to_date] %>" onchange="r1ApplyFilters()">
-      <button class="r1-filter-clear" onclick="r1ClearDate('filter-to')" title="Clear">✕</button>
-    </div>
-  </div>
-
-  <div class="r1-filter-spacer"></div>
-
   <%# Action buttons: Settings, Save, Presets %>
-  <div class="r1-filter-group" style="position:relative;">
+  <div class="r1-filter-group" style="position:relative; margin-left: auto;">
     <%# Settings (column visibility) popup %>
     <div style="position:relative;">
       <button class="r1-custom-dropdown-btn" id="btn-filter" onclick="r1ToggleSettingsPopup()" title="Table Settings">
