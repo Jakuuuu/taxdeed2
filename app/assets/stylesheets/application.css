@@ -1787,12 +1787,7 @@ a:hover { color: var(--color-gold); }
 .r1-state-path.auction-med   { fill: #3A82C3; }
 .r1-state-path.auction-high  { fill: #1E4E8C; }
 
-.r1-state-label {
-  fill: #fff;
-  font-family: var(--r1-font-ui);
-  pointer-events: none;
-  text-shadow: 0 0 4px rgba(0,0,0,0.5);
-}
+
 
 /* State popup tooltip */
 .r1-state-popup {
@@ -1863,7 +1858,7 @@ a:hover { color: var(--color-gold); }
   margin-top: 3px;
   opacity: 0.75;
 }
-/* Primary stat card — hero metric (Propiedades Disponibles) */
+/* Primary stat card — hero metric (Próximas propiedades a subastar) */
 .r1-stat-card--primary {
   background: linear-gradient(135deg, #1E3A5F 0%, #2A4F82 100%);
   border-color: transparent;

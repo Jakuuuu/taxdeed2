@@ -32,22 +32,6 @@
     "WI" => "Wisconsin", "WY" => "Wyoming", "DC" => "District of Columbia"
   }
 
-  # State label positions (x, y) for the count labels on the SVG
-  state_label_positions = {
-    "AL" => [643, 430], "AK" => [120, 540], "AZ" => [195, 350], "AR" => [540, 370],
-    "CA" => [75, 265], "CO" => [300, 275], "CT" => [855, 175], "DE" => [830, 245],
-    "FL" => [770, 510], "GA" => [710, 420], "HI" => [300, 565], "ID" => [190, 155],
-    "IL" => [590, 260], "IN" => [640, 260], "IA" => [520, 210], "KS" => [440, 290],
-    "KY" => [660, 300], "LA" => [565, 445], "ME" => [890, 95], "MD" => [810, 255],
-    "MA" => [870, 155], "MI" => [670, 155], "MN" => [500, 120], "MS" => [585, 440],
-    "MO" => [520, 300], "MT" => [270, 95], "NE" => [420, 225], "NV" => [135, 215],
-    "NH" => [862, 120], "NJ" => [840, 230], "NM" => [290, 380], "NY" => [810, 150],
-    "NC" => [760, 340], "ND" => [420, 95], "OH" => [700, 250], "OK" => [440, 370],
-    "OR" => [95, 110], "PA" => [790, 215], "RI" => [880, 170], "SC" => [740, 375],
-    "SD" => [420, 150], "TN" => [660, 340], "TX" => [420, 440], "UT" => [215, 245],
-    "VT" => [848, 115], "VA" => [760, 290], "WA" => [130, 55], "WV" => [735, 275],
-    "WI" => [570, 160], "WY" => [280, 170], "DC" => [805, 260]
-  }
 %>
 
 <svg id="us-map" viewBox="0 0 959 593" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;display:block;margin:auto;">
@@ -103,13 +87,5 @@
   <!-- WY --><path class="r1-state-path <%= state_heat_class('Wyoming', @auctions_by_state) %>" d="m 355.3,143.7 -51,-5.3 -57.3,-7.9 -2,10.7 -8.5,54.8 -3.3,21.9 32.1,4.8 44.9,5.7 37.5,3.4 3.7,-44.2 z" data-state="WY" onclick="r1StateClick(event,'Wyoming')" />
   <!-- DC --><path class="r1-state-path <%= state_heat_class('District of Columbia', @auctions_by_state) %>" d="m 803.5,252 -2.6,-1.8 -1,1.7 .5,.4 .4,.1 .6,.5 .3,.7 -.1,.5 .2,.5 z" data-state="DC" onclick="r1StateClick(event,'District of Columbia')" />
 
-  <!-- Dynamic count labels: only show for states with auctions -->
-  <% state_label_positions.each do |abbr, (x, y)| %>
-    <% name = state_names[abbr]; next unless name %>
-    <% data = @auctions_by_state[name] %>
-    <% next unless data && data[:count] && data[:count] > 0 %>
-    <% font_size = data[:count] >= 20 ? 12 : (data[:count] >= 6 ? 11 : 9) %>
-    <% font_weight = data[:count] >= 20 ? 900 : 500 %>
-    <text class="r1-state-label" x="<%= x %>" y="<%= y %>" font-size="<%= font_size %>" font-weight="<%= font_weight %>"><%= data[:count] %></text>
-  <% end %>
+
 </svg>
