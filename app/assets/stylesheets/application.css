@@ -1863,6 +1863,23 @@ a:hover { color: var(--color-gold); }
   margin-top: 3px;
   opacity: 0.75;
 }
+/* Primary stat card — hero metric (Propiedades Disponibles) */
+.r1-stat-card--primary {
+  background: linear-gradient(135deg, #1E3A5F 0%, #2A4F82 100%);
+  border-color: transparent;
+  flex: 1.4;
+}
+.r1-stat-card--primary .r1-stat-label {
+  color: rgba(255,255,255,0.7);
+}
+.r1-stat-card--primary .r1-stat-value {
+  color: #fff;
+  font-size: 32px;
+  font-weight: 800;
+}
+.r1-stat-card--primary .r1-stat-sub {
+  color: rgba(255,255,255,0.55);
+}
 .r1-table-count-sub {
   font-size: 11px;
   color: var(--r1-color-text-secondary);

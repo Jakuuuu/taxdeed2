@@ -25,22 +25,22 @@
   </div>
 </div>
 
-<%# Summary Stats — ✅ ELIMINADO: "Est. Aggregate Value" (por requerimiento) %>
+<%# Summary Stats — ✅ Métrica principal: Propiedades Disponibles %>
 <div class="r1-stats-row" id="r1-stats-row">
+  <div class="r1-stat-card r1-stat-card--primary">
+    <div class="r1-stat-label">Propiedades Disponibles</div>
+    <div class="r1-stat-value"><%= number_with_delimiter(@count_total_parcels) %></div>
+    <div class="r1-stat-sub">Properties up for bid</div>
+  </div>
   <div class="r1-stat-card">
     <div class="r1-stat-label">Condados con subastas</div>
     <div class="r1-stat-value"><%= @count_total %></div>
     <div class="r1-stat-sub">County-level tax sales</div>
   </div>
   <div class="r1-stat-card">
-    <div class="r1-stat-label">States Active</div>
+    <div class="r1-stat-label">Estados activos</div>
     <div class="r1-stat-value"><%= @states_with_counts.size %></div>
     <div class="r1-stat-sub">With scheduled sales</div>
-  </div>
-  <div class="r1-stat-card">
-    <div class="r1-stat-label">Properties Up for Bid</div>
-    <div class="r1-stat-value"><%= number_with_delimiter(@count_total_parcels) %></div>
-    <div class="r1-stat-sub">Individual properties</div>
   </div>
 </div>
 
