@@ -131,6 +131,43 @@ class Admin::SyncController < Admin::BaseController
     end
   end
 
+  # POST /admin/sync/run_markets
+  #
+  # Sincroniza SOLO la pestaña "Mercados" (RealEstateMonthlyVolume).
+  # Separado del sync principal porque es extremadamente denso (~9,700 registros)
+  # y puede tomar 2-5 minutos. No queremos que bloquee el sync rápido de
+  # Propiedades + Condados.
+  #
+  def run_markets
+    SyncLog.expire_zombies!
+
+    result = obtain_sync_lock_and_enqueue
+
+    case result
+    when :lock_contention
+      redirect_to admin_sync_path,
+                  alert: "A sync request is already being processed. Please wait."
+    when :already_running
+      redirect_to admin_sync_path,
+                  alert: "A sync is already in progress. Please wait for it to finish."
+    else
+      sync_log_id = result.id
+      Thread.new do
+        Rails.application.executor.wrap do
+          SyncSheetJob.new.perform(nil, sync_log_id, pipelines: [:markets])
+        rescue StandardError => e
+          Rails.logger.error "[Admin::Sync] ⚠️ Background markets sync thread failed: #{e.class}: #{e.message}"
+          Rails.logger.error e.backtrace&.first(10)&.join("\n")
+        ensure
+          ActiveRecord::Base.connection_handler.clear_active_connections!
+        end
+      end
+
+      redirect_to admin_sync_path,
+                  notice: "📊 Market data sync started. This may take 2-5 minutes. Refresh to see progress."
+    end
+  end
+
   private
 
   # Adquiere advisory lock, verifica que no haya sync running, y crea el SyncLog.

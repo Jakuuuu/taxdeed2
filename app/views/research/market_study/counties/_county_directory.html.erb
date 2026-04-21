@@ -1,0 +1,47 @@
+<%# ── Directorio institucional del condado ──────────────────────────── %>
+<%# Muestra los 4 contactos fijos: Planning & Zoning, Building Division, %>
+<%# Clerk Office, Tax Collector. Cada uno puede ser email o teléfono.   %>
+<%# Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA             %>
+
+<% contacts = @county.institutional_contacts %>
+<% if contacts.any? %>
+  <div class="fc-section" style="margin-top: 1rem;">
+    <h3 class="fc-section-title">
+      <span class="icon">🏛️</span> Directorio institucional
+    </h3>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+      <% contacts.each do |c| %>
+        <div style="background: rgba(30, 58, 95, 0.03); border: 1.5px solid #E2E8F0;
+                    border-radius: 10px; padding: 1rem 1.2rem;">
+          <div style="color: #6B7280; font-size: 0.75rem; text-transform: uppercase;
+                      letter-spacing: 0.05em; margin-bottom: 0.4rem; font-weight: 600;">
+            <%= c[:dept] %>
+          </div>
+          <div style="color: #1A202C; font-size: 0.95rem;">
+            <% contact_val = c[:contact] %>
+            <% if contact_val.include?("@") %>
+              <%# Es un email %>
+              <a href="mailto:<%= contact_val %>"
+                 style="color: #E67E22; text-decoration: none; transition: opacity 0.2s; font-weight: 500;"
+                 onmouseover="this.style.opacity='0.8'"
+                 onmouseout="this.style.opacity='1'">
+                📧 <%= contact_val %>
+              </a>
+            <% elsif contact_val.match?(/\(\d{3}\)/) %>
+              <%# Es un teléfono %>
+              <a href="tel:<%= contact_val.gsub(/[^\d+]/, '') %>"
+                 style="color: #1E3A5F; text-decoration: none; transition: opacity 0.2s; font-weight: 500;"
+                 onmouseover="this.style.opacity='0.8'"
+                 onmouseout="this.style.opacity='1'">
+                📞 <%= contact_val %>
+              </a>
+            <% else %>
+              <%= contact_val %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

@@ -43,6 +43,10 @@
              class="rn-nav__link <%= 'active' if controller_name == 'purchased_reports' %>">
             Reports
           </a>
+          <a href="<%= research_market_study_counties_path %>"
+             class="rn-nav__link <%= 'active' if controller_path.include?('market_study') %>">
+            Market Study
+          </a>
         </nav>
       </div>
 

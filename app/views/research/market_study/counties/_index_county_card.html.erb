@@ -1,0 +1,38 @@
+<%# ═══════════════════════════════════════════════════════════════════════════
+     Partial: _index_county_card — Template de UNA tarjeta de condado
+     Variables: county (CountyDatum), auction_counts (Hash)
+     Uso: Se renderiza dentro de un loop en index.html.erb
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<div class="ms-county-card" onclick="openCountyDrawer('<%= research_market_study_county_path(county) %>')">
+  <div class="ms-card-header">
+    <h3 class="ms-card-title"><%= county.county %></h3>
+    <span class="ms-card-state"><%= county.state %></span>
+  </div>
+
+  <div class="ms-card-metrics">
+    <div class="ms-metric">
+      <div class="ms-metric-label">Precio Medio</div>
+      <div class="ms-metric-value"><%= county.format_currency(county.median_home_price) %></div>
+    </div>
+    <div class="ms-metric">
+      <div class="ms-metric-label">Población</div>
+      <div class="ms-metric-value"><%= county.format_population %></div>
+    </div>
+    <div class="ms-metric">
+      <div class="ms-metric-label">Crecimiento</div>
+      <div class="ms-metric-value green"><%= county.format_percentage(county.annual_growth_rate) %></div>
+    </div>
+    <div class="ms-metric">
+      <div class="ms-metric-label">Días en Mercado</div>
+      <div class="ms-metric-value"><%= county.days_on_market || "—" %></div>
+    </div>
+  </div>
+
+  <div class="ms-card-footer">
+    <span class="ms-card-auctions">
+      🔥 <%= auction_counts[[county.state.to_s.upcase, county.county.to_s.upcase]] || 0 %> subastas
+    </span>
+    <span class="ms-card-arrow">→</span>
+  </div>
+</div>

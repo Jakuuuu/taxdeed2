@@ -1,0 +1,67 @@
+<%# ═══════════════════════════════════════════════════════════════════════════
+     Rama 4 — Ficha de Condado (Show) — Orquestador Modular
+     Regla: 18-market-study.md
+     Patrón: Drawer AJAX 95vw (renderizado sin layout vía XHR)
+     CSS: inline estricto — prohibido content_for :head
+     
+     Módulos (11 partials):
+       1. _county_styles          → Design tokens + CSS base
+       2. _drawer_close_button    → Botón sticky "Cerrar ficha"
+       3. _county_header          → Título + badges + breadcrumb
+       4. _county_kpi_cards       → 6 KPIs financieros/demográficos
+       5. _county_geographic      → Mapa/geolocalización del condado
+       6. _county_lion_tip        → Nota contextual del analista
+       7. _county_market_indicators → Indicadores de mercado detallados
+       8. _real_estate_volume_chart → Gráfico Canvas de volumen mensual
+       9. _county_directory       → Directorio de contactos institucionales
+      10. _county_cities          → Ciudades del condado
+      11. _county_scripts         → JavaScript del chart + interacciones
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<%# ── 1. Design Tokens + CSS ────────────────────────────────────────────── %>
+<%= render "research/market_study/counties/county_styles" %>
+
+<%# ── 2. Drawer Close Button (sticky top) ────────────────────────────────── %>
+<%= render "research/market_study/counties/drawer_close_button" %>
+
+<div class="fc-container">
+  <%# ── 3. Header — Nombre, estado, badges ──────────────────────────────── %>
+  <%= render "research/market_study/counties/county_header",
+             county: @county,
+             active_auctions: @active_auctions,
+             total_properties: @total_properties %>
+
+  <%# ── 4. KPI Cards — Métricas financieras principales ─────────────────── %>
+  <%= render "research/market_study/counties/county_kpi_cards",
+             county: @county %>
+
+  <%# ── 5. Geographic — Ubicación del condado ───────────────────────────── %>
+  <%= render "research/market_study/counties/county_geographic",
+             county: @county %>
+
+  <%# ── 6. Lion Tip — Nota del analista ─────────────────────────────────── %>
+  <%= render "research/market_study/counties/county_lion_tip",
+             county: @county %>
+
+  <%# ── 7. Market Indicators — Detalles de mercado ──────────────────────── %>
+  <%= render "research/market_study/counties/county_market_indicators",
+             county: @county %>
+
+  <%# ── 8. Volume Chart — Gráfico de volumen inmobiliario ───────────────── %>
+  <%= render "research/market_study/counties/real_estate_volume_chart",
+             county: @county,
+             volumes: @volumes %>
+
+  <%# ── 9. Directory — Contactos institucionales ────────────────────────── %>
+  <%= render "research/market_study/counties/county_directory",
+             county: @county %>
+
+  <%# ── 10. Cities — Ciudades del condado ────────────────────────────────── %>
+  <%= render "research/market_study/counties/county_cities",
+             county: @county %>
+</div>
+
+<%# ── 11. Scripts — JavaScript del chart ─────────────────────────────────── %>
+<%= render "research/market_study/counties/county_scripts",
+           county: @county,
+           volumes: @volumes %>

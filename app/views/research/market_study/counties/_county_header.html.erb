@@ -1,0 +1,77 @@
+<%# ── Header de la ficha de condado ─────────────────────────────────── %>
+<%# Título, badges de estado/modalidad, y quick-stats.                  %>
+<%# Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA             %>
+
+<div style="margin-bottom: 1.5rem;">
+  <%# ── Título principal ──── %>
+  <h1 style="color: #1E3A5F; font-size: 1.8rem; font-weight: 700; margin: 0 0 0.5rem 0;
+             letter-spacing: -0.02em;">
+    <%= @county.county %>
+    <span style="color: #6B7280; font-weight: 400;">, <%= @county.state %></span>
+  </h1>
+
+  <%# ── Badges ──── %>
+  <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+    <%# Badge: Modalidad %>
+    <% if @county.modalidad.present? %>
+      <span style="display: inline-flex; align-items: center; gap: 0.3rem;
+                   background: rgba(30, 58, 95, 0.08); border: 1px solid rgba(30, 58, 95, 0.15);
+                   border-radius: 6px; padding: 0.25rem 0.7rem; font-size: 0.75rem;
+                   color: #1E3A5F; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">
+        💻 <%= @county.modalidad %>
+      </span>
+    <% end %>
+
+    <%# Badge: Estado del mercado %>
+    <% if @county.market_status.present? %>
+      <% is_active = @county.market_status.downcase.include?("activo") %>
+      <% market_color = is_active ? "#38A169" : "#E53E3E" %>
+      <% market_bg = is_active ? "rgba(56, 161, 105, 0.08)" : "rgba(229, 62, 62, 0.08)" %>
+      <% market_border = is_active ? "rgba(56, 161, 105, 0.2)" : "rgba(229, 62, 62, 0.2)" %>
+      <span style="display: inline-flex; align-items: center; gap: 0.3rem;
+                   background: <%= market_bg %>; border: 1px solid <%= market_border %>;
+                   border-radius: 6px; padding: 0.25rem 0.7rem; font-size: 0.75rem;
+                   color: <%= market_color %>; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">
+        <span style="width: 6px; height: 6px; border-radius: 50%;
+                     background: <%= market_color %>; display: inline-block;"></span>
+        Mercado <%= @county.market_status %>
+      </span>
+    <% end %>
+  </div>
+
+  <%# ── Quick Stats (3 tarjetas horizontales) ──── %>
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem;">
+    <%# Median Home %>
+    <div style="background: #fff; border: 1.5px solid #E2E8F0;
+                border-radius: 10px; padding: 0.8rem 1rem; text-align: center;
+                border-top: 3px solid #38A169;">
+      <div style="color: #6B7280; font-size: 0.65rem; text-transform: uppercase;
+                  letter-spacing: 0.05em; margin-bottom: 0.3rem;">Median Home</div>
+      <div style="color: #1A202C; font-size: 1.1rem; font-weight: 700;">
+        <%= @county.format_currency(@county.median_home_price) %>
+      </div>
+    </div>
+
+    <%# Población %>
+    <div style="background: #fff; border: 1.5px solid #E2E8F0;
+                border-radius: 10px; padding: 0.8rem 1rem; text-align: center;
+                border-top: 3px solid #1E3A5F;">
+      <div style="color: #6B7280; font-size: 0.65rem; text-transform: uppercase;
+                  letter-spacing: 0.05em; margin-bottom: 0.3rem;">Población</div>
+      <div style="color: #1A202C; font-size: 1.1rem; font-weight: 700;">
+        <%= @county.format_population %>
+      </div>
+    </div>
+
+    <%# Crecimiento %>
+    <div style="background: #fff; border: 1.5px solid #E2E8F0;
+                border-radius: 10px; padding: 0.8rem 1rem; text-align: center;
+                border-top: 3px solid #C9A84C;">
+      <div style="color: #6B7280; font-size: 0.65rem; text-transform: uppercase;
+                  letter-spacing: 0.05em; margin-bottom: 0.3rem;">Crecimiento</div>
+      <div style="color: #38A169; font-size: 1.1rem; font-weight: 700;">
+        <%= @county.format_percentage(@county.annual_growth_rate) %>
+      </div>
+    </div>
+  </div>
+</div>

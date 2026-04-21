@@ -1,0 +1,121 @@
+<%# ── Indicadores de mercado del condado ─────────────────────────────── %>
+<%# Muestra métricas demográficas y financieras en grid de 2 columnas.  %>
+<%# Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA             %>
+
+<div class="fc-section" style="margin-top: 1rem;">
+  <h3 class="fc-section-title">
+    <span class="icon">📊</span> Indicadores de mercado
+  </h3>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
+
+    <%# ── Fila: Población ──── %>
+    <div class="fc-data-label" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      Población
+    </div>
+    <div class="fc-data-value" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      <%= @county.format_population %>
+    </div>
+
+    <%# ── Fila: PBI ──── %>
+    <div class="fc-data-label" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      PBI
+    </div>
+    <div class="fc-data-value" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      <%= @county.format_large_currency(@county.gdp) %>
+    </div>
+
+    <%# ── Fila: Ingreso Medio ──── %>
+    <div class="fc-data-label" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      Ingreso medio
+    </div>
+    <div class="fc-data-value" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      <%= @county.format_currency(@county.median_household_income) %>
+    </div>
+
+    <%# ── Fila: Empleo / Desempleo ──── %>
+    <div class="fc-data-label" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      Empleo / Desempleo
+    </div>
+    <div class="fc-data-value" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      <%= @county.format_percentage(@county.employment_rate) %> / <%= @county.format_percentage(@county.unemployment_rate) %>
+    </div>
+
+    <%# ── Fila: Median Home Price ──── %>
+    <div class="fc-data-label" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      Median home price
+    </div>
+    <div class="fc-data-value" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0; color: #38A169; font-weight: 700;">
+      <%= @county.format_currency(@county.median_home_price) %>
+    </div>
+
+    <%# ── Fila: Precio por Sqft ──── %>
+    <div class="fc-data-label" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      Precio por sqft
+    </div>
+    <div class="fc-data-value" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      <%= @county.format_currency(@county.price_per_sqft) %>
+    </div>
+
+    <%# ── Fila: Listados Activos ──── %>
+    <div class="fc-data-label" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      Listados activos
+    </div>
+    <div class="fc-data-value" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      <%= @county.active_listings.present? ? number_with_delimiter(@county.active_listings) : "—" %>
+    </div>
+
+    <%# ── Fila: Days on Market ──── %>
+    <div class="fc-data-label" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      Days on market
+    </div>
+    <div class="fc-data-value" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      <%= @county.days_on_market.present? ? "#{@county.days_on_market} días" : "—" %>
+    </div>
+
+    <%# ── Fila: Crecimiento Anual ──── %>
+    <div class="fc-data-label" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0;">
+      Crecimiento anual
+    </div>
+    <div class="fc-data-value" style="padding: 0.6rem 0; border-bottom: 1px solid #E2E8F0; color: #38A169; font-weight: 700;">
+      <%= @county.format_percentage(@county.annual_growth_rate) %>
+    </div>
+
+    <%# ── Fila: Presupuesto Anual ──── %>
+    <div class="fc-data-label" style="padding: 0.6rem 0;">
+      Presupuesto anual
+    </div>
+    <div class="fc-data-value" style="padding: 0.6rem 0;">
+      <%= @county.format_large_currency(@county.annual_budget) %>
+    </div>
+
+  </div>
+
+  <%# ── Indicadores cualitativos (Criminalidad, Inundación) ──── %>
+  <% if @county.crime_rating.present? || @county.flood_risk.present? %>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1.2rem;">
+      <% if @county.crime_rating.present? %>
+        <div style="background: rgba(30, 58, 95, 0.03); border: 1.5px solid #E2E8F0;
+                    border-radius: 10px; padding: 0.6rem 1rem; flex: 1; min-width: 200px;">
+          <div style="color: #6B7280; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+            Criminalidad
+          </div>
+          <div style="color: #1A202C; font-size: 0.9rem; font-weight: 600; margin-top: 0.2rem;">
+            🛡️ <%= @county.crime_rating %>
+          </div>
+        </div>
+      <% end %>
+      <% if @county.flood_risk.present? %>
+        <div style="background: rgba(30, 58, 95, 0.03); border: 1.5px solid #E2E8F0;
+                    border-radius: 10px; padding: 0.6rem 1rem; flex: 1; min-width: 200px;">
+          <div style="color: #6B7280; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+            Riesgo de inundación
+          </div>
+          <div style="color: #1A202C; font-size: 0.9rem; font-weight: 600; margin-top: 0.2rem;">
+            🌊 <%= @county.flood_risk %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

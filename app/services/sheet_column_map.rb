@@ -8,6 +8,10 @@
 #
 # ⚠️ ACTUALIZADO 2026-04-18: Se insertó "Sale Venue" en col C (pos 2).
 #    Todas las posiciones desde la antigua pos 2 se corrieron +1.
+#
+# ⚠️ ACTUALIZADO 2026-04-21: Se insertaron 3 columnas internas de elevación
+#    en AI/AJ/AK (pos 34-36). Todas las posiciones desde la antigua pos 34
+#    se corrieron +3. Columnas de elevación = IGNORADAS (uso interno).
 #    Verificado contra HEADER MAP real del Sheet "Propiedades1".
 #
 module SheetColumnMap
@@ -54,34 +58,38 @@ module SheetColumnMap
   ELECTRIC            = 31  # col AF — Electric ("yes" | "no")
   WATER               = 32  # col AG — Water ("yes" | "no")
   SEWER               = 33  # col AH — Sewer ("yes" | "no")
-  LOT_SHAPE           = 34  # col AI — Forma Terreno ("Flat" etc.)
+  # ⛔ col AI (34) — High Elevation (NUEVO — interno, 2026-04-21)
+  # ⛔ col AJ (35) — Lowest Elevation (NUEVO — interno, 2026-04-21)
+  # ⛔ col AK (36) — Elevation Difference (NUEVO — interno, 2026-04-21)
 
-  # ⛔ col AJ (35) — NEIGHBOR address
-  COORDINATES_RAW     = 36  # col AK — Coordinates Lat x Log (formato: "30.452145, -87.270564")
+  LOT_SHAPE           = 37  # col AL — Forma Terreno ("Flat" etc.)  [was AI/34, +3]
 
-  WETLANDS_RAW        = 37  # col AL — Wetlands ("yes" | "no" → boolean)
-  FEMA_NOTES          = 38  # col AM — Comments on FEMA image
-  FEMA_URL            = 39  # col AN — Link FEMA
-  FEMA_RISK_LEVEL     = 40  # col AO — Risk factor/FEMA Image label
-  PROPERTY_IMAGE_URL  = 41  # col AP — Property Image URL
+  # ⛔ col AM (38) — NEIGHBOR address  [was AJ/35]
+  COORDINATES_RAW     = 39  # col AN — Coordinates Lat x Log  [was AK/36, +3]
 
-  # ⛔ col AQ (42) — Zillow (metadata / string)
+  WETLANDS_RAW        = 40  # col AO — Wetlands ("yes" | "no" → boolean)  [was AL/37, +3]
+  FEMA_NOTES          = 41  # col AP — Comments on FEMA image  [was AM/38, +3]
+  FEMA_URL            = 42  # col AQ — Link FEMA  [was AN/39, +3]
+  FEMA_RISK_LEVEL     = 43  # col AR — Risk factor/FEMA Image label  [was AO/40, +3]
+  PROPERTY_IMAGE_URL  = 44  # col AS — Property Image URL  [was AP/41, +3]
 
-  HOA                 = 43  # col AR — POA/HOA ("yes" | "no")
+  # ⛔ col AT (45) — Zillow (metadata / string)  [was AQ/42]
 
-  # ⛔ cols AS→BP (44→67) — Zillow comps (Links, Price, Sqft, Acres, etc.)
+  HOA                 = 46  # col AU — POA/HOA ("yes" | "no")  [was AR/43, +3]
 
-  ESTIMATED_SALE_VALUE = 68 # col BQ — Estimate Sale (sites)
+  # ⛔ cols AV→BS (47→70) — Zillow comps (Links, Price, Sqft, Acres, etc.)  [was AS→BP/44→67]
 
-  # ⛔ cols BR→BX (69→75) — Cálculos duplicados y estimaciones extra
+  ESTIMATED_SALE_VALUE = 71 # col BT — Estimate Sale (sites)  [was BQ/68, +3]
 
-  CLERK_URL           = 76  # col BY — Clerk of Courts URL
-  TAX_COLLECTOR_URL   = 77  # col BZ — Tax Collector URL
+  # ⛔ cols BU→CA (72→78) — Cálculos duplicados y estimaciones extra  [was BR→BX/69→75]
 
-  # ⛔ cols CA→CB (78→79) — Realforeclose, Zoning Ordinances
+  CLERK_URL           = 79  # col CB — Clerk of Courts URL  [was BY/76, +3]
+  TAX_COLLECTOR_URL   = 80  # col CC — Tax Collector URL  [was BZ/77, +3]
+
+  # ⛔ cols CD→CE (81→82) — Realforeclose, Zoning Ordinances  [was CA→CB/78→79]
 
   # ── COLUMNAS IGNORADAS (documentadas para referencia) ────────────────────────
-  IGNORED_INTERNAL = [4, 5, 35, 42, 78, 79].freeze  # col 6 (COMMENTS_DO_VA) ahora se mapea
-  IGNORED_ZILLOW   = (44..67).to_a.freeze
-  IGNORED_CALCS    = (69..75).to_a.freeze
+  IGNORED_INTERNAL  = [4, 5, 34, 35, 36, 38, 45, 81, 82].freeze  # col 6 (COMMENTS_DO_VA) ahora se mapea
+  IGNORED_ZILLOW    = (47..70).to_a.freeze
+  IGNORED_CALCS     = (72..78).to_a.freeze
 end

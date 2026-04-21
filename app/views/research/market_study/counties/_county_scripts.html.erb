@@ -1,0 +1,627 @@
+<%# ═══════════════════════════════════════════════════════════════════════════
+     Partial 10/10: _county_scripts — Motor de gráfico de tendencia de mercado
+     Variables: county, volumes
+     Motor: HTML5 Canvas (zero dependencies)
+
+     2 Modos de visualización:
+       1. YEARLY  — Barras verticales por año + línea de tendencia
+       2. MONTHLY — Comparación mes a mes (año seleccionado vs año anterior)
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<script>
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Market Trend Chart — HTML5 Canvas (zero dependencies)
+  // 2 views: yearly bars + monthly drill-down comparison
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  (function() {
+    'use strict';
+
+    const dataEl = document.getElementById('fc-volume-data');
+    if (!dataEl) return;
+
+    let yearlyData = [];
+    try {
+      yearlyData = JSON.parse(dataEl.textContent);
+    } catch(e) {
+      console.warn('[TrendChart] Error parsing data:', e);
+      return;
+    }
+
+    if (!yearlyData.length) return;
+
+    const canvas = document.getElementById('fc-volume-chart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    // ── Theme colors ────────────────────────────────────────────────────
+    // Brand-aligned colors for light background (Navy/Gold/Off-white)
+    const COLORS = {
+      barBase:     '#1E3A5F',
+      barHover:    '#2C5282',
+      barSelected: '#1a365d',
+      trendLine:   '#C9A84C',
+      grid:        'rgba(226, 232, 240, 0.8)',
+      text:        '#6B7280',
+      textBright:  '#1A202C',
+      yoyUp:       '#38A169',
+      yoyDown:     '#E53E3E',
+      prevYear:    'rgba(148, 163, 184, 0.5)',
+      currYear:    '#1E3A5F',
+      tooltip:     '#374151',
+      tooltipBg:   'rgba(255, 255, 255, 0.97)',
+    };
+
+    const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                         'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    let mode = 'yearly';
+    let hoveredIndex = -1;
+    let selectedYear = null;
+
+    // ── Resize (HiDPI) ──────────────────────────────────────────────────
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // YEARLY VIEW — Bar chart with trend line
+    // ═══════════════════════════════════════════════════════════════════
+    function renderYearly() {
+      resize();
+      const W = canvas.width / dpr;
+      const H = canvas.height / dpr;
+      const PAD = { top: 30, right: 25, bottom: 55, left: 75 };
+
+      ctx.clearRect(0, 0, W, H);
+      if (!yearlyData.length) return;
+
+      const avgs = yearlyData.map(d => d.avg);
+      const maxVal = Math.max(...avgs) * 1.15;
+      const chartW = W - PAD.left - PAD.right;
+      const chartH = H - PAD.top - PAD.bottom;
+      const barCount = yearlyData.length;
+      const barGap = Math.max(4, chartW * 0.02);
+      const barW = Math.max(12, (chartW - barGap * (barCount + 1)) / barCount);
+
+      // ── Grid lines ────────────────────────────────────────────────
+      const gridLines = 5;
+      for (let i = 0; i <= gridLines; i++) {
+        const y = PAD.top + (chartH * i / gridLines);
+        ctx.strokeStyle = COLORS.grid;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(PAD.left, y);
+        ctx.lineTo(W - PAD.right, y);
+        ctx.stroke();
+
+        const val = maxVal - (maxVal * i / gridLines);
+        ctx.fillStyle = COLORS.text;
+        ctx.font = '11px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(formatCurrency(val), PAD.left - 10, y + 4);
+      }
+
+      // ── Y-axis label ──────────────────────────────────────────────
+      ctx.save();
+      ctx.translate(14, PAD.top + chartH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '10px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Promedio mensual', 0, 0);
+      ctx.restore();
+
+      // ── Bars ───────────────────────────────────────────────────────
+      const barPositions = [];
+      yearlyData.forEach((d, i) => {
+        const barH = (d.avg / maxVal) * chartH;
+        const x = PAD.left + barGap + i * (barW + barGap);
+        const y = PAD.top + chartH - barH;
+
+        barPositions.push({ x, y, w: barW, h: barH, data: d, idx: i });
+
+        // Bar gradient
+        const grad = ctx.createLinearGradient(0, y, 0, y + barH);
+        if (i === hoveredIndex) {
+          grad.addColorStop(0, '#2C5282');
+          grad.addColorStop(1, '#1E3A5F');
+        } else {
+          grad.addColorStop(0, '#2C5282');
+          grad.addColorStop(1, COLORS.barBase);
+        }
+
+        // Rounded top corners
+        const r = Math.min(4, barW / 4);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + barW - r, y);
+        ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+        ctx.lineTo(x + barW, y + barH);
+        ctx.lineTo(x, y + barH);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // YoY change label on top of bar
+        if (i > 0) {
+          const prevAvg = yearlyData[i - 1].avg;
+          const change = prevAvg > 0 ? ((d.avg - prevAvg) / prevAvg * 100).toFixed(1) : 0;
+          const isUp = change >= 0;
+
+          ctx.fillStyle = isUp ? COLORS.yoyUp : COLORS.yoyDown;
+          ctx.font = 'bold 9px Inter, system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(
+            (isUp ? '+' : '') + change + '%',
+            x + barW / 2,
+            y - 6
+          );
+        }
+
+        // X-axis year label
+        ctx.fillStyle = i === hoveredIndex ? COLORS.textBright : COLORS.text;
+        ctx.font = (i === hoveredIndex ? 'bold ' : '') + '11px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(d.year, x + barW / 2, H - PAD.bottom + 18);
+
+        // Month count indicator for partial years
+        if (d.month_count < 12) {
+          ctx.fillStyle = '#9CA3AF';
+          ctx.font = '9px Inter, system-ui, sans-serif';
+          ctx.fillText(d.month_count + 'm', x + barW / 2, H - PAD.bottom + 32);
+        }
+      });
+
+      // ── Trend line ─────────────────────────────────────────────────
+      if (yearlyData.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = COLORS.trendLine;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 4]);
+
+        barPositions.forEach((bp, i) => {
+          const cx = bp.x + bp.w / 2;
+          const cy = bp.y;
+          if (i === 0) ctx.moveTo(cx, cy);
+          else ctx.lineTo(cx, cy);
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Trend dots
+        barPositions.forEach(bp => {
+          ctx.beginPath();
+          ctx.arc(bp.x + bp.w / 2, bp.y, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = COLORS.trendLine;
+          ctx.fill();
+        });
+      }
+
+      // ── Hover tooltip ──────────────────────────────────────────────
+      if (hoveredIndex >= 0 && hoveredIndex < barPositions.length) {
+        const bp = barPositions[hoveredIndex];
+        const d = bp.data;
+
+        const lines = [
+          d.year.toString(),
+          'Prom: $' + d.avg.toLocaleString('en-US'),
+          'Total: $' + d.total.toLocaleString('en-US'),
+          d.month_count + ' meses'
+        ];
+
+        ctx.font = '12px Inter, system-ui, sans-serif';
+        const maxW = Math.max(...lines.map(l => ctx.measureText(l).width)) + 24;
+        const tH = lines.length * 20 + 16;
+        let tx = bp.x + bp.w / 2 - maxW / 2;
+        tx = Math.max(5, Math.min(tx, W - maxW - 5));
+        const ty = Math.max(5, bp.y - tH - 12);
+
+        ctx.fillStyle = COLORS.tooltipBg;
+        roundRect(ctx, tx, ty, maxW, tH, 8);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(30, 58, 95, 0.15)';
+        ctx.lineWidth = 1;
+        roundRect(ctx, tx, ty, maxW, tH, 8);
+        ctx.stroke();
+
+        lines.forEach((line, li) => {
+          ctx.fillStyle = li === 0 ? COLORS.textBright : COLORS.tooltip;
+          ctx.font = li === 0 ? 'bold 13px Inter, system-ui, sans-serif' : '12px Inter, system-ui, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(line, tx + 12, ty + 22 + li * 20);
+        });
+      }
+
+      // Store bar positions for click detection
+      canvas._barPositions = barPositions;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // MONTHLY VIEW — Year vs previous year comparison
+    // ═══════════════════════════════════════════════════════════════════
+    function renderMonthly() {
+      resize();
+      const W = canvas.width / dpr;
+      const H = canvas.height / dpr;
+      const PAD = { top: 30, right: 25, bottom: 55, left: 75 };
+
+      ctx.clearRect(0, 0, W, H);
+
+      const yearIdx = yearlyData.findIndex(d => d.year === selectedYear);
+      if (yearIdx < 0) return;
+
+      const currData = yearlyData[yearIdx];
+      const prevData = yearIdx > 0 ? yearlyData[yearIdx - 1] : null;
+
+      // Build month arrays (fill gaps with null)
+      const currMonths = new Array(12).fill(null);
+      const prevMonths = new Array(12).fill(null);
+
+      currData.months.forEach(m => { currMonths[m.month - 1] = m.amount; });
+      if (prevData) {
+        prevData.months.forEach(m => { prevMonths[m.month - 1] = m.amount; });
+      }
+
+      const allVals = [...currMonths, ...prevMonths].filter(v => v !== null);
+      const maxVal = allVals.length ? Math.max(...allVals) * 1.15 : 1;
+      const chartW = W - PAD.left - PAD.right;
+      const chartH = H - PAD.top - PAD.bottom;
+
+      // ── Grid ──────────────────────────────────────────────────────
+      const gridLines = 5;
+      for (let i = 0; i <= gridLines; i++) {
+        const y = PAD.top + (chartH * i / gridLines);
+        ctx.strokeStyle = COLORS.grid;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(PAD.left, y);
+        ctx.lineTo(W - PAD.right, y);
+        ctx.stroke();
+
+        const val = maxVal - (maxVal * i / gridLines);
+        ctx.fillStyle = COLORS.text;
+        ctx.font = '11px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(formatCurrency(val), PAD.left - 10, y + 4);
+      }
+
+      // ── X-axis month labels ───────────────────────────────────────
+      for (let m = 0; m < 12; m++) {
+        const x = PAD.left + (chartW * m / 11);
+        ctx.fillStyle = COLORS.text;
+        ctx.font = '11px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(MONTH_NAMES[m], x, H - PAD.bottom + 18);
+      }
+
+      // ── Previous year line (dashed, muted) ─────────────────────────
+      if (prevData) {
+        const prevPoints = [];
+        prevMonths.forEach((val, m) => {
+          if (val !== null) {
+            prevPoints.push({
+              x: PAD.left + (chartW * m / 11),
+              y: PAD.top + chartH - (chartH * val / maxVal),
+              val
+            });
+          }
+        });
+
+        if (prevPoints.length > 1) {
+          // Fill
+          const gradient = ctx.createLinearGradient(0, PAD.top, 0, H - PAD.bottom);
+          gradient.addColorStop(0, 'rgba(148, 163, 184, 0.08)');
+          gradient.addColorStop(1, 'rgba(148, 163, 184, 0.01)');
+
+          ctx.beginPath();
+          ctx.moveTo(prevPoints[0].x, H - PAD.bottom);
+          prevPoints.forEach(p => ctx.lineTo(p.x, p.y));
+          ctx.lineTo(prevPoints[prevPoints.length - 1].x, H - PAD.bottom);
+          ctx.closePath();
+          ctx.fillStyle = gradient;
+          ctx.fill();
+
+          // Line
+          ctx.beginPath();
+          ctx.setLineDash([5, 5]);
+          prevPoints.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+          ctx.strokeStyle = COLORS.prevYear;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Dots
+          prevPoints.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+            ctx.fill();
+          });
+        }
+      }
+
+      // ── Current year line (solid, bright) ──────────────────────────
+      const currPoints = [];
+      currMonths.forEach((val, m) => {
+        if (val !== null) {
+          currPoints.push({
+            x: PAD.left + (chartW * m / 11),
+            y: PAD.top + chartH - (chartH * val / maxVal),
+            val, month: m
+          });
+        }
+      });
+
+      if (currPoints.length > 1) {
+        // Fill
+        const gradient = ctx.createLinearGradient(0, PAD.top, 0, H - PAD.bottom);
+        gradient.addColorStop(0, 'rgba(30, 58, 95, 0.12)');
+        gradient.addColorStop(1, 'rgba(30, 58, 95, 0.02)');
+
+        ctx.beginPath();
+        ctx.moveTo(currPoints[0].x, H - PAD.bottom);
+        currPoints.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(currPoints[currPoints.length - 1].x, H - PAD.bottom);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Smooth line
+        ctx.beginPath();
+        currPoints.forEach((p, i) => {
+          if (i === 0) { ctx.moveTo(p.x, p.y); return; }
+          const prev = currPoints[i - 1];
+          const cpx = (prev.x + p.x) / 2;
+          ctx.quadraticCurveTo(prev.x + (cpx - prev.x) * 0.8, prev.y, cpx, (prev.y + p.y) / 2);
+          ctx.quadraticCurveTo(cpx + (p.x - cpx) * 0.2, p.y, p.x, p.y);
+        });
+        ctx.strokeStyle = COLORS.currYear;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // Dots
+        currPoints.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fillStyle = COLORS.currYear;
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        });
+      }
+
+      // ── Legend ─────────────────────────────────────────────────────
+      const legendY = PAD.top - 14;
+      ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+
+      // Current year legend
+      ctx.fillStyle = COLORS.currYear;
+      ctx.beginPath();
+      ctx.arc(W - PAD.right - 160, legendY, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = COLORS.textBright;
+      ctx.textAlign = 'left';
+      ctx.fillText(selectedYear.toString(), W - PAD.right - 152, legendY + 4);
+
+      // Previous year legend
+      if (prevData) {
+        ctx.fillStyle = COLORS.prevYear;
+        ctx.beginPath();
+        ctx.arc(W - PAD.right - 80, legendY, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = COLORS.text;
+        ctx.fillText(prevData.year.toString(), W - PAD.right - 72, legendY + 4);
+      }
+
+      // ── Hover tooltip (monthly) ────────────────────────────────────
+      if (hoveredIndex >= 0) {
+        const closest = currPoints.reduce((best, p) => {
+          const d = Math.abs(p.month - hoveredIndex);
+          return d < best.dist ? { p, dist: d } : best;
+        }, { p: null, dist: Infinity });
+
+        if (closest.p) {
+          const hp = closest.p;
+          const prevVal = prevMonths[hp.month];
+          const change = prevVal ? ((hp.val - prevVal) / prevVal * 100).toFixed(1) : null;
+
+          const lines = [MONTH_NAMES[hp.month] + ' ' + selectedYear];
+          lines.push('$' + hp.val.toLocaleString('en-US'));
+          if (change !== null) {
+            lines.push('vs ' + (selectedYear - 1) + ': ' + (change >= 0 ? '+' : '') + change + '%');
+          }
+
+          ctx.font = '12px Inter, system-ui, sans-serif';
+          const maxTW = Math.max(...lines.map(l => ctx.measureText(l).width)) + 24;
+          const tH = lines.length * 20 + 12;
+          let tx = Math.max(5, Math.min(hp.x - maxTW / 2, W - maxTW - 5));
+          const ty = Math.max(5, hp.y - tH - 15);
+
+          ctx.fillStyle = COLORS.tooltipBg;
+          roundRect(ctx, tx, ty, maxTW, tH, 8);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(30, 58, 95, 0.15)';
+          ctx.lineWidth = 1;
+          roundRect(ctx, tx, ty, maxTW, tH, 8);
+          ctx.stroke();
+
+          lines.forEach((line, li) => {
+            if (li === 2) {
+              ctx.fillStyle = change >= 0 ? COLORS.yoyUp : COLORS.yoyDown;
+            } else {
+              ctx.fillStyle = li === 0 ? COLORS.textBright : COLORS.tooltip;
+            }
+            ctx.font = li === 0 ? 'bold 12px Inter, system-ui, sans-serif' : '12px Inter, system-ui, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(line, tx + 12, ty + 20 + li * 20);
+          });
+
+          // Highlight dot
+          ctx.beginPath();
+          ctx.arc(hp.x, hp.y, 6, 0, Math.PI * 2);
+          ctx.fillStyle = '#38A169';
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // RENDER DISPATCH
+    // ═══════════════════════════════════════════════════════════════════
+    function render() {
+      if (mode === 'yearly') renderYearly();
+      else renderMonthly();
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────
+    function formatCurrency(val) {
+      if (val >= 1e9) return '$' + (val / 1e9).toFixed(1) + 'B';
+      if (val >= 1e6) return '$' + (val / 1e6).toFixed(1) + 'M';
+      if (val >= 1e3) return '$' + (val / 1e3).toFixed(0) + 'K';
+      return '$' + val.toFixed(0);
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    // ── Mouse hover ─────────────────────────────────────────────────
+    canvas.addEventListener('mousemove', function(e) {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const PAD_LEFT = 75;
+      const PAD_RIGHT = 25;
+      const chartW = rect.width - PAD_LEFT - PAD_RIGHT;
+      const relX = mx - PAD_LEFT;
+
+      if (relX < 0 || relX > chartW) {
+        hoveredIndex = -1;
+        render();
+        return;
+      }
+
+      if (mode === 'yearly' && canvas._barPositions) {
+        let found = -1;
+        canvas._barPositions.forEach(bp => {
+          const scaledX = (e.clientX - rect.left);
+          if (scaledX >= bp.x && scaledX <= bp.x + bp.w) {
+            found = bp.idx;
+          }
+        });
+        if (found !== hoveredIndex) {
+          hoveredIndex = found;
+          render();
+        }
+      } else if (mode === 'monthly') {
+        const idx = Math.round(relX / chartW * 11);
+        if (idx !== hoveredIndex) {
+          hoveredIndex = Math.max(0, Math.min(idx, 11));
+          render();
+        }
+      }
+    });
+
+    canvas.addEventListener('mouseleave', function() {
+      hoveredIndex = -1;
+      render();
+    });
+
+    // ── Click → drill-down ──────────────────────────────────────────
+    canvas.addEventListener('click', function(e) {
+      if (mode !== 'yearly' || !canvas._barPositions) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+
+      for (const bp of canvas._barPositions) {
+        if (mx >= bp.x && mx <= bp.x + bp.w) {
+          selectedYear = bp.data.year;
+          mode = 'monthly';
+          hoveredIndex = -1;
+
+          // Update UI
+          document.getElementById('fc-chart-title').textContent =
+            'Detalle Mensual — ' + selectedYear;
+          document.getElementById('fc-chart-back').classList.add('visible');
+          document.getElementById('fc-chart-hint').style.display = 'none';
+          canvas.style.cursor = 'crosshair';
+
+          render();
+          return;
+        }
+      }
+    });
+
+    // ── Public API ──────────────────────────────────────────────────
+    window.fcChart = {
+      showYearly: function() {
+        mode = 'yearly';
+        selectedYear = null;
+        hoveredIndex = -1;
+
+        document.getElementById('fc-chart-title').textContent = 'Tendencia de Mercado';
+        document.getElementById('fc-chart-back').classList.remove('visible');
+        document.getElementById('fc-chart-hint').style.display = '';
+        canvas.style.cursor = 'pointer';
+
+        render();
+      }
+    };
+
+    // ── Init ────────────────────────────────────────────────────────
+    function onResize() { render(); }
+    window.addEventListener('resize', onResize);
+    render();
+
+    // ── Turbo Cache Cleanup ─────────────────────────────────────────
+    // CRÍTICO: Sin esto, al navegar con Turbo y volver, el Canvas
+    // anterior se restaura del caché con datos fantasma y los gráficos
+    // se superponen. Limpiamos todo antes de que Turbo tome snapshot.
+    document.addEventListener('turbo:before-cache', function cleanupChart() {
+      // Wipe the canvas to prevent ghost renders
+      if (canvas && ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+      // Reset stored state
+      if (canvas) canvas._barPositions = null;
+      hoveredIndex = -1;
+      mode = 'yearly';
+      selectedYear = null;
+
+      // Remove resize listener to prevent leaks
+      window.removeEventListener('resize', onResize);
+
+      // Clean up global reference
+      if (window.fcChart) delete window.fcChart;
+
+      // Self-remove to prevent stacking listeners
+      document.removeEventListener('turbo:before-cache', cleanupChart);
+    });
+  })();
+</script>

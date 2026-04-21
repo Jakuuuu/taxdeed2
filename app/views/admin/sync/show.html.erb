@@ -325,11 +325,45 @@
     .last-sync-details  { grid-template-columns: repeat(2, 1fr); }
     .sync-hero { flex-direction: column; text-align: center; }
   }
+  /* Sync Markets Button — Distinct style (teal) */
+  .btn-sync-markets {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.35rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(13,148,136,0.3);
+    letter-spacing: 0.01em;
+  }
+  .btn-sync-markets:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(13,148,136,0.45);
+    background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%);
+  }
+  .btn-sync-markets:active { transform: translateY(0); }
+  .btn-sync-markets:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .btn-sync-markets__icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
 </style>
 
 
 <%# ═══════════════════════════════════════════════════════════════════════════
-    SECTION 1: Hero Header — Title + Run Now + Schedule
+    SECTION 1: Hero Header — Title + Run Now + Sync Markets + Schedule
     ═══════════════════════════════════════════════════════════════════════════ %>
 
 <div class="sync-hero">
@@ -353,15 +387,27 @@
       </div>
     <% end %>
 
-    <%# Manual Trigger Button — CSP-safe (no inline onclick) %>
+    <%# ── Main Sync: Propiedades + Condados ──────────────────────────── %>
     <%= form_with url: run_now_admin_sync_path, method: :post, style: "display:inline;",
-                  data: { turbo_confirm: "Run a full sync now?\n\nThis will fetch ALL rows from Google Sheets and synchronize with the database.\n\nCRM data (tags & notes) will NOT be affected." } do |f| %>
+                  data: { turbo_confirm: "Run sync now?\n\nThis will sync Properties + Counties from Google Sheets.\n(Market data is NOT included — use the separate button)\n\nCRM data (tags & notes) will NOT be affected." } do |f| %>
       <button type="submit"
               class="btn-sync-trigger"
               id="sync-trigger-btn"
               <% if @running %>disabled<% end %>>
         <span class="btn-sync-trigger__icon"><%= @running ? "⏳" : "▶" %></span>
-        <%= @running ? "Sync Running…" : "Run Sync Now" %>
+        <%= @running ? "Sync Running…" : "Sync Propiedades" %>
+      </button>
+    <% end %>
+
+    <%# ── Market Sync: Solo Mercados (denso, 2-5 min) ────────────────── %>
+    <%= form_with url: run_markets_admin_sync_path, method: :post, style: "display:inline;",
+                  data: { turbo_confirm: "📊 Sync Market Data?\n\nThis will sync ~9,700 monthly volume records from the 'Mercados' sheet.\n\nEstimated time: 2-5 minutes.\n\nProceed?" } do |f| %>
+      <button type="submit"
+              class="btn-sync-markets"
+              id="sync-markets-btn"
+              <% if @running %>disabled<% end %>>
+        <span class="btn-sync-markets__icon"><%= @running ? "⏳" : "📊" %></span>
+        <%= @running ? "Sync Running…" : "Sync cifras de mercados" %>
       </button>
     <% end %>
   </div>

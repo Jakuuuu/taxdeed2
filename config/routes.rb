@@ -35,6 +35,13 @@ Rails.application.routes.draw do
       end
     end
     resources :purchased_reports, only: [:index, :create]
+
+    # ── Rama 4: Market Study ───────────────────────────────────────────────
+    # Ficha de Condado: /research/market_study/counties
+    # Regla: 18-market-study.md
+    namespace :market_study do
+      resources :counties, only: [:index, :show]
+    end
     resource  :settings,          only: [:show] do
       patch  :profile
       delete :subscription, action: :cancel_subscription
@@ -88,6 +95,7 @@ Rails.application.routes.draw do
 
     resource :sync, only: [:show], controller: "sync" do
       post :run_now
+      post :run_markets
     end
   end
 

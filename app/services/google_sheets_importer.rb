@@ -4,7 +4,11 @@
 #
 # Autenticación: Google Service Account (JSON en credentials.yml.enc o archivo local)
 # Scope:         spreadsheets.readonly
-# Sheet tab:     "Propiedades" (pestaña real del Sheet de producción)
+#
+# Pestañas soportadas:
+#   - "Propiedades1" — Parcelas de subastas (existente)
+#   - "Condados"     — Info macro del condado (Rama 4)
+#   - "Mercados"     — Volumen inmobiliario mensual (Rama 4)
 #
 # 🛡️ HEADER FAILSAFE:
 #   validate_headers! verifica la presencia de columnas maestras (State, County,
@@ -29,9 +33,27 @@
 #   Esto reduce la huella de memoria de O(N) a O(CHUNK_SIZE).
 #
 class GoogleSheetsImporter
+  # ── Pestañas del Sheet ──────────────────────────────────────────────────
   SHEET_TAB  = "Propiedades1"  # ⚠️ Nombre exacto de la pestaña en el Sheet
-  DATA_RANGE = "#{SHEET_TAB}!A2:CB"
-  HEADER_RANGE = "#{SHEET_TAB}!A1:CB1"
+  COUNTIES_TAB = "Condados"    # Rama 4: Info macro del condado
+  MARKETS_TAB  = "Mercados"    # Rama 4: Volumen inmobiliario mensual
+
+  # ── Rangos para la pestaña principal (Propiedades) ────────────────────
+  DATA_RANGE = "#{SHEET_TAB}!A2:CE"
+  HEADER_RANGE = "#{SHEET_TAB}!A1:CE1"
+
+  # ── Rangos para Condados (hasta columna AI = 35 columnas) ─────────────
+  COUNTIES_HEADER_RANGE = "#{COUNTIES_TAB}!A1:AI1"
+  COUNTIES_DATA_RANGE   = "#{COUNTIES_TAB}!A2:AI"
+
+  # ── Rangos para Mercados (TABLA CRUZADA HORIZONTAL) ───────────────────
+  # Fila 1: título "Mes de Period End" (ignorar)
+  # Fila 2: vacía (ignorar)
+  # Fila 3: Headers reales: Estado | Condados | Enero de 2012 | Feb... | ...
+  # Fila 4+: Datos: Florida | Alachua | $164,950.00 | ...
+  # Ancho: ~172 columnas (2 id + 170 meses)
+  MARKETS_HEADER_RANGE  = "#{MARKETS_TAB}!A3:ZZ3"   # Fila 3 = headers de fechas
+  MARKETS_DATA_RANGE    = "#{MARKETS_TAB}!A4:ZZ"     # Fila 4+ = datos
 
   # ── 🚀 STREAMING: Tamaño de ventana para paginación por rangos ────────────
   # Cada request al API de Google Sheets pide CHUNK_SIZE filas.
@@ -42,8 +64,8 @@ class GoogleSheetsImporter
   # Headers OBLIGATORIOS para que el sync proceda.
   # Si alguno falta o fue renombrado → ABORT total + SyncLog.
   #
-  # El Sheet real usa headers en español ("Estado", "Condado") pero el código
-  # original esperaba inglés ("State", "County"). Se aceptan ambas variantes.
+  # El Sheet real usa headers en español (\"Estado\", \"Condado\") pero el código
+  # original esperaba inglés (\"State\", \"County\"). Se aceptan ambas variantes.
   REQUIRED_HEADERS = {
     "State/Estado"         => %w[state estado],
     "County/Condado"       => %w[county condado],
@@ -100,7 +122,6 @@ class GoogleSheetsImporter
     Rails.logger.info "[GoogleSheetsImporter] 🛡️ Headers validados OK (#{normalized_headers.size} columnas)"
 
     # ── Paso 2: Iterar por ventanas de rango ───────────────────────────────
-    # La fila 1 es headers → datos empiezan en fila 2 (row_offset = 2)
     row_offset = 2
     chunk_index = 0
     total_rows_fetched = 0
@@ -108,7 +129,7 @@ class GoogleSheetsImporter
     loop do
       start_row = row_offset + (chunk_index * chunk_size)
       end_row   = start_row + chunk_size - 1
-      range     = "#{SHEET_TAB}!A#{start_row}:CB#{end_row}"
+      range     = "#{SHEET_TAB}!A#{start_row}:CE#{end_row}"
 
       Rails.logger.info "[GoogleSheetsImporter] 📦 Fetching chunk #{chunk_index + 1}: rows #{start_row}–#{end_row}"
 
@@ -148,6 +169,77 @@ class GoogleSheetsImporter
     Rails.logger.error "[GoogleSheetsImporter]    sheet_id=#{sheet_id.inspect}"
     Rails.logger.error "[GoogleSheetsImporter]    backtrace=#{e.backtrace&.first(5)&.join("\n")}"
     raise
+  end
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🏛️ RAMA 4: Streaming para pestaña "Condados"
+  #
+  # Mismo patrón memory-safe que Propiedades.
+  # Valida headers propios (State/County obligatorios).
+  # ═══════════════════════════════════════════════════════════════════════════
+  def self.fetch_counties_in_chunks(sheet_id, chunk_size: CHUNK_SIZE)
+    Rails.logger.info "[GoogleSheetsImporter] 🏛️ Streaming pestaña: #{COUNTIES_TAB}"
+
+    service = build_service
+
+    # Validar headers de Condados (fila 1)
+    header_response = service.get_spreadsheet_values(sheet_id, COUNTIES_HEADER_RANGE)
+    raw_headers = header_response.values&.first || []
+    normalized = raw_headers.map { |h| h.to_s.strip.gsub(/\u00A0/, " ").strip }
+    validate_tab_headers_by_position!(normalized, CountySheetColumnMap::REQUIRED_HEADERS, COUNTIES_TAB)
+
+    Rails.logger.info "[GoogleSheetsImporter] 🛡️ Condados headers OK (#{normalized.size} columnas)"
+
+    stream_tab(service, sheet_id, COUNTIES_TAB, "AI", chunk_size: chunk_size) do |chunk, idx|
+      yield chunk, idx
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 📊 RAMA 4: Streaming para pestaña "Mercados"
+  #
+  # Mismo patrón memory-safe. Datos de timeseries financiero.
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 📊 RAMA 4: Pestaña "Mercados" — TABLA CRUZADA HORIZONTAL
+  #
+  # Esta pestaña NO es una tabla normal. Es una pivot table:
+  #   - Fila 3 contiene los headers de fechas ("Enero de 2012", "Febrero de 2012"...)
+  #   - Fila 4+ contiene datos: Estado | Condado | $valor_mes1 | $valor_mes2 | ...
+  #
+  # Este método:
+  #   1. Lee fila 3 para extraer las fechas de columna
+  #   2. Parsea cada fecha ("Enero de 2012" → Date)
+  #   3. Retorna las fechas parseadas + yield de chunks de datos (fila 4+)
+  # ═══════════════════════════════════════════════════════════════════════════
+  def self.fetch_markets_in_chunks(sheet_id, chunk_size: CHUNK_SIZE)
+    Rails.logger.info "[GoogleSheetsImporter] 📊 Streaming pestaña: #{MARKETS_TAB} (PIVOT TABLE)"
+
+    service = build_service
+
+    # ── Paso 1: Leer fila 3 (headers de fechas) ──────────────────────────
+    header_response = service.get_spreadsheet_values(sheet_id, MARKETS_HEADER_RANGE)
+    raw_headers = header_response.values&.first || []
+    normalized = raw_headers.map { |h| h.to_s.strip.gsub(/\u00A0/, " ").strip }
+
+    # Validar que las 2 primeras columnas sean Estado y Condados
+    validate_tab_headers_by_position!(normalized, MarketSheetColumnMap::REQUIRED_HEADERS, MARKETS_TAB)
+
+    # ── Paso 2: Parsear las fechas de las columnas C en adelante ─────────
+    date_columns = normalized[MarketSheetColumnMap::DATES_START_COL..] || []
+    date_headers = date_columns.map { |h| MarketSheetColumnMap.parse_month_header(h) }
+
+    valid_dates = date_headers.compact.size
+    Rails.logger.info "[GoogleSheetsImporter] 📅 Mercados: #{date_columns.size} columnas de fecha, " \
+                      "#{valid_dates} parseadas OK"
+    Rails.logger.info "[GoogleSheetsImporter] 📅 Rango: #{date_headers.compact.first} → #{date_headers.compact.last}"
+
+    # ── Paso 3: Streaming de datos (fila 4+) ─────────────────────────────
+    # Nota: stream_tab_from usa fila 4 como inicio, no fila 2
+    stream_tab(service, sheet_id, MARKETS_TAB, "ZZ",
+              chunk_size: chunk_size, data_start_row: 4) do |chunk, idx|
+      yield chunk, idx, date_headers
+    end
   end
 
   # 🛡️ MAPEO RESILIENTE (LEGACY — carga TODO en memoria)
@@ -212,12 +304,109 @@ class GoogleSheetsImporter
     raise SheetSchemaError, error_msg
   end
 
+  # ── Validación por posición para pestañas Rama 4 ───────────────────────
+  # required_map = { position => expected_header_name } (e.g., { 0 => "ESTADO", 2 => "CONDADO" })
+  def self.validate_tab_headers_by_position!(headers, required_map, tab_name)
+    mismatches = []
+
+    required_map.each do |position, expected|
+      actual = headers[position]&.to_s&.strip&.upcase
+      expected_upper = expected.to_s.strip.upcase
+      unless actual == expected_upper
+        mismatches << "Col #{position}: expected '#{expected}', got '#{actual}'"
+      end
+    end
+
+    return if mismatches.empty?
+
+    error_msg = "[SCHEMA FAILSAFE] Headers incorrectos en pestaña '#{tab_name}': #{mismatches.join('; ')}. " \
+                "Sync de #{tab_name} ABORTADO."
+
+    Rails.logger.error error_msg
+    raise SheetSchemaError, error_msg
+  end
+
   def self.build_service
     service = Google::Apis::SheetsV4::SheetsService.new
     service.authorization = google_credentials
     service
   end
   private_class_method :build_service
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🔗 RAMA 4: Extracción de Hyperlinks para pestaña "Condados"
+  #
+  # La API values.get solo devuelve el texto visible ("Link", "imagen").
+  # Para obtener las URLs reales embebidas en celdas con hiperenlace,
+  # usamos spreadsheets.get con field mask que incluye 'hyperlink'.
+  #
+  # Retorna un Hash de hyperlinks:
+  #   { row_index => { col_index => "https://real-url.com" } }
+  # ═══════════════════════════════════════════════════════════════════════════
+  def self.fetch_county_hyperlinks(sheet_id)
+    Rails.logger.info "[GoogleSheetsImporter] 🔗 Fetching hyperlinks from #{COUNTIES_TAB}"
+
+    service = build_service
+
+    range = "#{COUNTIES_TAB}!A2:AI"
+
+    response = service.get_spreadsheet(
+      sheet_id,
+      ranges: [range],
+      fields: 'sheets/data/rowData/values(hyperlink,formattedValue)'
+    )
+
+    hyperlinks = {}
+
+    sheet_data = response.sheets&.first&.data&.first
+    return hyperlinks unless sheet_data&.row_data
+
+    sheet_data.row_data.each_with_index do |row, row_idx|
+      next unless row&.values
+
+      row.values.each_with_index do |cell, col_idx|
+        next unless cell&.hyperlink.present?
+
+        hyperlinks[row_idx] ||= {}
+        hyperlinks[row_idx][col_idx] = cell.hyperlink
+      end
+    end
+
+    total_links = hyperlinks.values.sum { |h| h.size }
+    Rails.logger.info "[GoogleSheetsImporter] 🔗 Extracted #{total_links} hyperlinks from #{hyperlinks.size} rows"
+
+    hyperlinks
+  end
+
+  # ── Streaming genérico para cualquier pestaña ──────────────────────────
+  # data_start_row: fila del Sheet donde empiezan los datos (default: 2)
+  def self.stream_tab(service, sheet_id, tab_name, last_col, chunk_size: CHUNK_SIZE, data_start_row: 2)
+    chunk_index = 0
+    total = 0
+
+    loop do
+      start_row = data_start_row + (chunk_index * chunk_size)
+      end_row   = start_row + chunk_size - 1
+      range     = "#{tab_name}!A#{start_row}:#{last_col}#{end_row}"
+
+      Rails.logger.info "[GoogleSheetsImporter] 📦 #{tab_name} chunk #{chunk_index + 1}: rows #{start_row}–#{end_row}"
+
+      response = service.get_spreadsheet_values(sheet_id, range)
+      rows = response.values || []
+
+      break if rows.empty?
+
+      total += rows.size
+      yield rows, chunk_index
+
+      break if rows.size < chunk_size
+      chunk_index += 1
+    end
+
+    Rails.logger.info "[GoogleSheetsImporter] ✅ #{tab_name} completo: #{total} filas en #{chunk_index + 1} chunks"
+    { total_rows: total, total_chunks: chunk_index + 1 }
+  end
+  private_class_method :stream_tab
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 🔑 CREDENCIALES — Resilient Key Loading (v2)
@@ -269,7 +458,7 @@ class GoogleSheetsImporter
     if normalized[:private_key].present?
       pk = normalized[:private_key].to_s
       # Si la key ya tiene newlines reales (no escapados), re-empaquetar
-      unless pk.include?('\n') && !pk.include?("\n")
+      unless pk.include?('\\n') && !pk.include?("\n")
         # Key tiene newlines reales — convertir a formato JSON standard
         pk = pk.gsub("\r\n", "\n").gsub("\r", "\n")
       end

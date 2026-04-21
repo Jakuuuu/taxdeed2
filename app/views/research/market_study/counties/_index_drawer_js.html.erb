@@ -1,0 +1,63 @@
+<%# ═══════════════════════════════════════════════════════════════════════════
+     Partial: _index_drawer_js — JavaScript AJAX para el Drawer de Condados
+     Patrón: Idéntico a Rama 2 (Drawer 95vw con fetch XHR)
+     Dependencias: research_market_study_counties_path (route helper)
+     REGLA: Este script DEBE estar FUERA de <div class="ms-index-container">
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<script>
+var MS_BASE_PATH = '<%= research_market_study_counties_path %>';
+
+// ── COUNTY DRAWER (Overlay) ──────────────────────────────────
+function openCountyDrawer(url) {
+  var overlay  = document.getElementById('property-detail-overlay');
+  var backdrop = document.getElementById('map-backdrop');
+  var content  = document.getElementById('property-detail-content');
+
+  backdrop.classList.add('is-open');
+  overlay.classList.add('is-open');
+  window.history.pushState({ path: url }, '', url);
+
+  // Spinner mientras carga
+  content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--color-text-muted);"><div class="map-spinner"></div></div>';
+
+  fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+      content.innerHTML = html;
+      // Fix: innerHTML no ejecuta scripts — recrear cada <script> ejecutable
+      // IMPORTANTE: NO tocar scripts type="application/json" (son contenedores de datos, no código)
+      // El chart IIFE necesita leer fc-volume-data ANTES de ejecutarse
+      var scripts = Array.from(content.querySelectorAll('script'));
+      scripts.forEach(function(oldScript) {
+        // Skip data scripts — son leídos por getElementById, no ejecutados
+        if (oldScript.type && oldScript.type !== 'text/javascript') return;
+        var newScript = document.createElement('script');
+        newScript.textContent = oldScript.textContent;
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+    })
+    .catch(function(err) {
+      content.innerHTML = '<div style="padding:2rem;color:#E53E3E;text-align:center;">Failed to load county details. <br><button onclick="closeCountyDrawer()" style="margin-top:1rem;padding:0.5rem 1rem;border:1.5px solid #E2E8F0;border-radius:8px;background:#fff;cursor:pointer;">Close</button></div>';
+    });
+}
+
+function closeCountyDrawer() {
+  var overlay  = document.getElementById('property-detail-overlay');
+  var backdrop = document.getElementById('map-backdrop');
+  if (overlay) overlay.classList.remove('is-open');
+  if (backdrop) backdrop.classList.remove('is-open');
+
+  // Clean URL: restaurar a la ruta base del index (sin county_id)
+  var cleanUrl = new URL(window.location);
+  cleanUrl.pathname = MS_BASE_PATH;
+  window.history.pushState({}, '', cleanUrl.href);
+}
+
+// Popstate: cerrar drawer al usar botón "Back" del navegador
+window.addEventListener('popstate', function(e) {
+  if (window.location.pathname === MS_BASE_PATH) {
+    closeCountyDrawer();
+  }
+});
+</script>

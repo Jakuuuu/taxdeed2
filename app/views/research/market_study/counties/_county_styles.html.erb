@@ -1,0 +1,240 @@
+<%# ═══════════════════════════════════════════════════════════════════════════
+     Partial 1/10: _county_styles — Design Tokens + CSS Base
+     Regla: CSS inline estricto — prohibido content_for :head
+     Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA (Brand Identity)
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<style>
+  /* ═══════════════════════════════════════════════════════════════════════════
+     FICHA DE CONDADO — Design System (Brand-Aligned Light Mode)
+     Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* ── Container Principal ────────────────────────────────────────────────── */
+  .fc-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 32px 64px;
+    background: var(--color-bg, #F5F7FA);
+    min-height: 100vh;
+    font-family: var(--font, 'Inter', system-ui, sans-serif);
+    color: var(--color-text, #1A202C);
+  }
+
+  /* ── Section Module (reusable) ──────────────────────────────────────────── */
+  .fc-section {
+    background: var(--color-surface, #fff);
+    border: 1.5px solid var(--color-border, #E2E8F0);
+    border-radius: var(--radius, 10px);
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: all 0.18s ease;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08));
+  }
+
+  .fc-section:hover {
+    border-color: rgba(30, 58, 95, 0.2);
+    box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.12));
+  }
+
+  .fc-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-navy, #1E3A5F);
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: -0.3px;
+  }
+
+  .fc-section-title .icon {
+    font-size: 18px;
+  }
+
+  /* ── Badges ─────────────────────────────────────────────────────────────── */
+  .fc-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .fc-badge-blue {
+    background: rgba(30, 58, 95, 0.08);
+    color: var(--color-navy, #1E3A5F);
+  }
+
+  .fc-badge-green {
+    background: rgba(56, 161, 105, 0.1);
+    color: var(--color-success, #38A169);
+  }
+
+  .fc-badge-orange {
+    background: rgba(230, 126, 34, 0.1);
+    color: #E67E22;
+  }
+
+  .fc-badge-red {
+    background: rgba(229, 62, 62, 0.1);
+    color: var(--color-error, #E53E3E);
+  }
+
+  /* ── Divider ────────────────────────────────────────────────────────────── */
+  .fc-divider {
+    border: none;
+    border-top: 1px solid var(--color-border, #E2E8F0);
+    margin: 16px 0;
+  }
+
+  /* ── Back Link ──────────────────────────────────────────────────────────── */
+  .fc-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-muted, #6B7280);
+    font-size: 13px;
+    text-decoration: none;
+    margin-bottom: 20px;
+    transition: color 0.2s;
+  }
+
+  .fc-back-link:hover {
+    color: var(--color-navy, #1E3A5F);
+  }
+
+  /* ── Data Row (key-value pair) ──────────────────────────────────────────── */
+  .fc-data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  }
+
+  .fc-data-row:last-child {
+    border-bottom: none;
+  }
+
+  .fc-data-label {
+    font-size: 13px;
+    color: var(--color-text-muted, #6B7280);
+    font-weight: 500;
+  }
+
+  .fc-data-value {
+    font-size: 14px;
+    color: var(--color-text, #1A202C);
+    font-weight: 600;
+    text-align: right;
+  }
+
+  /* ── CTA Button (Regla Naranja) ─────────────────────────────────────────── */
+  .fc-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #E67E22;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius, 10px);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.18s ease;
+    letter-spacing: 0.3px;
+  }
+
+  .fc-cta-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+  }
+
+  /* ── KPI Cards ──────────────────────────────────────────────────────────── */
+  .fc-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .fc-kpi-card {
+    background: var(--color-surface, #fff);
+    border: 1.5px solid var(--color-border, #E2E8F0);
+    border-radius: var(--radius, 10px);
+    padding: 18px 20px;
+    border-top: 3px solid var(--color-navy, #1E3A5F);
+    transition: all 0.18s ease;
+  }
+
+  .fc-kpi-card:hover {
+    box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.12));
+  }
+
+  .fc-kpi-icon {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .fc-kpi-value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--color-text, #1A202C);
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+
+  .fc-kpi-label {
+    font-size: 0.7rem;
+    color: var(--color-text-muted, #6B7280);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── External Links ─────────────────────────────────────────────────────── */
+  .fc-ext-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .fc-ext-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: rgba(30, 58, 95, 0.05);
+    border: 1px solid var(--color-border, #E2E8F0);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-navy, #1E3A5F);
+    text-decoration: none;
+    transition: all 0.18s;
+  }
+
+  .fc-ext-link:hover {
+    background: var(--color-navy, #1E3A5F);
+    color: #fff;
+    border-color: var(--color-navy, #1E3A5F);
+  }
+
+  /* ── Responsive ─────────────────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .fc-container {
+      padding: 16px;
+    }
+    .fc-kpi-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

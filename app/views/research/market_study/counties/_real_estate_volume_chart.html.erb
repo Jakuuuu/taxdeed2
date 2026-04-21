@@ -1,0 +1,350 @@
+<%# ═══════════════════════════════════════════════════════════════════════════
+     Partial 7/10: _real_estate_volume_chart — Gráfico de Tendencia de Mercado
+     Variables: county, volumes
+     Motor: HTML5 Canvas (no dependencies — zero-bundle)
+
+     Vista primaria:  Barras anuales con línea de tendencia (2012→actualidad)
+     Vista drill-down: Comparación mensual año seleccionado vs año anterior
+
+     Paywall: Este gráfico es PREMIUM — aplica Regla Naranja y blur
+     Empty State: 8 condados sin historial → UI elegante sin Canvas
+     Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<style>
+  .fc-chart-section {
+    background: var(--color-surface, #fff);
+    border: 1.5px solid var(--color-border, #E2E8F0);
+    border-radius: var(--radius, 10px);
+    padding: 24px;
+    margin-bottom: 20px;
+    position: relative;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08));
+  }
+
+  /* ── Paywall: Premium Blur ─────────────────────────────────────────── */
+  .ficha-premium.ficha-locked {
+    overflow: visible;
+  }
+
+  .ficha-premium.ficha-locked .fc-chart-canvas-wrap,
+  .ficha-premium.ficha-locked .fc-chart-summary,
+  .ficha-premium.ficha-locked .fc-chart-hint {
+    filter: blur(6px);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .ficha-premium.ficha-locked::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+      rgba(245, 247, 250, 0.2) 0%,
+      rgba(245, 247, 250, 0.6) 50%,
+      rgba(245, 247, 250, 0.92) 100%
+    );
+    border-radius: var(--radius, 10px);
+    z-index: 5;
+  }
+
+  .fc-paywall-cta {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    text-align: center;
+  }
+
+  .fc-paywall-cta .fc-unlock-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #E67E22, #D35400);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 16px rgba(230, 126, 34, 0.35);
+  }
+
+  .fc-paywall-cta .fc-unlock-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(230, 126, 34, 0.5);
+  }
+
+  .fc-paywall-cta .fc-unlock-subtext {
+    display: block;
+    font-size: 11px;
+    color: var(--color-text-muted, #6B7280);
+    margin-top: 8px;
+    letter-spacing: 0.3px;
+  }
+
+  .fc-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .fc-chart-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .fc-chart-back-btn {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(30, 58, 95, 0.08);
+    border: 1.5px solid rgba(30, 58, 95, 0.2);
+    border-radius: 6px;
+    color: #1E3A5F;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .fc-chart-back-btn:hover {
+    background: #1E3A5F;
+    color: #fff;
+    border-color: #1E3A5F;
+  }
+
+  .fc-chart-back-btn.visible {
+    display: inline-flex;
+  }
+
+  .fc-chart-subtitle {
+    font-size: 12px;
+    color: var(--color-text-muted, #6B7280);
+    font-weight: 400;
+    margin-left: 4px;
+  }
+
+  .fc-chart-canvas-wrap {
+    width: 100%;
+    height: 320px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .fc-chart-canvas-wrap canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* ── Empty State — Elegante y centrado ─────────────────────────────── */
+  .fc-chart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 240px;
+    padding: 40px 24px;
+    text-align: center;
+  }
+
+  .fc-chart-empty-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(30, 58, 95, 0.06);
+    border: 1.5px solid #E2E8F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+
+  .fc-chart-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text, #1A202C);
+    margin: 0;
+    letter-spacing: -0.2px;
+  }
+
+  .fc-chart-empty-desc {
+    font-size: 13px;
+    color: var(--color-text-muted, #6B7280);
+    max-width: 380px;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .fc-chart-summary {
+    display: flex;
+    gap: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border, #E2E8F0);
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .fc-chart-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .fc-chart-stat-label {
+    font-size: 11px;
+    color: var(--color-text-muted, #6B7280);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+
+  .fc-chart-stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text, #1A202C);
+  }
+
+  .fc-chart-hint {
+    font-size: 11px;
+    color: var(--color-text-muted, #6B7280);
+    text-align: center;
+    margin-top: 10px;
+    opacity: 0.7;
+  }
+</style>
+
+<%# ══════════════════════════════════════════════════════════════════════
+     DECISIÓN: ¿Tiene volúmenes? → chart premium  |  ¿No? → empty state
+     REGLA: NUNCA renderizar <canvas> si volumes está vacío
+    ══════════════════════════════════════════════════════════════════════ %>
+
+<% has_volume_data = volumes.present? && volumes.any? %>
+
+<div class="fc-chart-section<%= ' ficha-premium ficha-locked' if has_volume_data && !current_user&.admin? %>">
+  <div class="fc-chart-header">
+    <div class="fc-chart-nav">
+      <h3 class="fc-section-title">
+        <span class="icon">📈</span>
+        <span id="fc-chart-title">Tendencia de Mercado</span>
+      </h3>
+      <% if has_volume_data %>
+        <button class="fc-chart-back-btn" id="fc-chart-back" onclick="window.fcChart && window.fcChart.showYearly()">
+          ← Volver
+        </button>
+      <% end %>
+    </div>
+  </div>
+
+  <% if has_volume_data %>
+    <%# ── Canvas + Data (Premium content) ───────────────────────── %>
+    <div class="fc-chart-canvas-wrap" id="fc-chart-wrap">
+      <canvas id="fc-volume-chart"></canvas>
+    </div>
+
+    <div class="fc-chart-hint" id="fc-chart-hint">
+      Haz clic en una barra para ver detalle mes a mes
+    </div>
+
+    <%# ── Summary stats ───────────────────────────────────────────── %>
+    <%
+      yearly_data = volumes.group_by { |v| v.period_date.year }
+      years_sorted = yearly_data.keys.sort
+      full_years = years_sorted.select { |y| yearly_data[y].size == 12 }
+
+      if full_years.size >= 2
+        first_year = full_years.first
+        last_year = full_years.last
+        first_avg = yearly_data[first_year].sum(&:volume_amount) / 12.0
+        last_avg = yearly_data[last_year].sum(&:volume_amount) / 12.0
+        total_growth = first_avg > 0 ? ((last_avg - first_avg) / first_avg * 100).round(1) : 0
+        cagr = full_years.size > 1 ? (((last_avg / first_avg) ** (1.0 / (last_year - first_year))) - 1) * 100 : 0
+      else
+        total_growth = 0
+        cagr = 0
+        first_year = years_sorted.first
+        last_year = years_sorted.last
+      end
+    %>
+    <div class="fc-chart-summary">
+      <div class="fc-chart-stat">
+        <span class="fc-chart-stat-label">Período</span>
+        <span class="fc-chart-stat-value"><%= first_year %> → <%= last_year %></span>
+      </div>
+      <div class="fc-chart-stat">
+        <span class="fc-chart-stat-label">Crecimiento Total</span>
+        <span class="fc-chart-stat-value" style="color: <%= total_growth >= 0 ? '#38A169' : '#E53E3E' %>;">
+          <%= total_growth >= 0 ? '+' : '' %><%= total_growth %>%
+        </span>
+      </div>
+      <div class="fc-chart-stat">
+        <span class="fc-chart-stat-label">CAGR</span>
+        <span class="fc-chart-stat-value" style="color: #1E3A5F;">
+          <%= cagr.round(1) %>%
+        </span>
+      </div>
+      <div class="fc-chart-stat">
+        <span class="fc-chart-stat-label">Años de datos</span>
+        <span class="fc-chart-stat-value"><%= years_sorted.size %> años</span>
+      </div>
+    </div>
+
+    <%# ── Paywall CTA — Regla Naranja ESTRICTA ─────────────────── %>
+    <% unless current_user&.admin? %>
+      <div class="fc-paywall-cta">
+        <button class="fc-unlock-btn" onclick="alert('Upgrade your plan to unlock historical market data')">
+          🔓 Unlock Historical Insights
+        </button>
+        <span class="fc-unlock-subtext">Premium feature — requires active subscription</span>
+      </div>
+    <% end %>
+
+  <% else %>
+    <%# ══════════════════════════════════════════════════════════════
+         EMPTY STATE — Sin datos de volumen para este condado
+         REGLA: NO renderizar <canvas> — previene error JS
+        ══════════════════════════════════════════════════════════════ %>
+    <div class="fc-chart-empty">
+      <div class="fc-chart-empty-icon">📉</div>
+      <p class="fc-chart-empty-title">
+        Historical market volume data is currently unavailable for this county
+      </p>
+      <p class="fc-chart-empty-desc">
+        Market trend data is updated periodically. Once available for
+        <%= county.county %>, the historical volume chart will appear here automatically.
+      </p>
+    </div>
+  <% end %>
+</div>
+
+<%# ── Data payload para JavaScript — agrupado por año ──────────────── %>
+<%# SOLO se inyecta si hay datos — previene JSON vacío que rompe el chart %>
+<% if has_volume_data %>
+  <script id="fc-volume-data" type="application/json">
+    <%= raw(volumes.group_by { |v| v.period_date.year }.sort.map { |year, vols|
+      {
+        year: year,
+        total: vols.sum(&:volume_amount).to_f.round(0),
+        avg: (vols.sum(&:volume_amount) / vols.size).to_f.round(0),
+        months: vols.sort_by(&:period_date).map { |v|
+          { month: v.period_date.month, amount: v.volume_amount.to_f.round(0), label: v.period_short_label }
+        },
+        month_count: vols.size
+      }
+    }.to_json) %>
+  </script>
+<% end %>

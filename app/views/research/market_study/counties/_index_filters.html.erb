@@ -1,0 +1,23 @@
+<%# ═══════════════════════════════════════════════════════════════════════════
+     Partial: _index_filters — Barra de búsqueda y filtros
+     Variables: available_states (array de strings)
+     Dependencias: research_market_study_counties_path (route helper)
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<%= form_tag(research_market_study_counties_path, method: :get, class: "ms-filters") do %>
+  <input type="text"
+         name="q"
+         value="<%= params[:q] %>"
+         placeholder="🔍 Buscar condado, estado o ciudad..."
+         class="ms-search-input"
+         id="ms-search-input">
+
+  <select name="state" class="ms-filter-select" id="ms-state-filter">
+    <option value="">Todos los estados</option>
+    <% available_states.each do |state| %>
+      <option value="<%= state %>" <%= "selected" if params[:state] == state %>><%= state %></option>
+    <% end %>
+  </select>
+
+  <button type="submit" class="ms-filter-btn">Filtrar</button>
+<% end %>

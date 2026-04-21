@@ -1,0 +1,49 @@
+<%# ═══════════════════════════════════════════════════════════════════════════
+     Partial 3/10: _county_kpi_cards — 6 KPIs financieros/demográficos
+     Variables: county
+     Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<div class="fc-kpi-grid">
+  <%# ── KPI 1: Precio Medio del Hogar ───────────────────────────────────── %>
+  <div class="fc-kpi-card" style="border-top: 3px solid #1E3A5F;">
+    <div class="fc-kpi-icon">🏠</div>
+    <p class="fc-kpi-value"><%= county.format_currency(county.median_home_price) %></p>
+    <div class="fc-kpi-label">Precio Medio del Hogar</div>
+  </div>
+
+  <%# ── KPI 2: Ingreso Medio ────────────────────────────────────────────── %>
+  <div class="fc-kpi-card" style="border-top: 3px solid #38A169;">
+    <div class="fc-kpi-icon">💰</div>
+    <p class="fc-kpi-value"><%= county.format_currency(county.median_household_income) %></p>
+    <div class="fc-kpi-label">Ingreso Medio del Hogar</div>
+  </div>
+
+  <%# ── KPI 3: Población ────────────────────────────────────────────────── %>
+  <div class="fc-kpi-card" style="border-top: 3px solid #6B46C1;">
+    <div class="fc-kpi-icon">👥</div>
+    <p class="fc-kpi-value"><%= county.format_population %></p>
+    <div class="fc-kpi-label">Población</div>
+  </div>
+
+  <%# ── KPI 4: Crecimiento ──────────────────────────────────────────────── %>
+  <div class="fc-kpi-card" style="border-top: 3px solid #C9A84C;">
+    <div class="fc-kpi-icon">📈</div>
+    <p class="fc-kpi-value"><%= county.format_percentage(county.annual_growth_rate) %></p>
+    <div class="fc-kpi-label">Crecimiento Anual</div>
+  </div>
+
+  <%# ── KPI 5: Presupuesto Público ──────────────────────────────────────── %>
+  <div class="fc-kpi-card" style="border-top: 3px solid #2C5282;">
+    <div class="fc-kpi-icon">🏛️</div>
+    <p class="fc-kpi-value"><%= county.format_large_currency(county.annual_budget) %></p>
+    <div class="fc-kpi-label">Presupuesto Público</div>
+  </div>
+
+  <%# ── KPI 6: Días en Mercado ──────────────────────────────────────────── %>
+  <div class="fc-kpi-card" style="border-top: 3px solid #E53E3E;">
+    <div class="fc-kpi-icon">⏱️</div>
+    <p class="fc-kpi-value"><%= county.days_on_market || "—" %></p>
+    <div class="fc-kpi-label">Días en Mercado</div>
+  </div>
+</div>

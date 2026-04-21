@@ -1,0 +1,20 @@
+<%# ── Lion Tip — Nota del analista sobre el condado ─────────────────── %>
+<%# Muestra el campo "ACERCA DE" del Sheet como insight contextual.     %>
+<%# Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA             %>
+
+<% if @county.about.present? %>
+  <div style="background: rgba(30, 58, 95, 0.04);
+              border: 1.5px solid #E2E8F0; border-left: 3px solid #1E3A5F;
+              border-radius: 10px; padding: 1.2rem 1.4rem; margin-top: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem;">
+      <span style="font-size: 1.2rem;">🦁</span>
+      <span style="color: #1E3A5F; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+                   letter-spacing: 0.06em;">
+        Acerca del condado
+      </span>
+    </div>
+    <p style="color: #374151; font-size: 0.9rem; line-height: 1.6; margin: 0;">
+      <%= @county.about %>
+    </p>
+  </div>
+<% end %>

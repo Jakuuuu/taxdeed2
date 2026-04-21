@@ -1,0 +1,37 @@
+<%# ── Sección geográfica del condado ────────────────────────────────── %>
+<%# Muestra condados limítrofes y links externos.                       %>
+<%# Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA             %>
+
+<div class="fc-section" style="margin-top: 1rem;">
+  <%# ── Condados limítrofes ──── %>
+  <% if @county.borders.present? %>
+    <div style="background: rgba(30, 58, 95, 0.03); border: 1.5px solid #E2E8F0;
+                border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 1rem;">
+      <div style="color: #6B7280; font-size: 0.75rem; text-transform: uppercase;
+                  letter-spacing: 0.05em; margin-bottom: 0.4rem; font-weight: 600;">
+        🗺️ Limita con
+      </div>
+      <div style="color: #1A202C; font-size: 0.85rem; line-height: 1.5;">
+        <%= @county.borders %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# ── Links externos ──── %>
+  <% links = @county.external_links %>
+  <% if links.any? %>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+      <% links.each do |link| %>
+        <a href="<%= link[:url] %>" target="_blank" rel="noopener"
+           style="display: inline-flex; align-items: center; gap: 0.3rem;
+                  background: rgba(30, 58, 95, 0.05); border: 1.5px solid #E2E8F0;
+                  border-radius: 8px; padding: 0.35rem 0.8rem; font-size: 0.8rem;
+                  color: #1E3A5F; text-decoration: none; transition: all 0.2s ease; font-weight: 500;"
+           onmouseover="this.style.background='#1E3A5F'; this.style.color='#fff'; this.style.borderColor='#1E3A5F'"
+           onmouseout="this.style.background='rgba(30, 58, 95, 0.05)'; this.style.color='#1E3A5F'; this.style.borderColor='#E2E8F0'">
+          🔗 <%= link[:label] %>
+        </a>
+      <% end %>
+    </div>
+  <% end %>
+</div>

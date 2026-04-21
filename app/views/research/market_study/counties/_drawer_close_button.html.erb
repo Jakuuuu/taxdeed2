@@ -1,0 +1,17 @@
+<%# ═══════════════════════════════════════════════════════════════════════════
+     Partial: _drawer_close_button — Botón sticky para cerrar el drawer
+     Paleta: Off-white bg + Navy text
+     Posición: sticky top, con backdrop-filter blur
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<button onclick="if(window.closeCountyDrawer) closeCountyDrawer();"
+        style="position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:center;
+               width:100%;padding:10px 24px;background:rgba(245,247,250,0.97);border:none;border-bottom:1.5px solid #E2E8F0;
+               cursor:pointer;backdrop-filter:blur(8px);"
+        aria-label="Cerrar ficha"
+        id="ms-drawer-close-btn">
+  <span style="display:flex;align-items:center;gap:8px;color:#1E3A5F;font-size:13px;font-family:'Inter',sans-serif;font-weight:600;">
+    <span style="font-size:16px;line-height:1;">✕</span>
+    Cerrar ficha
+  </span>
+</button>

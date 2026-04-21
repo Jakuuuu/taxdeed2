@@ -1,0 +1,226 @@
+<%# ═══════════════════════════════════════════════════════════════════════════
+     Partial: _index_styles — CSS Design Tokens para el Index de Market Study
+     Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA
+     Regla: CSS inline estricto — prohibido content_for :head
+    ═══════════════════════════════════════════════════════════════════════════ %>
+
+<style>
+  /* ── Market Study Index — Brand-Aligned Tokens ───────────────────────── */
+  .ms-index-container {
+    min-height: calc(100vh - 56px);
+    background: var(--color-bg, #F5F7FA);
+    padding: 28px 32px;
+    font-family: var(--font, 'Inter', system-ui, sans-serif);
+  }
+
+  /* ── Header ──────────────────────────────────────────────────────────── */
+  .ms-index-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .ms-index-header h1 {
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--color-navy, #1E3A5F);
+    margin: 0;
+    letter-spacing: -0.5px;
+  }
+
+  .ms-index-header h1 span {
+    color: var(--color-gold, #C9A84C);
+  }
+
+  .ms-index-meta {
+    color: var(--color-text-muted, #6B7280);
+    font-size: 0.82rem;
+    font-weight: 500;
+  }
+
+  /* ── Search & Filters ───────────────────────────────────────────────── */
+  .ms-filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .ms-search-input {
+    flex: 1;
+    min-width: 240px;
+    padding: 0.55rem 1rem;
+    background: var(--color-surface, #fff);
+    border: 1.5px solid var(--color-border, #E2E8F0);
+    border-radius: var(--radius, 10px);
+    color: var(--color-text, #1A202C);
+    font-size: 0.82rem;
+    font-family: var(--font, 'Inter', sans-serif);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .ms-search-input:focus {
+    border-color: var(--color-navy, #1E3A5F);
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.08);
+  }
+
+  .ms-search-input::placeholder {
+    color: var(--color-text-muted, #6B7280);
+  }
+
+  .ms-filter-select {
+    padding: 0.55rem 1rem;
+    background: var(--color-surface, #fff);
+    border: 1.5px solid var(--color-border, #E2E8F0);
+    border-radius: var(--radius, 10px);
+    color: var(--color-text, #1A202C);
+    font-size: 0.82rem;
+    font-family: var(--font, 'Inter', sans-serif);
+    outline: none;
+    cursor: pointer;
+    min-width: 160px;
+  }
+
+  .ms-filter-btn {
+    padding: 0.55rem 1.2rem;
+    background: var(--color-navy, #1E3A5F);
+    border: none;
+    border-radius: var(--radius, 10px);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: var(--font, 'Inter', sans-serif);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+
+  .ms-filter-btn:hover {
+    background: var(--color-navy-light, #2C5282);
+  }
+
+  /* ── Grid de Condados ────────────────────────────────────────────────── */
+  .ms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+
+  .ms-county-card {
+    background: var(--color-surface, #fff);
+    border: 1.5px solid var(--color-border, #E2E8F0);
+    border-radius: var(--radius, 10px);
+    padding: 20px 22px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: block;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08));
+  }
+
+  .ms-county-card:hover {
+    border-color: var(--color-navy, #1E3A5F);
+    box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.12));
+    transform: translateY(-2px);
+  }
+
+  .ms-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .ms-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-navy, #1E3A5F);
+    margin: 0;
+    letter-spacing: -0.3px;
+  }
+
+  .ms-card-state {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--color-navy, #1E3A5F);
+    background: rgba(30, 58, 95, 0.08);
+    padding: 3px 9px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .ms-card-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+    margin-bottom: 14px;
+  }
+
+  .ms-metric-label {
+    font-size: 0.66rem;
+    color: var(--color-text-muted, #6B7280);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .ms-metric-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text, #1A202C);
+  }
+
+  .ms-metric-value.green {
+    color: var(--color-success, #38A169);
+  }
+
+  .ms-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border, #E2E8F0);
+  }
+
+  .ms-card-auctions {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-gold, #C9A84C);
+  }
+
+  .ms-card-arrow {
+    color: var(--color-text-muted, #6B7280);
+    font-size: 1.1rem;
+    transition: transform 0.2s;
+  }
+
+  .ms-county-card:hover .ms-card-arrow {
+    transform: translateX(4px);
+    color: var(--color-navy, #1E3A5F);
+  }
+
+  /* ── Empty State ─────────────────────────────────────────────────────── */
+  .ms-empty {
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--color-text-muted, #6B7280);
+  }
+
+  .ms-empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .ms-empty h3 {
+    color: var(--color-text, #1A202C);
+    font-size: 1.15rem;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+</style>

@@ -5,6 +5,17 @@
 # Disparado por:
 #   1. Sidekiq-cron: cada 12h (3:00 AM + 3:00 PM ET = "0 7,19 * * *" UTC)
 #   2. Admin manual: POST /admin/sync/run_now
+#   3. Admin manual: POST /admin/sync/run_markets (solo Mercados)
+#
+# Pipeline de 3 pestañas (selectivo):
+#   1. "Propiedades1" → Parcelas + Auctions     ← Default
+#   2. "Condados"     → CountyMarketStat         ← Default
+#   3. "Mercados"     → RealEstateMonthlyVolume  ← Solo bajo demanda
+#
+# El parámetro `pipelines` controla qué pestañas sincronizar:
+#   - Default (nil o no especificado): [:properties, :counties]
+#   - Para Mercados: pipelines: [:markets]
+#   - Para todo: pipelines: [:properties, :counties, :markets]
 #
 # 🛡️ BLINDAJE ANTI-ZOMBIE (v3):
 #   @sync_log se asigna ANTES de cualquier validación para asegurar que
@@ -33,7 +44,7 @@ class SyncSheetJob < ApplicationJob
   retry_on Google::Apis::ServerError, wait: :polynomially_longer, attempts: 3
   retry_on Google::Apis::TransmissionError, wait: :polynomially_longer, attempts: 3
 
-  def perform(sheet_id = nil, sync_log_id = nil)
+  def perform(sheet_id = nil, sync_log_id = nil, pipelines: nil)
     # ── 1. Asignar SyncLog ANTES que nada para garantizar el ensure ─────────
     @sync_log = SyncLog.find_by(id: sync_log_id) if sync_log_id.present?
 
@@ -52,27 +63,52 @@ class SyncSheetJob < ApplicationJob
 
       raise ArgumentError, "La variable GOOGLE_SHEETS_SHEET_ID o las credenciales no están configuradas." if sheet_id.blank?
 
-      Rails.logger.info "[SyncSheetJob] Iniciando sync de Sheet: #{sheet_id} (log_id: #{@sync_log.id})"
+      # ── Determinar pipelines a ejecutar ────────────────────────────────────
+      # Default: Propiedades + Condados (rápido, ~30s)
+      # Mercados se ejecuta SOLO si se solicita explícitamente (denso, ~2-5min)
+      active_pipelines = pipelines || [:properties, :counties]
+      active_pipelines = active_pipelines.map(&:to_sym)
 
-      # ── 3. Extracción STREAMING e importación ────────────────────────────────
-      results = stream_and_process(sheet_id)
+      Rails.logger.info "[SyncSheetJob] Iniciando sync de Sheet: #{sheet_id} (log_id: #{@sync_log.id}) " \
+                        "Pipelines: #{active_pipelines.join(', ')}"
 
-      refresh_auction_counts
-      cleanup_empty_auctions
+      # ── 3. Pipeline 1: Propiedades (existente) ──────────────────────────────
+      results = { added: 0, updated: 0, skipped: 0, failed: 0 }
+      if active_pipelines.include?(:properties)
+        results = stream_and_process(sheet_id)
+        refresh_auction_counts
+        cleanup_empty_auctions
+      end
 
-      # ── 4. Geocodificación fallback ──────────────────────────────────────────
-      enqueue_geocoding(@started_at)
+      # ── 4. Pipeline 2: Condados (Rama 4) ────────────────────────────────────
+      county_results = { added: 0, updated: 0, skipped: 0, failed: 0 }
+      if active_pipelines.include?(:counties)
+        county_results = stream_and_process_counties(sheet_id)
+      end
+
+      # ── 5. Pipeline 3: Mercados (Rama 4) — SOLO bajo demanda ────────────────
+      market_results = { added: 0, updated: 0, skipped: 0, failed: 0 }
+      if active_pipelines.include?(:markets)
+        market_results = stream_and_process_markets(sheet_id)
+      end
+
+      # ── 6. Geocodificación fallback ──────────────────────────────────────────
+      enqueue_geocoding(@started_at) if active_pipelines.include?(:properties)
 
       elapsed = (Time.current - @started_at).round(1)
       Rails.logger.info "[SyncSheetJob] Completado en #{elapsed}s. " \
-                        "Added: #{results[:added]} | Updated: #{results[:updated]} | " \
-                        "Skipped: #{results[:skipped]} | Failed: #{results[:failed]}"
+                        "Pipelines: #{active_pipelines.join(', ')} | " \
+                        "Parcels — Added: #{results[:added]} | Updated: #{results[:updated]} | " \
+                        "Skipped: #{results[:skipped]} | Failed: #{results[:failed]} | " \
+                        "Counties: +#{county_results[:added]}/~#{county_results[:updated]} | " \
+                        "Markets: +#{market_results[:added]}/~#{market_results[:updated]}"
 
-      final_status = results[:failed] > 0 ? "completed_with_errors" : "success"
-      error_summary = if results[:failed] > 0
-                        "#{results[:failed]} row(s) failed validation during import. " \
-                        "Added: #{results[:added]}, Updated: #{results[:updated]}, Skipped: #{results[:skipped]}. " \
-                        "Check application logs for per-row details."
+      total_failed = results[:failed] + county_results[:failed] + market_results[:failed]
+      final_status = total_failed > 0 ? "completed_with_errors" : "success"
+      error_summary = if total_failed > 0
+                        "#{total_failed} row(s) failed validation during import. " \
+                        "Parcels: #{results[:failed]}, Counties: #{county_results[:failed]}, " \
+                        "Markets: #{market_results[:failed]}. Check application logs."
                       end
 
       @sync_log.update!(
@@ -82,8 +118,10 @@ class SyncSheetJob < ApplicationJob
         parcels_skipped:  results[:skipped],
         duration_seconds: elapsed,
         completed_at:     Time.current,
-        records_synced:   results[:added] + results[:updated],
-        records_failed:   results[:failed],
+        records_synced:   results[:added] + results[:updated] +
+                          county_results[:added] + county_results[:updated] +
+                          market_results[:added] + market_results[:updated],
+        records_failed:   total_failed,
         error_message:    error_summary
       )
 
@@ -116,22 +154,7 @@ class SyncSheetJob < ApplicationJob
   private
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # 🚀 STREAMING PRINCIPAL — Procesa filas chunk por chunk
-  #
-  # En vez de:
-  #   data = GoogleSheetsImporter.fetch_headers_and_rows(sheet_id)  ← OOM!
-  #   rows = data[:rows]                                           ← Todo en RAM
-  #   process_rows_in_batches(rows)                                ← Demasiado tarde
-  #
-  # Ahora:
-  #   GoogleSheetsImporter.fetch_rows_in_chunks(sheet_id) { |chunk| process(chunk) }
-  #   ↑ Solo CHUNK_SIZE filas viven en memoria a la vez
-  #
-  # IDEMPOTENCIA:
-  #   Si Render mata el proceso a mitad de un chunk, las filas ya procesadas
-  #   usaron find_or_initialize_by con clave compuesta (state, county, parcel_id)
-  #   respaldada por UNIQUE INDEX en PostgreSQL. El siguiente sync simplemente
-  #   re-procesa todo sin duplicar — upsert puro.
+  # 🚀 STREAMING PRINCIPAL — Procesa filas de Propiedades chunk por chunk
   # ═══════════════════════════════════════════════════════════════════════════
   def stream_and_process(sheet_id)
     added = 0
@@ -140,13 +163,9 @@ class SyncSheetJob < ApplicationJob
     failed = 0
 
     # Cache de Auctions para evitar N+1 find_or_create_by por cada fila.
-    # Key: "state|county|sale_date" → Value: Auction instance.
-    # Se limpia entre chunks para no retener memoria indefinidamente.
     @auction_cache = {}
 
-    # ── 💓 HEARTBEAT INICIAL — Confirma que el job ARRANCÓ ──────────────────
-    # Si el worker muere antes del primer chunk, este heartbeat nos dice
-    # "el job sí empezó" vs "el job nunca se ejecutó".
+    # ── 💓 HEARTBEAT INICIAL ──────────────────────────────────────────────
     rss = current_rss_mb
     Rails.logger.info "[SyncSheetJob] 🚀 Startup RSS: #{rss} MB (limit: #{MAX_RSS_MB} MB)"
     if @sync_log&.persisted?
@@ -161,9 +180,7 @@ class SyncSheetJob < ApplicationJob
       skipped += chunk_results[:skipped]
       failed  += chunk_results[:failed]
 
-      # ── 💓 HEARTBEAT — CADA chunk (no cada 3) ──────────────────────────
-      # Actualiza heartbeat_at para que el zombie detector sepa que seguimos
-      # vivos. Frecuencia: cada chunk (50 filas) para máxima visibilidad.
+      # ── 💓 HEARTBEAT — CADA chunk ──────────────────────────────────────
       if @sync_log&.persisted?
         @sync_log.update_columns(
           heartbeat_at:    Time.current,
@@ -178,8 +195,6 @@ class SyncSheetJob < ApplicationJob
       GC.start
 
       # ── 🛡️ MEMORY SAFETY VALVE ─────────────────────────────────────────
-      # Si el RSS supera MAX_RSS_MB, abortamos GRACEFULLY antes de que
-      # Render nos mate con SIGKILL (que no ejecuta ensure/rescue).
       rss = current_rss_mb
       Rails.logger.info "[SyncSheetJob] Chunk #{chunk_index + 1} done | " \
                         "RSS: #{rss} MB | Synced: #{added + updated} | Failed: #{failed}"
@@ -196,7 +211,97 @@ class SyncSheetJob < ApplicationJob
     { added: added, updated: updated, skipped: skipped, failed: failed }
   end
 
-  # ── Procesa un chunk individual de filas ──────────────────────────────────
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🏛️ PIPELINE 2: Condados — Streaming de pestaña "Condados"
+  #
+  # 🔗 HYPERLINKS: Pre-extrae las URLs embebidas en celdas del Sheet usando
+  #   la API avanzada (spreadsheets.get con fields mask). Luego pasa los
+  #   hyperlinks de cada fila al CountyRowProcessor para resolver URLs reales.
+  # ═══════════════════════════════════════════════════════════════════════════
+  def stream_and_process_counties(sheet_id)
+    processor = CountyRowProcessor.new
+
+    # ── Pre-fetch hyperlinks (una sola llamada a la API) ──────────────────
+    hyperlinks_map = begin
+      GoogleSheetsImporter.fetch_county_hyperlinks(sheet_id)
+    rescue => e
+      Rails.logger.warn "[SyncSheetJob] ⚠️ No se pudieron extraer hyperlinks: #{e.message}. Continuando sin ellos."
+      {}
+    end
+
+    row_counter = 0
+
+    GoogleSheetsImporter.fetch_counties_in_chunks(sheet_id, chunk_size: BATCH_SIZE) do |chunk, chunk_index|
+      chunk.each_with_index do |row, i|
+        # El hyperlinks_map usa row_index relativo a fila 2 del Sheet (0-indexed)
+        row_idx = (chunk_index * BATCH_SIZE) + i
+        row_hyperlinks = hyperlinks_map[row_idx]
+        processor.process(row, row_hyperlinks: row_hyperlinks)
+        row_counter += 1
+      rescue StandardError => e
+        processor.stats[:errors] += 1
+        row_num = (chunk_index * BATCH_SIZE) + i + 2
+        Rails.logger.warn "[SyncSheetJob] Condados fila #{row_num} falló: #{e.message}"
+      end
+
+      s = processor.stats
+      Rails.logger.info "[SyncSheetJob] 🏛️ Condados chunk #{chunk_index + 1}: " \
+                        "+#{s[:created]} created, ~#{s[:updated]} updated, #{s[:skipped]} skipped, #{s[:errors]} errors"
+
+      ActiveRecord::Base.connection.clear_query_cache
+      GC.start
+    end
+
+    s = processor.stats
+    Rails.logger.info "[SyncSheetJob] 🏛️ Condados completado: #{s[:created]} created, #{s[:updated]} updated, " \
+                      "#{hyperlinks_map.values.sum { |h| h.size }} hyperlinks resolved"
+    { added: s[:created], updated: s[:updated], skipped: s[:skipped], failed: s[:errors] }
+  rescue GoogleSheetsImporter::SheetSchemaError => e
+    Rails.logger.warn "[SyncSheetJob] ⚠️ Pestaña 'Condados' no disponible o esquema inválido: #{e.message}"
+    { added: 0, updated: 0, skipped: 0, failed: 0 }
+  rescue Google::Apis::ClientError => e
+    Rails.logger.warn "[SyncSheetJob] ⚠️ Pestaña 'Condados' no accesible: #{e.message}"
+    { added: 0, updated: 0, skipped: 0, failed: 0 }
+  end
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 📊 PIPELINE 3: Mercados — Streaming de pestaña "Mercados"
+  # ═══════════════════════════════════════════════════════════════════════════
+  def stream_and_process_markets(sheet_id)
+    processor = nil  # Se inicializa con date_headers del primer yield
+
+    GoogleSheetsImporter.fetch_markets_in_chunks(sheet_id, chunk_size: BATCH_SIZE) do |chunk, chunk_index, date_headers|
+      # Inicializar processor con las fechas parseadas (una sola vez)
+      processor ||= MarketVolumeRowProcessor.new(date_headers)
+
+      chunk.each_with_index do |row, i|
+        processor.process(row)
+      rescue StandardError => e
+        processor.stats[:errors] += 1
+        row_num = (chunk_index * BATCH_SIZE) + i + 4  # Datos empiezan en fila 4
+        Rails.logger.warn "[SyncSheetJob] Mercados fila #{row_num} falló: #{e.message}"
+      end
+
+      s = processor.stats
+      Rails.logger.info "[SyncSheetJob] 📊 Mercados chunk #{chunk_index + 1}: " \
+                        "+#{s[:created]} created, ~#{s[:updated]} updated, #{s[:skipped]} skipped, #{s[:errors]} errors"
+
+      ActiveRecord::Base.connection.clear_query_cache
+      GC.start
+    end
+
+    s = processor&.stats || { created: 0, updated: 0, skipped: 0, errors: 0 }
+    Rails.logger.info "[SyncSheetJob] 📊 Mercados completado: #{s[:created]} created, #{s[:updated]} updated"
+    { added: s[:created], updated: s[:updated], skipped: s[:skipped], failed: s[:errors] }
+  rescue GoogleSheetsImporter::SheetSchemaError => e
+    Rails.logger.warn "[SyncSheetJob] ⚠️ Pestaña 'Mercados' no disponible o esquema inválido: #{e.message}"
+    { added: 0, updated: 0, skipped: 0, failed: 0 }
+  rescue Google::Apis::ClientError => e
+    Rails.logger.warn "[SyncSheetJob] ⚠️ Pestaña 'Mercados' no accesible: #{e.message}"
+    { added: 0, updated: 0, skipped: 0, failed: 0 }
+  end
+
+  # ── Procesa un chunk individual de filas de Propiedades ─────────────────
   def process_single_chunk(chunk, chunk_index)
     added = updated = skipped = failed = 0
 
@@ -227,10 +332,7 @@ class SyncSheetJob < ApplicationJob
     { added: added, updated: updated, skipped: skipped, failed: failed }
   end
 
-  # ── Procesamiento con cache de Auctions ───────────────────────────────────
-  # En vez de que SheetRowProcessor haga find_or_create_by! por CADA fila,
-  # cacheamos el Auction por la key compuesta (state|county|sale_date).
-  # Esto reduce las queries de Auction de O(N) a O(unique_auctions).
+  # ── Procesamiento con cache de Auctions ───────────────────────────────
   def process_row_with_cache(row)
     SheetRowProcessor.process(row, auction_cache: @auction_cache)
   end
@@ -287,8 +389,6 @@ class SyncSheetJob < ApplicationJob
   end
 
   # ── 🚀 MEMORY-SAFE: Actualiza parcel_count con un solo UPDATE SQL ─────
-  # Antes: find_each + update_column por cada auction = N+1 queries + OOM
-  # Ahora: un solo UPDATE con subquery COUNT = O(1) memory, 1 query total
   def refresh_auction_counts
     sql = <<~SQL
       UPDATE auctions
@@ -306,13 +406,6 @@ class SyncSheetJob < ApplicationJob
   end
 
   # 🧹 GARBAGE COLLECTOR — Purga Auctions huérfanas (0 parcels)
-  # Previene duplicación visual de condados en Rama 1.
-  # Seguro: solo elimina auctions sin ninguna parcela asociada.
-  #
-  # 🚀 MEMORY-SAFE: Usa DELETE SQL directo en vez de destroy_all.
-  # destroy_all carga TODOS los registros en memoria para ejecutar callbacks,
-  # pero Auction no tiene dependent: :destroy ni callbacks críticos,
-  # así que delete es seguro y usa O(1) memoria.
   def cleanup_empty_auctions
     sql = <<~SQL
       DELETE FROM auctions
@@ -348,16 +441,12 @@ class SyncSheetJob < ApplicationJob
   end
 
   # ── 📈 MEMORY MONITOR ──────────────────────────────────────────────────
-  # Lee el RSS (Resident Set Size) del proceso actual desde /proc/self/status.
-  # Esto es la memoria FÍSICA real que el proceso está usando.
-  # Solo funciona en Linux (Docker containers). En otros OS retorna 0.
   def current_rss_mb
     status_file = "/proc/self/status"
     return 0 unless File.exist?(status_file)
 
     File.readlines(status_file).each do |line|
       if line.start_with?("VmRSS:")
-        # VmRSS está en kB: "VmRSS:   123456 kB"
         return (line.split[1].to_i / 1024.0).round(1)
       end
     end

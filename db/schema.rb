@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_16_160000) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_21_160001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -51,6 +51,48 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_16_160000) do
     t.index ["sale_date"], name: "index_auctions_on_sale_date"
     t.index ["state"], name: "index_auctions_on_state"
     t.index ["status"], name: "index_auctions_on_status"
+  end
+
+  create_table "county_market_stats", force: :cascade do |t|
+    t.string "state", null: false
+    t.string "county", null: false
+    t.string "modalidad"
+    t.text "about"
+    t.text "borders"
+    t.string "city_1"
+    t.string "city_2"
+    t.string "city_3"
+    t.string "google_maps_url"
+    t.string "redfin_url"
+    t.string "county_image_url"
+    t.string "census_url"
+    t.string "fred_url"
+    t.string "realtor_url"
+    t.string "budgets_url"
+    t.string "bea_url"
+    t.string "faq_url"
+    t.string "market_status"
+    t.string "crime_rating"
+    t.string "flood_risk"
+    t.integer "population"
+    t.decimal "gdp", precision: 15, scale: 2
+    t.decimal "median_household_income", precision: 15, scale: 2
+    t.decimal "employment_rate", precision: 5, scale: 2
+    t.decimal "unemployment_rate", precision: 5, scale: 2
+    t.decimal "median_home_price", precision: 15, scale: 2
+    t.decimal "price_per_sqft", precision: 10, scale: 2
+    t.integer "active_listings"
+    t.integer "days_on_market"
+    t.decimal "annual_growth_rate", precision: 5, scale: 2
+    t.decimal "annual_budget", precision: 15, scale: 2
+    t.string "planning_zoning_contact"
+    t.string "building_division_contact"
+    t.string "clerk_office_contact"
+    t.string "tax_collector_contact"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["market_status"], name: "index_county_market_stats_on_market_status"
+    t.index ["state", "county"], name: "idx_county_stats_state_county", unique: true
   end
 
   create_table "parcel_liens", force: :cascade do |t|
@@ -146,11 +188,23 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_16_160000) do
     t.datetime "last_synced_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "sale_venue", comment: "Sale venue from Google Sheet"
+    t.text "comments_do_va"
     t.index ["auction_id"], name: "index_parcels_on_auction_id"
     t.index ["latitude", "longitude"], name: "idx_parcels_lat_lng"
     t.index ["parcel_id"], name: "index_parcels_on_parcel_id"
     t.index ["state", "county", "parcel_id"], name: "idx_parcels_unique_state_county_pid", unique: true
     t.index ["state", "county"], name: "idx_parcels_state_county"
+  end
+
+  create_table "real_estate_monthly_volumes", force: :cascade do |t|
+    t.bigint "county_market_stat_id", null: false
+    t.date "period_date", null: false
+    t.decimal "volume_amount", precision: 15, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["county_market_stat_id", "period_date"], name: "idx_volumes_county_period", unique: true
+    t.index ["county_market_stat_id"], name: "index_real_estate_monthly_volumes_on_county_market_stat_id"
   end
 
   create_table "reports", force: :cascade do |t|
@@ -217,6 +271,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_16_160000) do
     t.datetime "updated_at", null: false
     t.integer "records_synced", default: 0, null: false
     t.integer "records_failed", default: 0, null: false
+    t.datetime "heartbeat_at"
     t.index ["started_at"], name: "index_sync_logs_on_started_at"
     t.index ["status"], name: "index_sync_logs_on_status"
   end
@@ -259,6 +314,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_16_160000) do
   add_foreign_key "parcel_user_tags", "parcels"
   add_foreign_key "parcel_user_tags", "users"
   add_foreign_key "parcels", "auctions"
+  add_foreign_key "real_estate_monthly_volumes", "county_market_stats"
   add_foreign_key "reports", "parcels"
   add_foreign_key "reports", "users"
   add_foreign_key "subscriptions", "users"
