@@ -81,6 +81,7 @@ module Research
       @count_total         = @total_count
       @count_total_parcels = @auctions_scope.sum(:parcel_count)
       @total_amount        = @auctions_scope.sum(:total_amount)
+      @count_unique_dates  = @auctions_scope.where.not(sale_date: nil).distinct.count(:sale_date)
 
       # ── Map: choropleth uses TIME-FILTERED auctions ─────────────────────────
       # Main tab: only active_visible; Prior tab: past_visible
