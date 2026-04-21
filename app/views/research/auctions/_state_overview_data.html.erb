@@ -55,7 +55,7 @@
       </h2>
       <p class="r1-state-overview-subtitle">
         <span id="r1-state-county-count"><%= state_counties.size %></span> condados con subastas ·
-        <span id="r1-state-auction-count"><%= state_data[:count] %></span> fechas activas ·
+        <span id="r1-state-auction-count"><%= active_dates.size %></span> fechas con subastas activas ·
         <span id="r1-state-property-count"><%= number_with_delimiter(state_data[:total_parcels] || 0) %></span> Properties Up for Bid
       </p>
     </div>

@@ -264,7 +264,7 @@ function r1StateClick(event, stateName) {
 
   document.getElementById('r1-popup-state-name').textContent = stateName;
   document.getElementById('r1-popup-unique-counties').textContent = data.unique_counties || 0;
-  document.getElementById('r1-popup-auctions').textContent   = data.count || 0;
+  document.getElementById('r1-popup-auctions').textContent   = data.unique_dates || 0;
   document.getElementById('r1-popup-parcels').textContent    = (data.total_parcels || 0).toLocaleString();
 
   // ⚠️ ARCHITECTURE RULE 16: Link goes to Rama 2 (parcels list by state)

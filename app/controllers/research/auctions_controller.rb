@@ -125,6 +125,7 @@ module Research
         h[full_name] = {
           count:           aucts.size,
           unique_counties: aucts.map(&:county).uniq.size,
+          unique_dates:    aucts.filter_map(&:sale_date).uniq.size,
           total_parcels:   aucts.sum { |a| a.parcel_count || 0 },
           total_amount:    aucts.sum { |a| a.total_amount&.to_f || 0 },
           auctions:        aucts
