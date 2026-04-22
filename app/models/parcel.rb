@@ -30,8 +30,8 @@ class Parcel < ApplicationRecord
   scope :search_text, ->(q)  {
     where("address ILIKE :q OR parcel_id ILIKE :q OR city ILIKE :q", q: "%#{q}%")
   }
-  scope :by_county,    ->(county) { where(county: county) }
-  scope :by_state,     ->(state)  { where(state: state) }
+  scope :by_county,    ->(county) { where("LOWER(county) = ?", county.to_s.downcase) }
+  scope :by_state,     ->(state)  { where("LOWER(state) = ?", state.to_s.downcase) }
   scope :min_bid,      ->(n)      { where("opening_bid >= ?", n) }
   scope :max_bid,      ->(n)      { where("opening_bid <= ?", n) }
   scope :has_coords,              -> { where.not(latitude: nil).where.not(longitude: nil) }

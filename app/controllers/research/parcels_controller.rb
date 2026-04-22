@@ -36,7 +36,7 @@ module Research
         @selected_county = params[:county]
         auction_ids = Auction.active_visible
                         .by_state(@selected_state)
-                        .where(county: @selected_county)
+                        .by_county(@selected_county)
                         .pluck(:id)
         scope    = Parcel.where(auction_id: auction_ids)
         scope    = apply_parcel_filters(scope)
@@ -195,7 +195,7 @@ module Research
       elsif params[:county].present? && params[:state].present?
         # ✅ Fase 2: County drill-down — único modo permitido sin auction_id
         auction_ids = Auction.active_visible.by_state(params[:state])
-                             .where(county: params[:county]).pluck(:id)
+                             .by_county(params[:county]).pluck(:id)
         parcels = Parcel.where(auction_id: auction_ids).has_coords
 
       else
@@ -244,7 +244,7 @@ module Research
       elsif params[:county].present? && params[:state].present?
         # ✅ Fase 2: County drill-down — único modo permitido sin auction_id
         auction_ids = Auction.active_visible.by_state(params[:state])
-                             .where(county: params[:county]).pluck(:id)
+                             .by_county(params[:county]).pluck(:id)
         scope = Parcel.where(auction_id: auction_ids)
 
       else

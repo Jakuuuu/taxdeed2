@@ -78,6 +78,8 @@
   <%# ── CTA: Ver propiedades en este condado ──── %>
   <div style="margin-top: 1.2rem; display: flex; gap: 0.75rem; align-items: center;">
     <a href="<%= research_parcels_path(county: @county.county, state: @county.state) %>"
+       data-turbo="false"
+       onclick="event.stopPropagation(); window.location.href = this.href; return false;"
        style="display: inline-flex; align-items: center; gap: 8px;
               padding: 12px 28px; background: #1E3A5F; color: #fff;
               font-size: 14px; font-weight: 700; border: none;

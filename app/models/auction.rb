@@ -11,8 +11,8 @@ class Auction < ApplicationRecord
   scope :completed,  -> { where(status: "completed") }
   # Default scope for index / map — excludes completed
   scope :visible,    -> { where(status: %w[upcoming active]) }
-  scope :by_state,   ->(state)  { where(state: state) }
-  scope :by_county,  ->(county) { where(county: county) }
+  scope :by_state,   ->(state)  { where("LOWER(state) = ?", state.to_s.downcase) }
+  scope :by_county,  ->(county) { where("LOWER(county) = ?", county.to_s.downcase) }
   scope :from_date,  ->(date)   { where("sale_date >= ?", date) }
   scope :to_date,    ->(date)   { where("sale_date <= ?", date) }
   # For map: only auctions with valid coordinates

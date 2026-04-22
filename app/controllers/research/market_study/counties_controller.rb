@@ -54,7 +54,7 @@ module Research
       # Direct URL: Renderiza con layout research (fallback seguro)
       def show
         @volumes = @county.real_estate_monthly_volumes.for_chart
-        @active_auctions = Auction.where(state: @county.state, county: @county.county)
+        @active_auctions = Auction.by_state(@county.state).by_county(@county.county)
                                   .includes(:parcels)
         @total_properties = @active_auctions.sum { |a| a.parcels.size }
 
