@@ -26,10 +26,7 @@
       <div class="fp-data-value"><%= @parcel.bedrooms.presence || "—" %></div>
 
       <div class="fp-data-label">Bathrooms</div>
-      <div class="fp-data-value"><%= @parcel.bathrooms.presence || "—" %></div>
-
-      <div class="fp-data-label">Year Built</div>
-      <div class="fp-data-value"><%= @parcel.year_built.presence || "—" %></div>
+      <div class="fp-data-value"><%= @parcel.bathrooms.present? ? @parcel.bathrooms : "—" %></div>
     </div>
   </div>
 </div>

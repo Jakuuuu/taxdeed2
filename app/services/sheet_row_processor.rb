@@ -136,6 +136,7 @@ class SheetRowProcessor
       crime_level:          Sanitize.text(col(CRIME_LEVEL)),
       homestead_flag:       Sanitize.text(col(HOMESTEAD_FLAG)),
       land_use:             Sanitize.text(col(LAND_USE)),
+      property_type:        Sanitize.text(col(LAND_USE)),  # "Type Lot" = tipo de propiedad
       zoning:               Sanitize.text(col(ZONING)),
       jurisdiction:         Sanitize.text(col(JURISDICTION)),
       minimum_lot_size:     Sanitize.text(col(MINIMUM_LOT_SIZE)),
@@ -146,8 +147,9 @@ class SheetRowProcessor
       fema_risk_level:      Sanitize.text(col(FEMA_RISK_LEVEL)),
       comments_do_va:       Sanitize.text(col(COMMENTS_DO_VA)),
 
-      # ── ENTEROS (habitaciones y dormitorios) ───────────────────────────
-      bathrooms:            col(HAB).to_s.strip.presence&.to_i,
+      # ── HABITACIONES / DORMITORIOS ─────────────────────────────────────
+      # bathrooms: decimal(3,1) en BD → Sanitize.decimal preserva fracciones (1.5 baños)
+      bathrooms:            Sanitize.decimal(col(HAB)),
       bedrooms:             col(BD).to_s.strip.presence&.to_i,
 
       # ── BOOLEANOS (Sanitize.boolean) ──────────────────────────────────
