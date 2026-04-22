@@ -84,6 +84,13 @@ module Research
                                  .where(parcel_id: @parcel.id)
                                  .order(created_at: :desc)
 
+      # ── County Market Stat lookup (for "Conocer más sobre el condado" CTA) ─
+      @county_market_stat = CountyMarketStat.find_by(
+        "UPPER(state) = ? AND UPPER(county) = ?",
+        @parcel.state.to_s.upcase,
+        @parcel.county.to_s.upcase
+      )
+
       render layout: false if request.xhr?
     end
 

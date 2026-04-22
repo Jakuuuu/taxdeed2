@@ -38,10 +38,11 @@ module Research
                                             .pluck(:state)
                                             .sort
 
-        # Pre-calcular conteo de subastas por condado (evita N+1 en la vista)
-        # Clave: [state.upcase, county.upcase] → count
-        @auction_counts_by_county = Auction
-          .group(:state, :county)
+        # Pre-calcular conteo de PROPIEDADES en subasta por condado (evita N+1)
+        # Clave: [state.upcase, county.upcase] → count de parcels
+        @auction_counts_by_county = Parcel
+          .joins(:auction)
+          .group("auctions.state", "auctions.county")
           .count
           .each_with_object({}) do |((state, county_name), count), hash|
             hash[[state.to_s.upcase, county_name.to_s.upcase]] = count

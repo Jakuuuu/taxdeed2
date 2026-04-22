@@ -155,6 +155,10 @@ class SyncSheetJob < ApplicationJob
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 🚀 STREAMING PRINCIPAL — Procesa filas de Propiedades chunk por chunk
+  #
+  # 🔗 HYPERLINKS: Pre-extrae las URLs embebidas en celdas del Sheet usando
+  #   la API avanzada (spreadsheets.get con fields mask). Luego pasa los
+  #   hyperlinks de cada fila al SheetRowProcessor para resolver URLs reales.
   # ═══════════════════════════════════════════════════════════════════════════
   def stream_and_process(sheet_id)
     added = 0
@@ -164,6 +168,14 @@ class SyncSheetJob < ApplicationJob
 
     # Cache de Auctions para evitar N+1 find_or_create_by por cada fila.
     @auction_cache = {}
+
+    # ── 🔗 Pre-fetch hyperlinks (una sola llamada a la API) ───────────────
+    @property_hyperlinks = begin
+      GoogleSheetsImporter.fetch_property_hyperlinks(sheet_id)
+    rescue => e
+      Rails.logger.warn "[SyncSheetJob] ⚠️ No se pudieron extraer hyperlinks de Propiedades: #{e.message}. Continuando sin ellos."
+      {}
+    end
 
     # ── 💓 HEARTBEAT INICIAL ──────────────────────────────────────────────
     rss = current_rss_mb
@@ -307,7 +319,10 @@ class SyncSheetJob < ApplicationJob
 
     chunk.each_with_index do |row, row_in_chunk|
       global_row = (chunk_index * BATCH_SIZE) + row_in_chunk
-      result = process_row_with_cache(row)
+      # El hyperlinks_map usa row_index relativo a fila 2 del Sheet (0-indexed)
+      row_idx = global_row
+      row_hyperlinks = @property_hyperlinks[row_idx]
+      result = process_row_with_cache(row, row_hyperlinks: row_hyperlinks)
 
       case result
       when :added   then added   += 1
@@ -333,8 +348,8 @@ class SyncSheetJob < ApplicationJob
   end
 
   # ── Procesamiento con cache de Auctions ───────────────────────────────
-  def process_row_with_cache(row)
-    SheetRowProcessor.process(row, auction_cache: @auction_cache)
+  def process_row_with_cache(row, row_hyperlinks: nil)
+    SheetRowProcessor.process(row, auction_cache: @auction_cache, row_hyperlinks: row_hyperlinks)
   end
 
   def force_fail_orphaned_log!

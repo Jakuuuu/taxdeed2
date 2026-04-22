@@ -74,4 +74,23 @@
       </div>
     </div>
   </div>
+
+  <%# ── CTA: Ver propiedades en este condado ──── %>
+  <div style="margin-top: 1.2rem; display: flex; gap: 0.75rem; align-items: center;">
+    <a href="<%= research_parcels_path(county: @county.county, state: @county.state) %>"
+       style="display: inline-flex; align-items: center; gap: 8px;
+              padding: 12px 28px; background: #1E3A5F; color: #fff;
+              font-size: 14px; font-weight: 700; border: none;
+              border-radius: 10px; cursor: pointer; text-decoration: none;
+              transition: all 0.18s ease; letter-spacing: 0.3px;
+              box-shadow: 0 2px 8px rgba(30, 58, 95, 0.25);"
+       onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(30, 58, 95, 0.35)';"
+       onmouseout="this.style.opacity='1'; this.style.transform='none'; this.style.boxShadow='0 2px 8px rgba(30, 58, 95, 0.25)';">
+      🔍 Ver propiedades
+      <span style="background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 12px;
+                   font-size: 0.8rem; font-weight: 800;">
+        <%= @total_properties %>
+      </span>
+    </a>
+  </div>
 </div>

@@ -378,6 +378,50 @@ class GoogleSheetsImporter
     hyperlinks
   end
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🔗 Extracción de Hyperlinks para pestaña "Propiedades1"
+  #
+  # Mismo patrón que fetch_county_hyperlinks. Las celdas con =HYPERLINK(...)
+  # muestran "Link" como texto visible pero la URL real está en los metadatos.
+  #
+  # Retorna Hash: { row_index => { col_index => "https://real-url.com" } }
+  # donde row_index es 0-indexed relativo a fila 2 del Sheet.
+  # ═══════════════════════════════════════════════════════════════════════════
+  def self.fetch_property_hyperlinks(sheet_id)
+    Rails.logger.info "[GoogleSheetsImporter] 🔗 Fetching hyperlinks from #{SHEET_TAB}"
+
+    service = build_service
+
+    range = "#{SHEET_TAB}!A2:CE"
+
+    response = service.get_spreadsheet(
+      sheet_id,
+      ranges: [range],
+      fields: 'sheets/data/rowData/values(hyperlink,formattedValue)'
+    )
+
+    hyperlinks = {}
+
+    sheet_data = response.sheets&.first&.data&.first
+    return hyperlinks unless sheet_data&.row_data
+
+    sheet_data.row_data.each_with_index do |row, row_idx|
+      next unless row&.values
+
+      row.values.each_with_index do |cell, col_idx|
+        next unless cell&.hyperlink.present?
+
+        hyperlinks[row_idx] ||= {}
+        hyperlinks[row_idx][col_idx] = cell.hyperlink
+      end
+    end
+
+    total_links = hyperlinks.values.sum { |h| h.size }
+    Rails.logger.info "[GoogleSheetsImporter] 🔗 Extracted #{total_links} property hyperlinks from #{hyperlinks.size} rows"
+
+    hyperlinks
+  end
+
   # ── Streaming genérico para cualquier pestaña ──────────────────────────
   # data_start_row: fila del Sheet donde empiezan los datos (default: 2)
   def self.stream_tab(service, sheet_id, tab_name, last_col, chunk_size: CHUNK_SIZE, data_start_row: 2)

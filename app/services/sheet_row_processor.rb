@@ -27,16 +27,31 @@ class SheetRowProcessor
     user_notes
   ].freeze
 
+  # Columnas que contienen hyperlinks embebidos en el Sheet.
+  # Mapa: campo del modelo → posición de columna en el Sheet (0-indexed).
+  URL_FIELDS = {
+    regrid_url:         REGRID_URL,          # 28 (AC)
+    gis_image_url:      GIS_IMAGE_URL,       # 29 (AD)
+    google_maps_url:    GOOGLE_MAPS_URL,     # 30 (AE)
+    fema_url:           FEMA_URL,            # 42 (AQ)
+    property_image_url: PROPERTY_IMAGE_URL,  # 44 (AS)
+    clerk_url:          CLERK_URL,           # 79 (CB)
+    tax_collector_url:  TAX_COLLECTOR_URL,   # 80 (CC)
+  }.freeze
+
   # ── API PÚBLICA ────────────────────────────────────────────────────────────
   # auction_cache: Hash opcional { "state|county|date" => Auction }
   # Provisto por SyncSheetJob para reducir queries de Auction.
-  def self.process(row, auction_cache: nil)
-    new(row, auction_cache: auction_cache).call
+  # row_hyperlinks: Hash opcional { col_index => "https://real-url.com" }
+  # Provisto por SyncSheetJob con hyperlinks extraídos de la celda.
+  def self.process(row, auction_cache: nil, row_hyperlinks: nil)
+    new(row, auction_cache: auction_cache, row_hyperlinks: row_hyperlinks).call
   end
 
-  def initialize(row, auction_cache: nil)
+  def initialize(row, auction_cache: nil, row_hyperlinks: nil)
     @row = row
     @auction_cache = auction_cache
+    @row_hyperlinks = row_hyperlinks
   end
 
   def call
@@ -142,14 +157,14 @@ class SheetRowProcessor
       wetlands:             Sanitize.boolean(col(WETLANDS_RAW)),
       hoa:                  Sanitize.boolean(col(HOA)),
 
-      # ── URLs (Sanitize.url) ───────────────────────────────────────────
-      regrid_url:           Sanitize.url(col(REGRID_URL)),
-      gis_image_url:        Sanitize.url(col(GIS_IMAGE_URL)),
-      google_maps_url:      Sanitize.url(col(GOOGLE_MAPS_URL)),
-      fema_url:             Sanitize.url(col(FEMA_URL)),
-      property_image_url:   Sanitize.url(col(PROPERTY_IMAGE_URL)),
-      clerk_url:            Sanitize.url(col(CLERK_URL)),
-      tax_collector_url:    Sanitize.url(col(TAX_COLLECTOR_URL)),
+      # ── URLs (resolve_url: prioriza hyperlink real sobre texto visible) ──
+      regrid_url:           resolve_url(:regrid_url),
+      gis_image_url:        resolve_url(:gis_image_url),
+      google_maps_url:      resolve_url(:google_maps_url),
+      fema_url:             resolve_url(:fema_url),
+      property_image_url:   resolve_url(:property_image_url),
+      clerk_url:            resolve_url(:clerk_url),
+      tax_collector_url:    resolve_url(:tax_collector_url),
 
       # ── COORDENADAS (parser especial) ─────────────────────────────────
       **parsed_coords,
@@ -205,6 +220,24 @@ class SheetRowProcessor
   # 🪞 Celda vacía → nil (PostgreSQL se actualiza a NULL)
   def col(index)
     @row[index].to_s.strip.presence
+  end
+
+  # Resolve a URL field: use hyperlink from cell metadata if available,
+  # otherwise fall back to text value (only if it looks like a real URL).
+  # Replicates the pattern from CountyRowProcessor.
+  def resolve_url(field)
+    col_idx = URL_FIELDS[field]
+
+    # Try hyperlink first
+    if @row_hyperlinks && col_idx && @row_hyperlinks[col_idx].present?
+      return @row_hyperlinks[col_idx]
+    end
+
+    # Fallback: use text value only if it's a real URL (not "Link" or "imagen")
+    text = col(col_idx)
+    return Sanitize.url(text) if text.present? && text.match?(%r{\Ahttps?://}i)
+
+    nil
   end
 
   def row_empty?
