@@ -1402,7 +1402,6 @@ function loadParcelsList(page) {
       html += '<th class="col-checkbox"><input type="checkbox" id="r2-select-all" onchange="toggleSelectAll(this)"></th>';
       html += buildSortTh('address',       'Dirección',       'col-address');
       html += buildSortTh('city',          'Ciudad',          'col-city');
-      html += buildSortTh('zip',           'Cód. Postal',     'col-zip');
       html += buildSortTh('parcel_id',     'Parcela',         'col-parcel');
       html += buildSortTh('property_type', 'Tipo de Propiedad', 'col-type');
       html += buildSortTh('opening_bid',   'Oferta Inicial',  'col-bid');
@@ -1445,7 +1444,6 @@ function loadParcelsList(page) {
         html += '<td class="col-checkbox" onclick="event.stopPropagation()"><input type="checkbox" class="r2-row-check" value="' + p.id + '"></td>';
         html += '<td class="td-address">'  + maskedAddress(p.address)                       + '</td>';
         html += '<td>'                     + (p.city || '—')                               + '</td>';
-        html += '<td>'                     + maskedCell(p.zip, 3)                           + '</td>';
         html += '<td class="td-parcel">'   + maskedCell(p.parcel_id, 4)                     + '</td>';
         html += '<td>'                     + (p.property_type || '—')                      + '</td>';
         html += '<td class="td-bid">'      + bid                                            + '</td>';

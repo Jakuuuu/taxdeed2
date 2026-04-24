@@ -18,23 +18,23 @@
 
     <div class="fp-kpi-grid">
       <div class="fp-kpi-cell">
-        <div class="fp-kpi-label">Assessed Value</div>
+        <div class="fp-kpi-label">Max Bid 30%</div>
         <div class="fp-kpi-value"><%= @parcel.max_bid_30 ? number_to_currency(@parcel.max_bid_30) : "—" %></div>
       </div>
       <div class="fp-kpi-cell">
-        <div class="fp-kpi-label">Price / Acre</div>
+        <div class="fp-kpi-label">Max Bid 35%</div>
         <div class="fp-kpi-value"><%= @parcel.max_bid_35 ? number_to_currency(@parcel.max_bid_35) : "—" %></div>
       </div>
       <div class="fp-kpi-cell">
-        <div class="fp-kpi-label">Est. Sale Value</div>
+        <div class="fp-kpi-label">Min Bid +16%</div>
         <div class="fp-kpi-value"><%= @parcel.adjusted_value_16 ? number_to_currency(@parcel.adjusted_value_16) : "—" %></div>
       </div>
       <div class="fp-kpi-cell">
-        <div class="fp-kpi-label">Max Bid 30%</div>
+        <div class="fp-kpi-label">Est. Sale Value</div>
         <div class="fp-kpi-value"><%= @parcel.estimated_sale_value.present? && @parcel.estimated_sale_value > 0 ? number_to_currency(@parcel.estimated_sale_value) : "—" %></div>
       </div>
       <div class="fp-kpi-cell">
-        <div class="fp-kpi-label">Max Bid 35%</div>
+        <div class="fp-kpi-label">Price / Acre</div>
         <div class="fp-kpi-value"><%= @parcel.price_per_acre ? number_to_currency(@parcel.price_per_acre) : "—" %></div>
       </div>
     
