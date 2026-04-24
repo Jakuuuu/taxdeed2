@@ -31,8 +31,9 @@ class ReportPdfBuilder
       pdf.move_down 16
 
       case @report_type
-      when "avm"            then render_avm(pdf)
-      when "property_scope" then render_property_scope(pdf)
+      when "avm"              then render_avm(pdf)
+      when "property_scope"   then render_property_scope(pdf)
+      when "ficha_snapshot"   then render_ficha_snapshot(pdf)
       end
 
       render_footer(pdf)
@@ -226,6 +227,166 @@ class ReportPdfBuilder
       ["FEMA Flood Map",            @parcel.fema_url               || "—"]
     ]
     render_table(pdf, links)
+  end
+
+  # ── FICHA SNAPSHOT (Property Intelligence Report — PDF completo) ────────
+  # Combina todas las secciones de la ficha en un solo documento.
+  # Orden: Investment → Property Info → Physical → Valuation → Utilities →
+  #        Environmental → Auction → Liens → External Resources.
+
+  def render_ficha_snapshot(pdf)
+    # ── 1. Investment Summary ──────────────────────────────────────────
+    section_title(pdf, "Investment Summary")
+
+    opening_bid    = @parcel.opening_bid.to_f
+    assessed_value = @parcel.assessed_value.to_f
+    est_sale       = @parcel.estimated_sale_value.to_f
+    price_estimate = @parcel.price_estimate.to_f
+    max_bid_30     = @parcel.max_bid_30.to_f
+    max_bid_35     = @parcel.max_bid_35.to_f
+
+    invest_data = [
+      ["Metric", "Value"],
+      ["Opening Bid",           fmt_currency(opening_bid)],
+      ["Assessed Value",        fmt_currency(assessed_value)],
+      ["Estimated Sale Value",  fmt_currency(est_sale)],
+      ["Price Estimate",        fmt_currency(price_estimate)],
+      ["Max Bid at 30%",        fmt_currency(max_bid_30)],
+      ["Max Bid at 35%",        fmt_currency(max_bid_35)],
+      ["Price per Acre",        fmt_currency(@parcel.price_per_acre.to_f)]
+    ]
+    render_table(pdf, invest_data)
+    pdf.move_down 16
+
+    # ── 2. Property Information ───────────────────────────────────────
+    section_title(pdf, "Property Information")
+    prop_data = [
+      ["Field", "Value"],
+      ["Address",           @parcel.address                   || "—"],
+      ["Property Address",  @parcel.property_address          || "—"],
+      ["City/State/Zip",    [@parcel.city, @parcel.state, @parcel.zip].compact.join(", ")],
+      ["APN",               @parcel.parcel_id                 || "—"],
+      ["Owner Name",        @parcel.owner_name                || "—"],
+      ["Legal Description", @parcel.legal_description         || "—"],
+      ["Jurisdiction",      @parcel.jurisdiction              || "—"],
+      ["Land Use",          @parcel.land_use                  || "—"],
+      ["Zoning",            @parcel.zoning                    || "—"],
+      ["Homestead Flag",    @parcel.homestead_flag            || "—"]
+    ]
+    render_table(pdf, prop_data)
+    pdf.move_down 16
+
+    # ── 3. Physical Characteristics ───────────────────────────────────
+    section_title(pdf, "Physical Characteristics")
+    physical = [
+      ["Field", "Value"],
+      ["Lot Area (acres)",     fmt_decimal(@parcel.lot_area_acres)],
+      ["Lot Area (sqft)",      fmt_decimal(@parcel.sqft_lot)],
+      ["Living Area (sqft)",   fmt_decimal(@parcel.sqft_living)],
+      ["Minimum Lot Size",     @parcel.minimum_lot_size  || "—"],
+      ["Lot Shape",            @parcel.lot_shape         || "—"],
+      ["Bedrooms",             @parcel.bedrooms&.to_s    || "—"],
+      ["Bathrooms",            @parcel.bathrooms&.to_s   || "—"],
+      ["Year Built",           @parcel.year_built&.to_s  || "—"]
+    ]
+    render_table(pdf, physical)
+    pdf.move_down 16
+
+    # ── 4. Valuation & Tax ────────────────────────────────────────────
+    section_title(pdf, "Valuation & Tax")
+    val_data = [
+      ["Metric", "Value"],
+      ["Assessed Value",        fmt_currency(assessed_value)],
+      ["Estimated Sale Value",  fmt_currency(est_sale)],
+      ["Delinquent Amount",     fmt_currency(@parcel.delinquent_amount.to_f)],
+      ["Crime Level",           @parcel.crime_level || "—"]
+    ]
+    render_table(pdf, val_data)
+    pdf.move_down 16
+
+    # ── 5. Utilities & Services ───────────────────────────────────────
+    section_title(pdf, "Utilities & Services")
+    utilities = [
+      ["Service", "Available"],
+      ["Electric",  yn(@parcel.electric)],
+      ["Water",     yn(@parcel.water)],
+      ["Sewer",     yn(@parcel.sewer)],
+      ["HOA/POA",   yn(@parcel.hoa)]
+    ]
+    render_table(pdf, utilities)
+    pdf.move_down 16
+
+    # ── 6. Environmental / FEMA Risk ──────────────────────────────────
+    section_title(pdf, "Environmental / FEMA Risk")
+    env_data = [
+      ["Field", "Value"],
+      ["Wetlands",        @parcel.wetlands ? "Yes ⚠️" : "No"],
+      ["FEMA Risk Level", @parcel.fema_risk_level || "—"],
+      ["FEMA Notes",      @parcel.fema_notes      || "—"]
+    ]
+    render_table(pdf, env_data)
+    pdf.move_down 16
+
+    # ── 7. Auction Information ────────────────────────────────────────
+    section_title(pdf, "Auction Information")
+    if @auction
+      auction_data = [
+        ["Field", "Value"],
+        ["County",         @auction.county             || "—"],
+        ["State",          @auction.state              || "—"],
+        ["Sale Date",      @auction.sale_date&.strftime("%B %d, %Y") || "—"],
+        ["Auction Status", @auction.status&.capitalize || "—"],
+        ["Parcel Status",  @parcel.auction_status&.capitalize || "—"]
+      ]
+      render_table(pdf, auction_data)
+    else
+      pdf.text "No auction information available.", color: MUTED_COLOR
+    end
+    pdf.move_down 16
+
+    # ── 8. Known Liens & Encumbrances ─────────────────────────────────
+    if @liens.any?
+      section_title(pdf, "Known Liens & Encumbrances")
+      lien_rows = [["Lender", "Type", "Amount", "Status", "Recorded"]]
+      @liens.each do |lien|
+        lien_rows << [
+          lien.lender_name || "—",
+          lien.lien_type&.humanize || "—",
+          fmt_currency(lien.amount.to_f),
+          lien.status&.capitalize || "—",
+          lien.recorded_date&.strftime("%m/%d/%Y") || "—"
+        ]
+      end
+      render_table(pdf, lien_rows, col_widths: [130, 80, 75, 70, 80])
+      pdf.move_down 8
+      pdf.text "NOTE: Tax Deed sales may extinguish most liens except IRS federal tax liens and certain HOA dues. " \
+               "Always verify title status independently.",
+               size: 8, color: MUTED_COLOR
+      pdf.move_down 16
+    end
+
+    # ── 9. External Resources ─────────────────────────────────────────
+    section_title(pdf, "External Resources")
+    links = [
+      ["Resource", "URL"],
+      ["Regrid Map",                @parcel.regrid_url             || "—"],
+      ["GIS Image",                 @parcel.gis_image_url          || "—"],
+      ["Google Maps",               @parcel.google_maps_url        || "—"],
+      ["Property Appraisal Page",   @parcel.property_appraiser_url || "—"],
+      ["Clerk of Courts",           @parcel.clerk_url              || "—"],
+      ["Tax Collector",             @parcel.tax_collector_url      || "—"],
+      ["FEMA Flood Map",            @parcel.fema_url               || "—"]
+    ]
+    render_table(pdf, links)
+
+    # ── 10. Legal Disclaimer ──────────────────────────────────────────
+    pdf.move_down 16
+    pdf.text "LEGAL DISCLAIMER", size: 9, style: :bold, color: MUTED_COLOR
+    pdf.text "This Property Intelligence Report is generated from public data sources for informational purposes only. " \
+             "It does not constitute a professional appraisal, legal advice, or investment recommendation. " \
+             "TaxDeed Lion does not guarantee the accuracy or completeness of the information presented. " \
+             "Verify all values independently and consult licensed professionals before making investment decisions.",
+             size: 8, color: MUTED_COLOR
   end
 
   # ── FOOTER ─────────────────────────────────────────────────────────────────

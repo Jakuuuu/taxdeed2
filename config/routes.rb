@@ -18,6 +18,7 @@ Rails.application.routes.draw do
     resources :parcels, only: [:index, :show] do
       member do
         post :unlock            # POST /research/parcels/:id/unlock — Blur Paywall: consume 1 credit
+        get  :download_pdf      # GET  /research/parcels/:id/download_pdf — Descarga PDF de ficha (síncrono)
       end
       collection do
         get :map_data           # GET /research/parcels/map_data.json

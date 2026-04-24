@@ -131,6 +131,40 @@ module Research
              status: :unprocessable_entity
     end
 
+    # GET /research/parcels/:id/download_pdf
+    # ══════════════════════════════════════════════════════════════════════
+    # Genera y descarga el PDF de la ficha de propiedad on-the-fly.
+    # Generación SÍNCRONA — el PDF es ligero (datos de BD, sin imágenes).
+    # No se persiste en Active Storage ni se crea registro Report.
+    #
+    # Autorización:
+    #   - Admin: siempre puede descargar
+    #   - Usuario normal: requiere unlock + disclaimer aceptado
+    # ══════════════════════════════════════════════════════════════════════
+    def download_pdf
+      @parcel  = Parcel.find(params[:id])
+
+      # ── Autorización ──────────────────────────────────────────────
+      unless current_user.admin? ||
+             (ViewedParcel.exists?(user_id: current_user.id, parcel_id: @parcel.id) &&
+              current_user.premium_disclaimer_accepted_at.present?)
+        redirect_to research_parcel_path(@parcel),
+                    alert: "Debes desbloquear la propiedad y aceptar el disclaimer para descargar el PDF."
+        return
+      end
+
+      # ── Generación síncrona del PDF ──────────────────────────────
+      pdf = ReportPdfBuilder.build(report_type: "ficha_snapshot", parcel: @parcel)
+
+      filename = "TaxDeedLion_#{@parcel.parcel_id}_#{Date.today.strftime('%Y%m%d')}.pdf"
+                 .gsub(/[^a-zA-Z0-9_\-.]/, "_")
+
+      send_data pdf.render,
+                filename:    filename,
+                type:        "application/pdf",
+                disposition: "attachment"
+    end
+
     # GET /research/parcels/county_overview.json
     # Phase 1: Geographic Overview — aggregated county-level data for map pins
     def county_overview

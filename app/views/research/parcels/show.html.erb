@@ -36,6 +36,45 @@
     <%# ── FULL WIDTH: Title Report CTA (solo si unlocked) ─────────────── %>
     <%= render "research/parcels/title_report_cta" %>
 
+    <%# ── FULL WIDTH: Download PDF CTA (solo si unlocked + disclaimer) ── %>
+    <%# Regla: solo visible cuando la ficha está desbloqueada y el        %>
+    <%# disclaimer legal ha sido aceptado. Admin siempre puede descargar. %>
+    <% if (@unlocked && current_user.premium_disclaimer_accepted_at.present?) || @admin_override %>
+      <div style="
+        margin-top: 20px;
+        padding: 0;
+        width: 100%;
+      ">
+        <a href="<%= download_pdf_research_parcel_path(@parcel) %>"
+           id="btn-download-ficha-pdf"
+           style="
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             gap: 10px;
+             width: 100%;
+             padding: 16px 24px;
+             background: linear-gradient(135deg, #E67E22 0%, #D35400 100%);
+             color: #ffffff;
+             font-size: 1rem;
+             font-weight: 700;
+             border: none;
+             border-radius: 10px;
+             text-decoration: none;
+             cursor: pointer;
+             box-shadow: 0 4px 14px rgba(230,126,34,0.30);
+             transition: all 0.25s ease;
+             letter-spacing: 0.03em;
+             text-align: center;
+           "
+           onmouseover="this.style.background='linear-gradient(135deg, #D35400 0%, #C0392B 100%)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(230,126,34,0.40)';"
+           onmouseout="this.style.background='linear-gradient(135deg, #E67E22 0%, #D35400 100%)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 14px rgba(230,126,34,0.30)';"
+        >
+          📄 Descargar Reporte PDF
+        </a>
+      </div>
+    <% end %>
+
   </div>
 </div>
 
