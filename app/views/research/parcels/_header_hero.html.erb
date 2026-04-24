@@ -7,17 +7,32 @@
 <%= link_to back_path, class: "fp-back" do %>← Back to Properties<% end %>
 
 <div class="fp-hero">
-  <%# ── Top bar: brand + status badge ─────────────────────────────── %>
+  <%# ── Top bar: brand + status badge + county link ──────────────────── %>
   <div class="fp-hero__topbar">
     <div class="fp-hero__brand">
       <span class="fp-hero__brand-icon">L</span>
       <span class="fp-hero__brand-name">LION LEGACY TAXDEED</span>
     </div>
-    <div class="fp-hero__status-badge">
-      <span class="fp-hero__status-label">ANALYSIS STATUS</span>
-      <span class="fp-hero__status-value">
-        <%= @unlocked ? "COMPLETE ✓" : "LOCKED 🔒" %>
-      </span>
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
+      <% if @county_market_stat %>
+        <a href="<%= research_market_study_county_path(@county_market_stat) %>"
+           style="display: inline-flex; align-items: center; gap: 6px;
+                  padding: 6px 14px;
+                  background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.22);
+                  border-radius: 8px; color: #fff; font-size: 0.75rem; font-weight: 600;
+                  text-decoration: none; transition: all 0.18s ease; letter-spacing: 0.02em;
+                  backdrop-filter: blur(4px); white-space: nowrap;"
+           onmouseover="this.style.background='rgba(255,255,255,0.20)'; this.style.borderColor='rgba(255,255,255,0.42)'; this.style.transform='translateY(-1px)';"
+           onmouseout="this.style.background='rgba(255,255,255,0.10)'; this.style.borderColor='rgba(255,255,255,0.22)'; this.style.transform='none';">
+          📊 Conocer más sobre el condado →
+        </a>
+      <% end %>
+      <div class="fp-hero__status-badge">
+        <span class="fp-hero__status-label">ANALYSIS STATUS</span>
+        <span class="fp-hero__status-value">
+          <%= @unlocked ? "COMPLETE ✓" : "LOCKED 🔒" %>
+        </span>
+      </div>
     </div>
   </div>
 
@@ -30,19 +45,6 @@
     <p class="fp-hero__location" style="margin-top: 4px; opacity: 0.85;">
       <%= @parcel.county %> County, <%= @parcel.state.presence || "FL" %>
     </p>
-    <% if @county_market_stat %>
-      <a href="<%= research_market_study_county_path(@county_market_stat) %>"
-         style="display: inline-flex; align-items: center; gap: 6px;
-                margin-top: 8px; padding: 7px 16px;
-                background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
-                border-radius: 8px; color: #fff; font-size: 0.78rem; font-weight: 600;
-                text-decoration: none; transition: all 0.18s ease; letter-spacing: 0.02em;
-                backdrop-filter: blur(4px);"
-         onmouseover="this.style.background='rgba(255,255,255,0.22)'; this.style.borderColor='rgba(255,255,255,0.45)'; this.style.transform='translateY(-1px)';"
-         onmouseout="this.style.background='rgba(255,255,255,0.12)'; this.style.borderColor='rgba(255,255,255,0.25)'; this.style.transform='none';">
-        📊 Conocer más sobre el condado →
-      </a>
-    <% end %>
   <% end %>
 
   <%# ── Meta pills row ───────────────────────────────────────────── %>
@@ -54,19 +56,9 @@
     <% if @parcel.auction&.sale_date.present? %>
       <div class="fp-hero__pill">📅 <%= @parcel.auction.sale_date.strftime("%b %d, %Y") %></div>
     <% end %>
-    <% if @parcel.property_type.present? %>
-      <div class="fp-hero__pill">🏠 <%= @parcel.property_type %></div>
-    <% end %>
-    <% if @parcel.sale_venue.present? %>
-      <div class="fp-hero__pill"><%= @parcel.sale_venue.downcase.include?("online") ? "💻" : "🏛" %> <%= @parcel.sale_venue %></div>
-    <% end %>
     <% ds = @parcel.display_auction_status %>
     <% s_cls = case ds; when "available" then "success"; when "sold" then "danger"; when "expired" then "muted"; else "muted"; end %>
     <span class="fp-badge fp-badge--<%= s_cls %>"><%= ds == "expired" ? "No Disponible" : ds&.titleize %></span>
-    <% if @parcel.crime_level.present? %>
-      <% c_cls = case @parcel.crime_level.downcase; when "low" then "success"; when "moderate" then "warning"; when "high" then "danger"; else "muted"; end %>
-      <span class="fp-badge fp-badge--<%= c_cls %>">Crime: <%= @parcel.crime_level.titleize %></span>
-    <% end %>
     <% if @admin_override %>
       <span class="fp-admin-badge">Admin Override</span>
     <% end %>

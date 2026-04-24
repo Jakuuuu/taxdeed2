@@ -27,6 +27,28 @@
 
       <div class="fp-data-label">Bathrooms</div>
       <div class="fp-data-value"><%= @parcel.bathrooms.present? ? @parcel.bathrooms : "—" %></div>
+
+      <div class="fp-data-label">Tipo de Parcel</div>
+      <div class="fp-data-value"><%= @parcel.property_type.presence || "—" %></div>
+
+      <div class="fp-data-label">Modalidad de Subasta</div>
+      <div class="fp-data-value">
+        <% if @parcel.sale_venue.present? %>
+          <%= @parcel.sale_venue.downcase.include?("online") ? "💻" : "🏛" %> <%= @parcel.sale_venue %>
+        <% else %>
+          —
+        <% end %>
+      </div>
+
+      <div class="fp-data-label">Nivel de Crimen</div>
+      <div class="fp-data-value">
+        <% if @parcel.crime_level.present? %>
+          <% c_color = case @parcel.crime_level.downcase; when "low" then "#22c55e"; when "moderate" then "#f59e0b"; when "high" then "#ef4444"; else "#94a3b8"; end %>
+          <span style="color: <%= c_color %>; font-weight: 600;"><%= @parcel.crime_level.titleize %></span>
+        <% else %>
+          —
+        <% end %>
+      </div>
     </div>
   </div>
 </div>
