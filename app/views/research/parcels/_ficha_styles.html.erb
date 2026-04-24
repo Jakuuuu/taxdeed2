@@ -249,6 +249,29 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Investment Calculator Grid ──────────────────────────────────────── */
+.fp-calc-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.fp-calc-card {
+  background: var(--fp-surface-2);
+  border: 1px solid var(--fp-border);
+  border-radius: var(--fp-radius-sm);
+  padding: 14px 16px;
+  text-align: center;
+  transition: border-color .2s, box-shadow .2s;
+}
+.fp-calc-card:hover {
+  border-color: rgba(201,168,76,.4);
+  box-shadow: 0 2px 8px rgba(201,168,76,.08);
+}
+.fp-calc-label { font-size:11px; color:var(--fp-text-dim); font-weight:500; margin-bottom:4px; text-transform:uppercase; letter-spacing:.3px; }
+.fp-calc-value {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--fp-navy);
+  font-family: var(--fp-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Legal Badge ──────────────────────────────────────────────────────── */
 .fp-legal-badge-wrap { margin-bottom:14px; }
 .fp-legal-badge {

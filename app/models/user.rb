@@ -31,6 +31,13 @@ class User < ApplicationRecord
     admin
   end
 
+  # ── Premium Legal Disclaimer ─────────────────────────────────────────
+  # Returns true if the user has accepted the premium data disclaimer.
+  # Used by the Ficha to determine if the gated overlay should be shown.
+  def premium_disclaimer_accepted?
+    premium_disclaimer_accepted_at.present?
+  end
+
   # ── Account disable ─────────────────────────────────────────────────
   # disabled_at = nil  → account active
   # disabled_at = Time → account locked out (Devise hook below)

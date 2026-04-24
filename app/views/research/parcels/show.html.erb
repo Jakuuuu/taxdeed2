@@ -22,14 +22,14 @@
       <%= render "research/parcels/card_legal" %>
     </div>
 
-    <%# ── ROW 2: Full width — Characteristics ────────────────────────── %>
-    <div class="fp-grid fp-grid--1">
-      <%= render "research/parcels/card_characteristics" %>
-    </div>
+    <%# ── PREMIUM DATA (con Gated Disclaimer si aplica) ──────────────── %>
+    <%#   Si el usuario desbloqueó pero NO aceptó el disclaimer legal,     %>
+    <%#   _premium_data renderiza un overlay opaco con el texto legal.      %>
+    <%#   Si ya aceptó, renderiza los datos normalmente con blur/unlock.    %>
+    <%= render "research/parcels/premium_data" %>
 
-    <%# ── ROW 3: 2 columnas — Environmental | Resource Center ─────────── %>
+    <%# ── ROW: Resource Center ────────────────────────────────────────── %>
     <div class="fp-grid fp-grid--2">
-      <%= render "research/parcels/card_environmental" %>
       <%= render "research/parcels/resource_center" %>
     </div>
 

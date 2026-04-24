@@ -2,7 +2,260 @@
     Datos avanzados premium — blur si locked, claro si unlocked.
     PROTECCIÓN PAYWALL: .fp-premium.fp-locked { overflow: visible }
     Las 4 secciones: Characteristics, Valuation, Calculator, Utilities/Risk.
+
+    GATED DISCLAIMER (2026-04-24):
+    Si el usuario ha desbloqueado la ficha pero NO ha firmado el disclaimer
+    legal (premium_disclaimer_accepted_at IS NULL), se renderiza un overlay
+    opaco que bloquea completamente la lectura e interacción con los datos
+    premium. El overlay contiene el texto legal + checkbox + botón de Aceptar.
+    Una vez aceptado, Turbo Stream reemplaza este wrapper completo.
 ─────────────────────────────────────────────────────────────────────────── %>
+
+<%# ── Determinar si el disclaimer legal ya fue aceptado ──────────────── %>
+<% disclaimer_accepted = current_user.premium_disclaimer_accepted_at.present? %>
+<% needs_disclaimer = @unlocked && !disclaimer_accepted && !@admin_override %>
+
+<div id="premium-data-wrapper">
+
+<% if needs_disclaimer %>
+<%# ══════════════════════════════════════════════════════════════════════
+    GATED OVERLAY — Legal Disclaimer
+    Capa absoluta sobre los datos premium. El usuario VE que hay contenido
+    detrás pero NO puede leerlo ni interactuar. Requiere aceptación
+    explícita con checkbox + botón para retirar el bloqueo.
+
+    CSS: 100% INLINE — Gotcha: Drawer AJAX sin layout, content_for :head
+    no funciona. Todo el styling va aquí.
+    Botón: Regla Naranja #E67E22 — CTA transaccional.
+═══════════════════════════════════════════════════════════════════════ %>
+<div style="position:relative;">
+
+  <%# ── Los datos premium se renderizan pero quedan tapados ──────── %>
+  <div style="filter:blur(6px);pointer-events:none;user-select:none;opacity:0.4;">
+    <%= render "research/parcels/card_characteristics" %>
+    <%= render "research/parcels/card_valuation" %>
+    <%= render "research/parcels/card_investment" %>
+    <%= render "research/parcels/card_environmental" %>
+  </div>
+
+  <%# ── OVERLAY: Disclaimer Legal ───────────────────────────────── %>
+  <div id="disclaimer-overlay" style="
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(255,255,255,0.96);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    padding:24px;
+  ">
+    <div style="
+      max-width:680px;
+      width:100%;
+      background:#ffffff;
+      border:1px solid #e0e0e0;
+      border-radius:12px;
+      box-shadow:0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+      padding:32px 28px 28px;
+      font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+      <%# ── Header ─────────────────────────────────────────────── %>
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          width:52px;
+          height:52px;
+          border-radius:50%;
+          background:linear-gradient(135deg, #FEF3E2 0%, #FDECD0 100%);
+          margin-bottom:12px;
+        ">
+          <span style="font-size:24px;">⚖️</span>
+        </div>
+        <h3 style="
+          margin:0 0 4px;
+          font-size:20px;
+          font-weight:700;
+          color:#1a1a2e;
+          letter-spacing:-0.02em;
+        ">Legal Disclaimer — Premium Data</h3>
+        <p style="
+          margin:0;
+          font-size:13px;
+          color:#6c757d;
+          font-weight:500;
+        ">Please read and accept before viewing property data</p>
+      </div>
+
+      <%# ── Cuerpo Legal (Scrollable) ──────────────────────────── %>
+      <div style="
+        max-height:240px;
+        overflow-y:auto;
+        padding:16px 18px;
+        background:#f8f9fa;
+        border:1px solid #e9ecef;
+        border-radius:8px;
+        margin-bottom:20px;
+        font-size:12.5px;
+        line-height:1.65;
+        color:#2d3436;
+      ">
+        <p style="margin:0 0 10px;font-weight:700;color:#1a1a2e;font-size:13px;">
+          DESCARGO DE RESPONSABILIDAD / DISCLAIMER
+        </p>
+        <p style="margin:0 0 10px;">
+          La información proporcionada en esta plataforma, incluyendo pero no limitándose a datos de
+          propiedades, valuaciones, análisis de inversión, datos ambientales, información de gravámenes
+          e hipotecas y datos de riesgo, se ofrece únicamente con fines <strong>informativos y de
+          investigación</strong>.
+        </p>
+        <p style="margin:0 0 10px;">
+          <strong>TaxDeed Lion NO garantiza</strong> la exactitud, integridad, actualidad ni idoneidad
+          de la información presentada. Los datos provienen de fuentes públicas de terceros (registros
+          de condados, datos catastrales, FEMA, entre otros) y pueden contener errores, omisiones o
+          información desactualizada.
+        </p>
+        <p style="margin:0 0 10px;">
+          Esta información <strong>NO constituye asesoramiento legal, financiero, inmobiliario ni de
+          inversión</strong>. Antes de tomar cualquier decisión de compra, inversión o puja en una
+          subasta de Tax Deed, usted debe realizar su propia diligencia debida (<em>due diligence</em>)
+          independiente y consultar con profesionales licenciados (abogados, tasadores, asesores
+          financieros, inspectores, etc.).
+        </p>
+        <p style="margin:0 0 10px;">
+          Los cálculos de "Max Bid", "Price Estimate", valores estimados de venta y cualquier otra
+          métrica de inversión son <strong>estimaciones automatizadas</strong> basadas en modelos
+          matemáticos y datos públicos. NO deben interpretarse como predicciones ni garantías de
+          rendimiento futuro.
+        </p>
+        <p style="margin:0 0 10px;">
+          Al aceptar este descargo, usted reconoce y acepta que:
+        </p>
+        <ul style="margin:0 0 10px;padding-left:20px;">
+          <li style="margin-bottom:6px;">Utiliza la información bajo su propio riesgo.</li>
+          <li style="margin-bottom:6px;">TaxDeed Lion, sus propietarios, operadores y afiliados no serán
+            responsables de pérdidas, daños o perjuicios derivados del uso de esta información.</li>
+          <li style="margin-bottom:6px;">Es su responsabilidad verificar de manera independiente toda la
+            información antes de actuar sobre ella.</li>
+          <li style="margin-bottom:6px;">Las leyes de subastas de Tax Deed varían por estado y
+            jurisdicción; usted es responsable de conocer y cumplir las regulaciones aplicables.</li>
+        </ul>
+        <p style="margin:0;font-size:11px;color:#6c757d;font-style:italic;">
+          Al hacer clic en "Aceptar y Ver Datos", usted confirma que ha leído, entendido y aceptado
+          este descargo de responsabilidad en su totalidad.
+        </p>
+      </div>
+
+      <%# ── Formulario: Checkbox + Botón ───────────────────────── %>
+      <form action="/research/legal_agreements/accept_premium_disclaimer" method="post" data-turbo="true">
+        <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+        <input type="hidden" name="parcel_id" value="<%= @parcel.id %>">
+
+        <%# ── Checkbox ──────────────────────────────────────────── %>
+        <label id="disclaimer-checkbox-label" style="
+          display:flex;
+          align-items:flex-start;
+          gap:10px;
+          cursor:pointer;
+          padding:12px 14px;
+          border:2px solid #e0e0e0;
+          border-radius:8px;
+          margin-bottom:16px;
+          transition:border-color 0.2s ease, background 0.2s ease;
+          background:#ffffff;
+        " onmouseover="this.style.borderColor='#E67E22';this.style.background='#FEF9F3';"
+          onmouseout="if(!document.getElementById('disclaimer-accept-check').checked){this.style.borderColor='#e0e0e0';this.style.background='#ffffff';}">
+          <input
+            type="checkbox"
+            id="disclaimer-accept-check"
+            name="accepted"
+            required
+            style="
+              margin-top:2px;
+              width:18px;
+              height:18px;
+              accent-color:#E67E22;
+              cursor:pointer;
+              flex-shrink:0;
+            "
+            onchange="
+              var btn = document.getElementById('disclaimer-accept-btn');
+              var lbl = document.getElementById('disclaimer-checkbox-label');
+              if(this.checked){
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                lbl.style.borderColor = '#E67E22';
+                lbl.style.background = '#FEF9F3';
+              } else {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+                lbl.style.borderColor = '#e0e0e0';
+                lbl.style.background = '#ffffff';
+              }
+            "
+          >
+          <span style="font-size:13px;line-height:1.5;color:#2d3436;font-weight:500;">
+            He leído y acepto los términos y el descargo de responsabilidad.
+            Entiendo que la información es de carácter informativo y no constituye
+            asesoramiento profesional.
+          </span>
+        </label>
+
+        <%# ── Botón Submit (Regla Naranja #E67E22) ─────────────── %>
+        <button
+          type="submit"
+          id="disclaimer-accept-btn"
+          disabled
+          style="
+            display:block;
+            width:100%;
+            padding:14px 24px;
+            background:linear-gradient(135deg, #E67E22 0%, #D35400 100%);
+            color:#ffffff;
+            font-size:15px;
+            font-weight:700;
+            border:none;
+            border-radius:8px;
+            cursor:not-allowed;
+            opacity:0.5;
+            transition:all 0.25s ease;
+            letter-spacing:0.02em;
+            box-shadow:0 4px 12px rgba(230,126,34,0.3);
+          "
+          onmouseover="if(!this.disabled){this.style.background='linear-gradient(135deg, #D35400 0%, #C0392B 100%)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(230,126,34,0.4)';}"
+          onmouseout="if(!this.disabled){this.style.background='linear-gradient(135deg, #E67E22 0%, #D35400 100%)';this.style.transform='translateY(0)';this.style.boxShadow='0 4px 12px rgba(230,126,34,0.3)';}"
+        >
+          ✅ Aceptar y Ver Datos
+        </button>
+      </form>
+
+      <p style="
+        text-align:center;
+        margin:12px 0 0;
+        font-size:11px;
+        color:#adb5bd;
+        font-weight:400;
+      ">
+        Esta aceptación se registra con fecha y hora como respaldo legal.
+      </p>
+    </div>
+  </div>
+</div>
+
+<% else %>
+<%# ══════════════════════════════════════════════════════════════════════
+    NORMAL RENDER — Disclaimer ya aceptado (o admin override)
+    Se renderizan los datos premium normalmente con la lógica de blur/unlock
+    existente (fp-locked / fp-unlocked).
+═══════════════════════════════════════════════════════════════════════ %>
 
 <%# ── Property Characteristics ──────────────────────────────────────────── %>
 <div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-premium-1">
@@ -175,3 +428,7 @@
     </div>
   </div>
 </div>
+
+<% end %>
+
+</div><%# /premium-data-wrapper %>

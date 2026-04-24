@@ -26,6 +26,13 @@ Rails.application.routes.draw do
       end
     end
 
+    # ── Legal Agreements (Gated Disclaimer) ────────────────────────────────
+    # POST /research/legal_agreements/accept_premium_disclaimer
+    # Accepts the premium data legal disclaimer and records audit timestamp.
+    resource :legal_agreements, only: [], controller: "legal_agreements" do
+      post :accept_premium_disclaimer
+    end
+
     # Mini CRM — Rama 2 escribe exclusivamente (nested under parcel context)
     resources :parcel_user_tags,  only: [:create],                   path: "parcel_user_tags"
     resources :parcel_user_notes, only: [:create, :destroy],         path: "parcel_user_notes"
