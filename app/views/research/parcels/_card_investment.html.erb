@@ -1,6 +1,6 @@
 <%# ─ PARTIAL: _card_investment.html.erb ──────────────────────────────────────
     Resumen financiero de inversión — siempre premium/blur.
-    Opening Bid · Assessed Value · Price/Acre · Est. Sale Value · Max Bid 30% · Max Bid 35%.
+    Opening Bid · Est. Sale Value · Price/Acre · Max Bid 30% · Max Bid 35%.
 ─────────────────────────────────────────────────────────────────────────── %>
 
 <div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-card-investment">
@@ -25,10 +25,7 @@
         <div class="fp-kpi-label">Max Bid 35%</div>
         <div class="fp-kpi-value"><%= @parcel.max_bid_35 ? number_to_currency(@parcel.max_bid_35) : "—" %></div>
       </div>
-      <div class="fp-kpi-cell">
-        <div class="fp-kpi-label">Min Bid +16%</div>
-        <div class="fp-kpi-value"><%= @parcel.adjusted_value_16 ? number_to_currency(@parcel.adjusted_value_16) : "—" %></div>
-      </div>
+
       <div class="fp-kpi-cell">
         <div class="fp-kpi-label">Est. Sale Value</div>
         <div class="fp-kpi-value"><%= @parcel.estimated_sale_value.present? && @parcel.estimated_sale_value > 0 ? number_to_currency(@parcel.estimated_sale_value) : "—" %></div>

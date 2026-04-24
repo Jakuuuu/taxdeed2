@@ -55,12 +55,6 @@ class Parcel < ApplicationRecord
     end
   }
 
-  # ── Calculados al vuelo (NO almacenados) ─────────────────────
-  def adjusted_value_16
-    return nil unless opening_bid
-    (opening_bid * 1.16).round(2)
-  end
-
   # max_bid_30 y max_bid_35 — ahora importados del Sheet como columnas BD.
   # ActiveRecord los sirve directamente. Ya NO se computan.
 

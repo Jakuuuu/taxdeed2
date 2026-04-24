@@ -213,13 +213,13 @@ class E2ESyncVisualQA < Minitest::Test
     # Verificar patrón de nil-guard para campos monetarios
     currency_fields = %w[opening_bid assessed_value market_value land_value
                          improvement_value delinquent_amount estimated_sale_value
-                         price_per_acre max_bid_30 max_bid_35 adjusted_value_16]
+                         price_per_acre max_bid_30 max_bid_35]
 
     currency_fields.each do |field|
       has_guard = view_source.include?("@parcel.#{field} ?") ||
                   view_source.include?("@parcel.#{field}?")
       # Los calculados se llaman como métodos
-      if %w[max_bid_30 max_bid_35 adjusted_value_16].include?(field)
+      if %w[max_bid_30 max_bid_35].include?(field)
         has_guard ||= view_source.include?("@parcel.#{field} ?")
       end
       assert has_guard || !view_source.include?(field),

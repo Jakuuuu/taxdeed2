@@ -176,7 +176,7 @@ template = File.read(template_path)
 # Check all financial fields use the ternary guard pattern
 financial_fields = %w[opening_bid assessed_value market_value land_value improvement_value
                       delinquent_amount estimated_sale_value price_per_acre
-                      max_bid_30 max_bid_35 adjusted_value_16]
+                      max_bid_30 max_bid_35]
 
 financial_fields.each do |field|
   # Pattern: @parcel.field ? number_to_currency(@parcel.field) : "—"
