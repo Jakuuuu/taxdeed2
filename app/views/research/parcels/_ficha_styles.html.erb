@@ -154,18 +154,10 @@
   font-variant-numeric:tabular-nums;
 }
 
-/* ── Grid Layout System ───────────────────────────────────────────────── */
-.fp-grid { display:grid; gap:16px; margin-bottom:16px; }
-.fp-grid--3 { grid-template-columns:repeat(3, 1fr); }
-.fp-grid--2 { grid-template-columns:repeat(2, 1fr); }
-.fp-grid--1 { grid-template-columns:1fr; }
-@media (max-width:1000px) {
-  .fp-grid--3 { grid-template-columns:1fr; }
-  .fp-grid--2 { grid-template-columns:1fr; }
-}
-@media (min-width:1001px) and (max-width:1300px) {
-  .fp-grid--3 { grid-template-columns:1fr 1fr; }
-}
+
+
+/* ── Vertical Stack Spacing ───────────────────────────────────────────── */
+#premium-data-wrapper { display:flex; flex-direction:column; gap:16px; }
 
 /* ── Card Base ────────────────────────────────────────────────────────── */
 .fp-card {
@@ -176,7 +168,10 @@
   display: flex;
   flex-direction: column;
   transition: border-color .25s, box-shadow .25s;
+  margin-bottom: 0; /* gap handles spacing inside #premium-data-wrapper */
 }
+.fp-card + .fp-card { margin-top: 0; } /* prevent double margins */
+.ficha-container > .fp-card { margin-bottom: 16px; } /* top-level cards outside wrapper */
 .fp-card:hover {
   border-color: rgba(201,168,76,.35);
   box-shadow: var(--fp-shadow-md);
@@ -207,10 +202,17 @@
 .fp-card__body { padding:16px 18px; flex:1; }
 
 /* ── Data Grid (key-value pairs) ──────────────────────────────────────── */
-.fp-data-grid { display:grid; grid-template-columns:140px 1fr; gap:6px 12px; align-items:baseline; }
-.fp-data-grid--compact { grid-template-columns:120px 1fr; }
-.fp-data-label { font-size:12px; color:var(--fp-text-dim); font-weight:500; }
-.fp-data-value { font-size:13px; color:var(--fp-text); font-weight:600; word-break:break-word; }
+.fp-data-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 8px 16px;
+  align-items: baseline;
+  max-width: 680px;
+  margin: 0 auto;
+}
+.fp-data-grid--compact { grid-template-columns: 120px 1fr; }
+.fp-data-label { font-size: 12px; color: var(--fp-text-dim); font-weight: 500; padding: 2px 0; }
+.fp-data-value { font-size: 13px; color: var(--fp-text); font-weight: 600; word-break: break-word; padding: 2px 0; }
 
 /* ── KPI Cells (Investment Summary) ───────────────────────────────────── */
 .fp-kpi-highlight {
@@ -226,7 +228,7 @@
   font-family: var(--fp-font-money);
   font-variant-numeric: tabular-nums;
 }
-.fp-kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.fp-kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:680px; margin:0 auto; }
 .fp-kpi-cell {
   background: var(--fp-surface-2);
   border: 1px solid var(--fp-border);
@@ -250,7 +252,7 @@
 }
 
 /* ── Investment Calculator Grid ──────────────────────────────────────── */
-.fp-calc-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.fp-calc-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:680px; margin:0 auto; }
 .fp-calc-card {
   background: var(--fp-surface-2);
   border: 1px solid var(--fp-border);
@@ -326,6 +328,7 @@
 .fp-admin-badge { background:rgba(229,62,62,.08); color:var(--fp-red); border:1px solid rgba(229,62,62,.2); border-radius:12px; padding:2px 10px; font-size:11px; font-weight:600; }
 
 /* ── Paywall / Blur ───────────────────────────────────────────────────── */
+.fp-premium-gated { filter:blur(6px); pointer-events:none; user-select:none; opacity:0.4; }
 .fp-premium.fp-locked .fp-card__body { filter:blur(6px); pointer-events:none; user-select:none; }
 .fp-premium.fp-unlocked .fp-card__body { filter:none; }
 .fp-paywall-cta {
@@ -488,7 +491,7 @@
 
 /* Semantic chip colors (active states) */
 .crm-chip--target.active  { background: rgba(46,134,193,.08); border-color: var(--fp-blue);   color: var(--fp-blue); }
-.crm-chip--diligence.active { background: rgba(230,126,34,.08); border-color: var(--fp-orange); color: var(--fp-orange); }
+.crm-chip--diligence.active { background: rgba(44,82,130,.08); border-color: var(--fp-navy-light); color: var(--fp-navy-light); }
 .crm-chip--ready.active   { background: rgba(56,161,105,.08); border-color: var(--fp-green);  color: var(--fp-green); }
 .crm-chip--dismissed.active { background: rgba(107,114,128,.08); border-color: var(--fp-text-dim); color: var(--fp-text-dim); }
 
@@ -558,8 +561,5 @@
 
 /* ── Animations ───────────────────────────────────────────────────────── */
 .fp-card { animation:fadeSlideUp .35s ease-out both; }
-.fp-grid > :nth-child(1) { animation-delay:.05s; }
-.fp-grid > :nth-child(2) { animation-delay:.1s; }
-.fp-grid > :nth-child(3) { animation-delay:.15s; }
 @keyframes fadeSlideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 </style>

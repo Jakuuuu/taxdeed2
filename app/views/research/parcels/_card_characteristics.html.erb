@@ -1,5 +1,7 @@
 <%# ─ PARTIAL: _card_characteristics.html.erb ─────────────────────────────────
     Características físicas del terreno/propiedad — premium/blur.
+    Campos completos: Sqft, Lot, Acres, Min Lot, Lot Shape, Bedrooms,
+    Bathrooms, Zoning, Land Use, Jurisdiction, Homestead, Legal Description.
 ─────────────────────────────────────────────────────────────────────────── %>
 
 <div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-card-chars">
@@ -27,11 +29,56 @@
       <div class="fp-data-label">Lot Shape</div>
       <div class="fp-data-value"><%= @parcel.lot_shape.presence || "—" %></div>
 
+      <div class="fp-data-label">Bedrooms</div>
+      <div class="fp-data-value"><%= @parcel.bedrooms.presence || "—" %></div>
+
+      <div class="fp-data-label">Bathrooms</div>
+      <div class="fp-data-value"><%= @parcel.bathrooms.presence || "—" %></div>
+
       <div class="fp-data-label">Zoning</div>
       <div class="fp-data-value"><%= @parcel.zoning.presence || "—" %></div>
 
       <div class="fp-data-label">Land Use</div>
       <div class="fp-data-value"><%= @parcel.land_use.presence || "—" %></div>
+
+      <div class="fp-data-label">Jurisdiction</div>
+      <div class="fp-data-value"><%= @parcel.jurisdiction.presence || "—" %></div>
+
+      <div class="fp-data-label">Homestead</div>
+      <div class="fp-data-value">
+        <% if @parcel.homestead_flag.present? %>
+          <% hc = @parcel.homestead_flag.downcase == "homestead" ? "success" : "info" %>
+          <span class="fp-badge fp-badge--<%= hc %>"><%= @parcel.homestead_flag.titleize %></span>
+        <% else %>—<% end %>
+      </div>
+
+      <% if @parcel.legal_description.present? %>
+      <div class="fp-data-label">Legal Description</div>
+      <div class="fp-data-value" style="font-size:12px;line-height:1.45;"><%= @parcel.legal_description %></div>
+      <% end %>
+
+      <%# ── Campos migrados desde _card_property_info.html.erb (eliminado 2026-04-24) ── %>
+      <div class="fp-data-label">Tipo de Parcel</div>
+      <div class="fp-data-value"><%= @parcel.property_type.presence || "—" %></div>
+
+      <div class="fp-data-label">Modalidad de Subasta</div>
+      <div class="fp-data-value">
+        <% if @parcel.sale_venue.present? %>
+          <%= @parcel.sale_venue.downcase.include?("online") ? "💻" : "🏛" %> <%= @parcel.sale_venue %>
+        <% else %>
+          —
+        <% end %>
+      </div>
+
+      <div class="fp-data-label">Nivel de Crimen</div>
+      <div class="fp-data-value">
+        <% if @parcel.crime_level.present? %>
+          <% c_color = case @parcel.crime_level.downcase; when "low" then "#22c55e"; when "moderate" then "#f59e0b"; when "high" then "#ef4444"; else "#94a3b8"; end %>
+          <span style="color: <%= c_color %>; font-weight: 600;"><%= @parcel.crime_level.titleize %></span>
+        <% else %>
+          —
+        <% end %>
+      </div>
     </div>
   </div>
 </div>

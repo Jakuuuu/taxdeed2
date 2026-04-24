@@ -15,23 +15,14 @@
     <%# ── PAYWALL CTA (si locked) ─────────────────────────────────────── %>
     <%= render "research/parcels/paywall_cta" %>
 
-    <%# ── ROW 1: 3 columnas — Investment | Property Info | Legal ──────── %>
-    <div class="fp-grid fp-grid--3">
-      <%= render "research/parcels/card_investment" %>
-      <%= render "research/parcels/card_property_info" %>
-      <%= render "research/parcels/card_legal" %>
-    </div>
-
     <%# ── PREMIUM DATA (con Gated Disclaimer si aplica) ──────────────── %>
     <%#   Si el usuario desbloqueó pero NO aceptó el disclaimer legal,     %>
     <%#   _premium_data renderiza un overlay opaco con el texto legal.      %>
     <%#   Si ya aceptó, renderiza los datos normalmente con blur/unlock.    %>
     <%= render "research/parcels/premium_data" %>
 
-    <%# ── ROW: Resource Center ────────────────────────────────────────── %>
-    <div class="fp-grid fp-grid--2">
-      <%= render "research/parcels/resource_center" %>
-    </div>
+    <%# ── Resource Center ─────────────────────────────────────────────── %>
+    <%= render "research/parcels/resource_center" %>
 
     <%# ── FULL WIDTH: Mini CRM (siempre visible) ──────────────────────── %>
     <%= render "research/parcels/mini_crm" %>
@@ -39,10 +30,8 @@
     <%# ── FULL WIDTH: VA Analysis (siempre visible, condicional) ──────── %>
     <%= render "research/parcels/va_analysis" %>
 
-    <%# ── ROW 4: 2 columnas — GIS Map | Street View ──────────────────── %>
-    <div class="fp-grid fp-grid--2">
-      <%= render "research/parcels/gis_and_streetview" %>
-    </div>
+    <%# ── GIS Map & Street View ───────────────────────────────────────── %>
+    <%= render "research/parcels/gis_and_streetview" %>
 
     <%# ── FULL WIDTH: Title Report CTA (solo si unlocked) ─────────────── %>
     <%= render "research/parcels/title_report_cta" %>
