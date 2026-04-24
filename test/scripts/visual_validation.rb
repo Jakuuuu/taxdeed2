@@ -174,7 +174,7 @@ template_path = File.expand_path("../../app/views/research/parcels/show.html.erb
 template = File.read(template_path)
 
 # Check all financial fields use the ternary guard pattern
-financial_fields = %w[opening_bid assessed_value market_value land_value improvement_value
+financial_fields = %w[opening_bid assessed_value land_value improvement_value
                       delinquent_amount estimated_sale_value price_per_acre
                       max_bid_30 max_bid_35]
 

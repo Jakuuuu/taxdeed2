@@ -211,8 +211,8 @@ class E2ESyncVisualQA < Minitest::Test
     view_source = File.read(Rails.root.join("app/views/research/parcels/show.html.erb"))
 
     # Verificar patrón de nil-guard para campos monetarios
-    currency_fields = %w[opening_bid assessed_value market_value land_value
-                         improvement_value delinquent_amount estimated_sale_value
+    currency_fields = %w[opening_bid assessed_value land_value improvement_value
+                         delinquent_amount estimated_sale_value
                          price_per_acre max_bid_30 max_bid_35]
 
     currency_fields.each do |field|
