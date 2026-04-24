@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_21_160001) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_24_095538) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -175,13 +175,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_21_160001) do
     t.boolean "wetlands"
     t.text "fema_risk_level"
     t.text "fema_notes"
-    t.string "fema_url", limit: 500
-    t.string "regrid_url", limit: 500
-    t.string "gis_image_url", limit: 500
-    t.string "google_maps_url", limit: 500
-    t.string "property_image_url", limit: 500
-    t.string "clerk_url", limit: 500
-    t.string "tax_collector_url", limit: 500
+    t.string "fema_url", limit: 2048
+    t.string "regrid_url", limit: 2048
+    t.string "gis_image_url", limit: 2048
+    t.string "google_maps_url", limit: 2048
+    t.string "property_image_url", limit: 2048
+    t.string "clerk_url", limit: 2048
+    t.string "tax_collector_url", limit: 2048
     t.string "auction_status", default: "available"
     t.decimal "winning_bid", precision: 12, scale: 2
     t.string "data_source", default: "google_sheets"
@@ -190,6 +190,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_21_160001) do
     t.datetime "updated_at", null: false
     t.string "sale_venue", comment: "Sale venue from Google Sheet"
     t.text "comments_do_va"
+    t.decimal "price_estimate", precision: 12, scale: 2
+    t.decimal "max_bid_30", precision: 12, scale: 2
+    t.decimal "max_bid_35", precision: 12, scale: 2
+    t.text "technical_analysis"
+    t.string "property_appraiser_url", limit: 500
     t.index ["auction_id"], name: "index_parcels_on_auction_id"
     t.index ["latitude", "longitude"], name: "idx_parcels_lat_lng"
     t.index ["parcel_id"], name: "index_parcels_on_parcel_id"

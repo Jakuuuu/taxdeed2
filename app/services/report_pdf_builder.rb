@@ -72,11 +72,12 @@ class ReportPdfBuilder
     assessed_value  = @parcel.assessed_value.to_f
     market_value    = @parcel.market_value.to_f
     est_sale        = @parcel.estimated_sale_value.to_f
+    price_estimate  = @parcel.price_estimate.to_f
 
-    # Calculated fields (never stored, computed at render time)
+    # Calculated locally (only valor_ajustado — the rest come from the Sheet)
     valor_ajustado  = (opening_bid * 1.16).round(2)
-    max_bid_30      = (assessed_value * 0.30).round(2)
-    max_bid_35      = (assessed_value * 0.35).round(2)
+    max_bid_30      = @parcel.max_bid_30.to_f
+    max_bid_35      = @parcel.max_bid_35.to_f
 
     data = [
       ["Metric", "Value"],
@@ -85,8 +86,9 @@ class ReportPdfBuilder
       ["Assessed Value",               fmt_currency(assessed_value)],
       ["Market Value (Appraisal)",     fmt_currency(market_value)],
       ["Estimated Sale Value",         fmt_currency(est_sale)],
-      ["Max Bid at 30% of Assessed",   fmt_currency(max_bid_30)],
-      ["Max Bid at 35% of Assessed",   fmt_currency(max_bid_35)],
+      ["Price Estimate",               fmt_currency(price_estimate)],
+      ["Max Bid at 30%",               fmt_currency(max_bid_30)],
+      ["Max Bid at 35%",               fmt_currency(max_bid_35)],
       ["Price per Acre",               fmt_currency(@parcel.price_per_acre.to_f)]
     ]
 
@@ -215,12 +217,13 @@ class ReportPdfBuilder
     section_title(pdf, "External Resources")
     links = [
       ["Resource", "URL"],
-      ["Regrid Map",            @parcel.regrid_url          || "—"],
-      ["GIS Image",             @parcel.gis_image_url       || "—"],
-      ["Google Maps",           @parcel.google_maps_url     || "—"],
-      ["Clerk of Courts",       @parcel.clerk_url           || "—"],
-      ["Tax Collector",         @parcel.tax_collector_url   || "—"],
-      ["FEMA Flood Map",        @parcel.fema_url            || "—"]
+      ["Regrid Map",                @parcel.regrid_url             || "—"],
+      ["GIS Image",                 @parcel.gis_image_url          || "—"],
+      ["Google Maps",               @parcel.google_maps_url        || "—"],
+      ["Property Appraisal Page",   @parcel.property_appraiser_url || "—"],
+      ["Clerk of Courts",           @parcel.clerk_url              || "—"],
+      ["Tax Collector",             @parcel.tax_collector_url      || "—"],
+      ["FEMA Flood Map",            @parcel.fema_url               || "—"]
     ]
     render_table(pdf, links)
   end

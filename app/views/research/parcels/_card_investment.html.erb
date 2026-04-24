@@ -1,6 +1,6 @@
 <%# ─ PARTIAL: _card_investment.html.erb ──────────────────────────────────────
     Resumen financiero de inversión — siempre premium/blur.
-    Opening Bid + Max Bids + Est. Sale + Price/Acre + Winning Bid.
+    Opening Bid + Max Bids + Est. Sale + Price/Acre.
 ─────────────────────────────────────────────────────────────────────────── %>
 
 <div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-card-investment">
@@ -37,12 +37,7 @@
         <div class="fp-kpi-label">Price / Acre</div>
         <div class="fp-kpi-value"><%= @parcel.price_per_acre ? number_to_currency(@parcel.price_per_acre) : "—" %></div>
       </div>
-      <% if @parcel.winning_bid.present? %>
-      <div class="fp-kpi-cell fp-kpi-cell--success">
-        <div class="fp-kpi-label">Winning Bid</div>
-        <div class="fp-kpi-value"><%= number_to_currency(@parcel.winning_bid) %></div>
-      </div>
-      <% end %>
+    
     </div>
   </div>
 </div>

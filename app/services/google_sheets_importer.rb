@@ -39,8 +39,8 @@ class GoogleSheetsImporter
   MARKETS_TAB  = "Mercados"    # Rama 4: Volumen inmobiliario mensual
 
   # ── Rangos para la pestaña principal (Propiedades) ────────────────────
-  DATA_RANGE = "#{SHEET_TAB}!A2:CE"
-  HEADER_RANGE = "#{SHEET_TAB}!A1:CE1"
+  DATA_RANGE = "#{SHEET_TAB}!A2:CD"
+  HEADER_RANGE = "#{SHEET_TAB}!A1:CD1"
 
   # ── Rangos para Condados (hasta columna AI = 35 columnas) ─────────────
   COUNTIES_HEADER_RANGE = "#{COUNTIES_TAB}!A1:AI1"
@@ -129,7 +129,7 @@ class GoogleSheetsImporter
     loop do
       start_row = row_offset + (chunk_index * chunk_size)
       end_row   = start_row + chunk_size - 1
-      range     = "#{SHEET_TAB}!A#{start_row}:CE#{end_row}"
+      range     = "#{SHEET_TAB}!A#{start_row}:CD#{end_row}"
 
       Rails.logger.info "[GoogleSheetsImporter] 📦 Fetching chunk #{chunk_index + 1}: rows #{start_row}–#{end_row}"
 
@@ -392,7 +392,7 @@ class GoogleSheetsImporter
 
     service = build_service
 
-    range = "#{SHEET_TAB}!A2:CE"
+    range = "#{SHEET_TAB}!A2:CD"
 
     response = service.get_spreadsheet(
       sheet_id,

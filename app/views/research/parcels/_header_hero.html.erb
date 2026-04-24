@@ -57,6 +57,9 @@
     <% if @parcel.property_type.present? %>
       <div class="fp-hero__pill">🏠 <%= @parcel.property_type %></div>
     <% end %>
+    <% if @parcel.sale_venue.present? %>
+      <div class="fp-hero__pill"><%= @parcel.sale_venue.downcase.include?("online") ? "💻" : "🏛" %> <%= @parcel.sale_venue %></div>
+    <% end %>
     <% ds = @parcel.display_auction_status %>
     <% s_cls = case ds; when "available" then "success"; when "sold" then "danger"; when "expired" then "muted"; else "muted"; end %>
     <span class="fp-badge fp-badge--<%= s_cls %>"><%= ds == "expired" ? "No Disponible" : ds&.titleize %></span>

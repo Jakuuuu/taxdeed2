@@ -30,13 +30,12 @@ class SheetRowProcessor
   # Columnas que contienen hyperlinks embebidos en el Sheet.
   # Mapa: campo del modelo → posición de columna en el Sheet (0-indexed).
   URL_FIELDS = {
-    regrid_url:         REGRID_URL,          # 28 (AC)
-    gis_image_url:      GIS_IMAGE_URL,       # 29 (AD)
-    google_maps_url:    GOOGLE_MAPS_URL,     # 30 (AE)
-    fema_url:           FEMA_URL,            # 42 (AQ)
-    property_image_url: PROPERTY_IMAGE_URL,  # 44 (AS)
-    clerk_url:          CLERK_URL,           # 79 (CB)
-    tax_collector_url:  TAX_COLLECTOR_URL,   # 80 (CC)
+    google_maps_url:        GOOGLE_MAPS_URL,        # 30 (AE)
+    fema_url:               FEMA_URL,               # 42 (AQ)
+    property_image_url:     PROPERTY_IMAGE_URL,     # 44 (AS)
+    property_appraiser_url: PROPERTY_APPRAISER_URL,  # 77 (BZ)
+    clerk_url:              CLERK_URL,              # 78 (CA)
+    tax_collector_url:      TAX_COLLECTOR_URL,      # 79 (CB)
   }.freeze
 
   # ── API PÚBLICA ────────────────────────────────────────────────────────────
@@ -119,6 +118,9 @@ class SheetRowProcessor
       opening_bid:          Sanitize.currency(col(OPENING_BID)),
       assessed_value:       Sanitize.currency(col(ASSESSED_VALUE)),
       estimated_sale_value: Sanitize.currency(col(ESTIMATED_SALE_VALUE)),
+      price_estimate:       Sanitize.currency(col(PRICE_ESTIMATE)),
+      max_bid_30:           Sanitize.currency(col(MAX_BID_30)),
+      max_bid_35:           Sanitize.currency(col(MAX_BID_35)),
       price_per_acre:       calculate_price_per_acre,
 
       # ── NUMÉRICOS (Sanitize.decimal — alineado con decimal() en PostgreSQL) ──
@@ -145,7 +147,7 @@ class SheetRowProcessor
       lot_shape:            Sanitize.text(col(LOT_SHAPE)),
       fema_notes:           Sanitize.text(col(FEMA_NOTES)),
       fema_risk_level:      Sanitize.text(col(FEMA_RISK_LEVEL)),
-      comments_do_va:       Sanitize.text(col(COMMENTS_DO_VA)),
+      technical_analysis:   Sanitize.text(col(TECHNICAL_ANALYSIS)),
 
       # ── HABITACIONES / DORMITORIOS ─────────────────────────────────────
       # bathrooms: decimal(3,1) en BD → Sanitize.decimal preserva fracciones (1.5 baños)
@@ -160,13 +162,12 @@ class SheetRowProcessor
       hoa:                  Sanitize.boolean(col(HOA)),
 
       # ── URLs (resolve_url: prioriza hyperlink real sobre texto visible) ──
-      regrid_url:           resolve_url(:regrid_url),
-      gis_image_url:        resolve_url(:gis_image_url),
-      google_maps_url:      resolve_url(:google_maps_url),
-      fema_url:             resolve_url(:fema_url),
-      property_image_url:   resolve_url(:property_image_url),
-      clerk_url:            resolve_url(:clerk_url),
-      tax_collector_url:    resolve_url(:tax_collector_url),
+      google_maps_url:        resolve_url(:google_maps_url),
+      fema_url:               resolve_url(:fema_url),
+      property_image_url:     resolve_url(:property_image_url),
+      property_appraiser_url: resolve_url(:property_appraiser_url),
+      clerk_url:              resolve_url(:clerk_url),
+      tax_collector_url:      resolve_url(:tax_collector_url),
 
       # ── COORDENADAS (parser especial) ─────────────────────────────────
       **parsed_coords,

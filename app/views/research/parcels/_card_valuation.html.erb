@@ -15,10 +15,8 @@
       <div class="fp-data-label">Market Value</div>
       <div class="fp-data-value"><%= @parcel.market_value ? number_to_currency(@parcel.market_value) : "—" %></div>
 
-      <% if @parcel.winning_bid.present? %>
-      <div class="fp-data-label">Winning Bid</div>
-      <div class="fp-data-value" style="color:#2ECC71;font-weight:700;"><%= number_to_currency(@parcel.winning_bid) %></div>
-      <% end %>
+
+
     </div>
   </div>
 </div>

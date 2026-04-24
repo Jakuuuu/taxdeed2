@@ -34,9 +34,7 @@
       <div class="fp-data-label">FEMA Risk Level</div>
       <div class="fp-data-value">
         <% fema_val = @parcel.fema_risk_level.to_s.strip %>
-        <% if fema_val.blank? %>—
-        <% elsif fema_val =~ /\Ahttps?:\/\//i %>
-          <a href="<%= fema_val %>" target="_blank" rel="noopener" style="color:var(--fp-blue);font-size:12px;font-weight:600;">View FEMA Map ↗</a>
+        <% if fema_val.blank? || fema_val =~ /\Ahttps?:\/\//i %>—
         <% else %>
           <% fc = fema_val.downcase.include?("minimal") ? "success" : (fema_val.downcase.include?("high") ? "danger" : "warning") %>
           <span class="fp-badge fp-badge--<%= fc %>"><%= fema_val %></span>

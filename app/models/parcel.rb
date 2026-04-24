@@ -61,15 +61,8 @@ class Parcel < ApplicationRecord
     (opening_bid * 1.16).round(2)
   end
 
-  def max_bid_30
-    return nil unless assessed_value
-    (assessed_value * 0.30).round(2)
-  end
-
-  def max_bid_35
-    return nil unless assessed_value
-    (assessed_value * 0.35).round(2)
-  end
+  # max_bid_30 y max_bid_35 — ahora importados del Sheet como columnas BD.
+  # ActiveRecord los sirve directamente. Ya NO se computan.
 
   # ── Status dinámico (Motor de Tiempo) ──────────────────────────
   # Calcula el auction_status en tiempo real según la fecha de subasta.

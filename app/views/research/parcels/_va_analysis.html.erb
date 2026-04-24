@@ -1,12 +1,13 @@
 <%# ─ PARTIAL: _va_analysis.html.erb ─────────────────────────────────────────
-    VA Analysis — SIEMPRE VISIBLE. Datos del equipo, no paywall.
-    Solo se renderiza si comments_do_va tiene contenido.
+    Technical Analysis — SIEMPRE VISIBLE. Datos del equipo, no paywall.
+    Solo se renderiza si technical_analysis tiene contenido.
+    (Antes: comments_do_va — reemplazado en remapeo 2026-04-24)
 ─────────────────────────────────────────────────────────────────────────── %>
-<% if @parcel.comments_do_va.present? %>
-<div class="fp-card" id="ficha-va-comments">
+<% if @parcel.technical_analysis.present? %>
+<div class="fp-card" id="ficha-technical-analysis">
   <div class="fp-card__hdr" style="background: linear-gradient(135deg, #FFF8E1 0%, #FFF3CD 100%); border-bottom-color: rgba(218,165,32,0.25);">
     <span class="fp-card__hdr-icon">📋</span>
-    <h3 class="fp-card__hdr-title" style="color: #856404;">VA Analysis</h3>
+    <h3 class="fp-card__hdr-title" style="color: #856404;">Technical Analysis</h3>
     <span class="fp-card__hdr-badge" style="background: rgba(218,165,32,0.12); color: #856404; border-color: rgba(218,165,32,0.3);">Research Notes</span>
   </div>
   <div class="fp-card__body">
@@ -21,9 +22,9 @@
       color: #4A3800;
       white-space: pre-wrap;
       font-family: var(--fp-font);
-    "><%= @parcel.comments_do_va %></div>
+    "><%= @parcel.technical_analysis %></div>
     <p style="font-size: 11px; color: var(--fp-text-dim); margin: 10px 0 0; text-align: right;">
-      📌 Análisis del equipo de Virtual Assistants — no editable por el usuario
+      📌 Technical analysis — no editable por el usuario
     </p>
   </div>
 </div>
