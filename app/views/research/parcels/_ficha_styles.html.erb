@@ -156,8 +156,30 @@
 
 
 
-/* ── Vertical Stack Spacing ───────────────────────────────────────────── */
-#premium-data-wrapper { display:flex; flex-direction:column; gap:16px; }
+/* ── Two-Column Grid System ──────────────────────────────────────────── */
+.ficha-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.ficha-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+/* Premium wrapper spans full width of parent grid */
+#premium-data-wrapper {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+/* Resource center — lives inside right .ficha-col, no blur */
+#ficha-resource-center {
+  /* No extra margin needed; .ficha-col gap handles spacing */
+}
 
 /* ── Card Base ────────────────────────────────────────────────────────── */
 .fp-card {
@@ -331,17 +353,130 @@
 .fp-premium-gated { filter:blur(6px); pointer-events:none; user-select:none; opacity:0.4; }
 .fp-premium.fp-locked .fp-card__body { filter:blur(6px); pointer-events:none; user-select:none; }
 .fp-premium.fp-unlocked .fp-card__body { filter:none; }
-.fp-paywall-cta {
+
+/* ── Paywall Vault (Redesigned CTA) ──────────────────────────────────── */
+.fp-paywall-vault {
+  background: linear-gradient(135deg, var(--fp-navy) 0%, var(--fp-navy-light) 100%);
+  border: 1px solid rgba(201,168,76,.25);
+  border-radius: var(--fp-radius-lg);
+  padding: 36px 32px 32px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 32px rgba(30,58,95,.18);
   text-align: center;
-  background: var(--fp-surface);
-  border: 1px solid var(--fp-border);
-  border-radius: var(--fp-radius);
-  padding: 24px;
-  margin-bottom: 16px;
-  box-shadow: var(--fp-shadow);
+  position: relative;
+  overflow: hidden;
 }
-.fp-paywall-cta__title { font-size:16px; font-weight:700; margin-bottom:6px; color:var(--fp-navy); }
-.fp-paywall-cta__sub { font-size:13px; color:var(--fp-text-dim); margin-bottom:14px; }
+.fp-paywall-vault::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--fp-gold), var(--fp-orange), var(--fp-gold));
+}
+.fp-paywall-vault::after {
+  content: '';
+  position: absolute;
+  bottom: -30%; right: -10%;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: rgba(201,168,76,.06);
+  pointer-events: none;
+}
+.fp-vault__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: rgba(201,168,76,.12);
+  border: 2px solid rgba(201,168,76,.25);
+  font-size: 28px;
+  margin-bottom: 16px;
+}
+.fp-vault__title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+  position: relative; z-index: 1;
+}
+.fp-vault__sub {
+  font-size: 14px;
+  color: rgba(255,255,255,.65);
+  margin: 0 0 24px;
+  font-weight: 500;
+  position: relative; z-index: 1;
+}
+.fp-vault-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 520px;
+  margin: 0 auto 28px;
+  position: relative; z-index: 1;
+}
+.fp-vault-feature {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--fp-radius);
+  padding: 16px 12px;
+  backdrop-filter: blur(4px);
+  transition: all .2s;
+}
+.fp-vault-feature:hover {
+  background: rgba(255,255,255,.14);
+  border-color: rgba(201,168,76,.35);
+  transform: translateY(-2px);
+}
+.fp-vault-feature__icon { font-size: 24px; margin-bottom: 8px; }
+.fp-vault-feature__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,.85);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.fp-vault-feature__count {
+  font-size: 10px;
+  color: var(--fp-gold-light);
+  margin-top: 2px;
+}
+.fp-unlock-wrap { position: relative; z-index: 1; }
+.fp-unlock-btn {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, #E67E22 0%, #D35400 100%);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  border: none;
+  border-radius: var(--fp-radius);
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(230,126,34,.35);
+  transition: all .25s ease;
+  font-family: var(--fp-font);
+  letter-spacing: 0.02em;
+}
+.fp-unlock-btn:hover {
+  background: linear-gradient(135deg, #D35400 0%, #C0392B 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(230,126,34,.45);
+}
+.fp-credit-hint {
+  font-size: 12px;
+  color: rgba(255,255,255,.5);
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+/* Old paywall compat */
+.fp-paywall-cta { display: none; } /* Replaced by .fp-paywall-vault */
+.fp-hidden { display: none !important; }
+.fp-visible { display: flex !important; }
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
 .fp-btn {
@@ -562,4 +697,50 @@
 /* ── Animations ───────────────────────────────────────────────────────── */
 .fp-card { animation:fadeSlideUp .35s ease-out both; }
 @keyframes fadeSlideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── Unlocked / Admin Banners ────────────────────────────────────────── */
+.fp-unlocked-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: rgba(56,161,105,.06);
+  border: 1px solid rgba(56,161,105,.25);
+  border-radius: var(--fp-radius);
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fp-green);
+}
+.fp-unlocked-banner.fp-visible { display: flex; }
+.fp-admin-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(229,62,62,.05);
+  border: 1px solid rgba(229,62,62,.2);
+  border-radius: var(--fp-radius);
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fp-red);
+}
+
+/* ── Responsive: Two-Column → Single-Column ──────────────────────────── */
+@media (max-width: 900px) {
+  .ficha-two-col { grid-template-columns: 1fr; }
+  #premium-data-wrapper { grid-template-columns: 1fr; }
+  .ficha-two-col > #ficha-resource-center { grid-column: auto; }
+  .fp-vault-features { grid-template-columns: 1fr 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .ficha-container { padding: 12px 14px 32px; }
+  .fp-hero { padding: 20px 18px 18px; }
+  .fp-hero__title { font-size: 18px; }
+  .fp-hero__bid-amount { font-size: 22px; }
+  .fp-vault-features { grid-template-columns: 1fr; gap: 8px; }
+  .fp-paywall-vault { padding: 24px 18px 22px; }
+  .fp-vault__title { font-size: 18px; }
+}
 </style>

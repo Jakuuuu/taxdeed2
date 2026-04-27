@@ -1,27 +1,42 @@
 <%# ─ PARTIAL: _paywall_cta.html.erb ─────────────────────────────────────────
-    Paywall CTA (Regla Naranja #E67E22) + Unlocked banner.
+    Paywall Vault CTA (Regla Naranja #E67E22) + Unlocked banner.
+    REDISEÑO 2026-04-26: "Intelligence Vault" con mini-cards de features.
     CRÍTICO: CRM y Mapa NUNCA quedan bajo este difuminado.
     Admin Override: oculta el paywall completamente.
 ─────────────────────────────────────────────────────────────────────────── %>
 
 <%# REGLA NARANJA — CTA transaccional: solo este botón y Title Report %>
 <% unless @admin_override %>
-<div class="fp-paywall-cta<%= ' fp-hidden' if @unlocked %>" id="ficha-paywall-cta">
-  <div style="position:relative;z-index:1;">
-    <p class="fp-paywall-info__title">🔓 Unlock Full Property Report</p>
-    <p class="fp-paywall-info__desc">Access complete property data, investment metrics, and the ability to order a Title Report.</p>
-    <div class="fp-paywall-items">
-      <span class="fp-paywall-item">✓ Property Characteristics</span>
-      <span class="fp-paywall-item">✓ Valuation Data</span>
-      <span class="fp-paywall-item">✓ Investment Calculator</span>
-      <span class="fp-paywall-item">✓ Mortgages &amp; Liens</span>
-      <span class="fp-paywall-item">✓ FEMA / Risk Data</span>
-      <span class="fp-paywall-item">✓ Owner Info</span>
-      <span class="fp-paywall-item">✓ Title Report Access</span>
+<div class="fp-paywall-vault<%= ' fp-hidden' if @unlocked %>" id="ficha-paywall-cta">
+
+  <%# ── Vault Icon ──────────────────────────────────────────────── %>
+  <div class="fp-vault__icon">🔒</div>
+
+  <%# ── Title + Subtitle ──────────────────────────────────────── %>
+  <h2 class="fp-vault__title">Unlock Full Intelligence Report</h2>
+  <p class="fp-vault__sub">Access 34+ data points for this property — valuation, investment metrics, environmental risk, and more.</p>
+
+  <%# ── Feature Mini-Cards ────────────────────────────────────── %>
+  <div class="fp-vault-features">
+    <div class="fp-vault-feature">
+      <div class="fp-vault-feature__icon">🏠</div>
+      <div class="fp-vault-feature__label">Property Details</div>
+      <div class="fp-vault-feature__count">15 fields</div>
+    </div>
+    <div class="fp-vault-feature">
+      <div class="fp-vault-feature__icon">💰</div>
+      <div class="fp-vault-feature__label">Investment Metrics</div>
+      <div class="fp-vault-feature__count">6 KPIs</div>
+    </div>
+    <div class="fp-vault-feature">
+      <div class="fp-vault-feature__icon">⚡</div>
+      <div class="fp-vault-feature__label">Risk & Environment</div>
+      <div class="fp-vault-feature__count">7 indicators</div>
     </div>
   </div>
+
+  <%# ── Unlock Button (Regla Naranja #E67E22) ────────────────── %>
   <div class="fp-unlock-wrap">
-    <%# REGLA NARANJA (#E67E22) — exclusivo para este CTA transaccional %>
     <button class="fp-unlock-btn" id="ficha-unlock-btn"
             onclick="fichaUnlock(<%= @parcel.id %>)">
       🔓 Desbloquear Ficha Completa — 1 Crédito
@@ -29,6 +44,7 @@
     <% credits_left = current_user.subscription&.limit_parcels.to_i - current_user.subscription&.used_parcels.to_i %>
     <div class="fp-credit-hint"><%= credits_left %> créditos disponibles</div>
   </div>
+
 </div>
 <% end %>
 

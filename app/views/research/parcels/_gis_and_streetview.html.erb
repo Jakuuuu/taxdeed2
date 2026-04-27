@@ -21,7 +21,8 @@
 </div>
 
 <%# ── Street View ────────────────────────────────────────────────────────── %>
-<% if @parcel.has_coords? && ENV['GOOGLE_MAPS_API_KEY'].present? %>
+<% sv_src = street_view_iframe_src(@parcel) %>
+<% if sv_src %>
 <div class="fp-card" id="ficha-streetview">
   <div class="fp-card__hdr">
     <span class="fp-card__hdr-icon">📷</span>
@@ -29,7 +30,7 @@
     <span class="fp-card__hdr-badge">Always Visible</span>
   </div>
   <iframe
-    src="<%= @parcel.street_view_url(ENV['GOOGLE_MAPS_API_KEY']) %>"
+    src="<%= sv_src %>"
     style="width:100%;height:260px;border:none;display:block;"
     allowfullscreen
     loading="lazy"

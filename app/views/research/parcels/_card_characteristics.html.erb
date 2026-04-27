@@ -57,10 +57,6 @@
       <div class="fp-data-value" style="font-size:12px;line-height:1.45;"><%= @parcel.legal_description %></div>
       <% end %>
 
-      <%# ── Campos migrados desde _card_property_info.html.erb (eliminado 2026-04-24) ── %>
-      <div class="fp-data-label">Tipo de Parcel</div>
-      <div class="fp-data-value"><%= @parcel.property_type.presence || "—" %></div>
-
       <div class="fp-data-label">Modalidad de Subasta</div>
       <div class="fp-data-value">
         <% if @parcel.sale_venue.present? %>

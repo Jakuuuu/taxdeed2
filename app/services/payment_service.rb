@@ -14,7 +14,7 @@
 #   4. Ver TODO en el plan para el checklist completo (Modulo 6)
 #
 class PaymentService
-  MOCK_MODE = true
+  MOCK_MODE = ENV.fetch("STRIPE_MOCK_MODE", Rails.env.production? ? "false" : "true") == "true"
 
   # Crea un Customer en Stripe y retorna su ID
   def self.create_customer(user)

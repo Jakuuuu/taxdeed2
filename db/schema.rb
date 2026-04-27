@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_24_164500) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_27_100400) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -93,6 +93,43 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_24_164500) do
     t.datetime "updated_at", null: false
     t.index ["market_status"], name: "index_county_market_stats_on_market_status"
     t.index ["state", "county"], name: "idx_county_stats_state_county", unique: true
+  end
+
+  create_table "credit_topups", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "stripe_payment_intent", limit: 100, null: false
+    t.integer "credits_purchased", null: false
+    t.integer "amount_cents", null: false
+    t.string "status", limit: 20, default: "pending", null: false
+    t.datetime "purchased_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_credit_topups_on_user_id"
+  end
+
+  create_table "credit_transactions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "transaction_type", limit: 30, null: false
+    t.integer "credits_delta", null: false
+    t.integer "credits_balance_after", null: false
+    t.bigint "parcel_id"
+    t.string "stripe_payment_intent", limit: 100
+    t.string "description", limit: 200
+    t.datetime "created_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.index ["parcel_id"], name: "index_credit_transactions_on_parcel_id"
+    t.index ["transaction_type"], name: "idx_credit_tx_type"
+    t.index ["user_id", "created_at"], name: "idx_credit_tx_user_created"
+    t.index ["user_id"], name: "index_credit_transactions_on_user_id"
+  end
+
+  create_table "export_logs", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.integer "parcels_exported", null: false
+    t.string "export_format", limit: 10, default: "csv", null: false
+    t.datetime "exported_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "created_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.index ["user_id", "exported_at"], name: "idx_export_logs_user_exported"
+    t.index ["user_id"], name: "index_export_logs_on_user_id"
   end
 
   create_table "parcel_liens", force: :cascade do |t|
@@ -258,6 +295,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_24_164500) do
     t.boolean "title_search_used", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "price_cents"
+    t.integer "credits_total", default: 0, null: false
+    t.integer "credits_used", default: 0, null: false
+    t.integer "credits_topup", default: 0, null: false
+    t.integer "exports_limit", default: 0, null: false
+    t.integer "exports_used", default: 0, null: false
+    t.index ["status"], name: "idx_subscriptions_status"
     t.index ["stripe_subscription_id"], name: "index_subscriptions_on_stripe_subscription_id", unique: true, where: "(stripe_subscription_id IS NOT NULL)"
     t.index ["user_id"], name: "idx_sub_user_id_rls"
     t.index ["user_id"], name: "index_subscriptions_on_user_id"
@@ -306,14 +350,22 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_24_164500) do
     t.datetime "viewed_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "unlocked", default: false, null: false
+    t.datetime "unlocked_at"
+    t.integer "credits_spent", default: 0, null: false
     t.index ["parcel_id"], name: "index_viewed_parcels_on_parcel_id"
     t.index ["user_id", "parcel_id"], name: "idx_viewed_parcels_user_parcel", unique: true
+    t.index ["user_id", "unlocked"], name: "idx_viewed_parcels_unlocked", where: "(unlocked = true)"
     t.index ["user_id"], name: "idx_vp_user_id_rls"
     t.index ["user_id"], name: "index_viewed_parcels_on_user_id"
   end
 
   add_foreign_key "admin_audit_logs", "users", column: "admin_user_id"
   add_foreign_key "admin_audit_logs", "users", column: "target_user_id"
+  add_foreign_key "credit_topups", "users"
+  add_foreign_key "credit_transactions", "parcels"
+  add_foreign_key "credit_transactions", "users"
+  add_foreign_key "export_logs", "users"
   add_foreign_key "parcel_liens", "parcels"
   add_foreign_key "parcel_user_notes", "parcels"
   add_foreign_key "parcel_user_notes", "users"

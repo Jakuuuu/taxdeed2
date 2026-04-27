@@ -50,6 +50,10 @@ Rails.application.routes.draw do
     namespace :market_study do
       resources :counties, only: [:index, :show]
     end
+    # ── Rama 5: My Portfolio ──────────────────────────────────────────────
+    # GET /research/portfolio — dashboard CRM personal del usuario
+    resource  :portfolio, only: [:show], controller: "portfolio"
+
     resource  :settings,          only: [:show] do
       patch  :profile
       delete :subscription, action: :cancel_subscription

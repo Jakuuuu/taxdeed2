@@ -78,6 +78,12 @@ module Research
         @unlocked = ViewedParcel.exists?(user_id: current_user.id, parcel_id: @parcel.id)
       end
 
+      # ── Full Verification: unlocked + disclaimer accepted ──────────────
+      # Gates sensitive data (APN, full address) in the header.
+      # Requires BOTH credit consumption AND legal disclaimer acceptance.
+      @fully_verified = @admin_override ||
+                        (@unlocked && current_user.premium_disclaimer_accepted_at.present?)
+
       # ── Mini CRM (transversal — always visible regardless of paywall) ─
       @current_tag = current_user.parcel_user_tags.find_by(parcel_id: @parcel.id)
       @notes       = current_user.parcel_user_notes
@@ -120,7 +126,12 @@ module Research
 
       ActiveRecord::Base.transaction do
         sub.increment_usage!(:parcels)
-        ViewedParcel.create!(user_id: current_user.id, parcel_id: @parcel.id)
+        ViewedParcel.create!(
+          user_id:      current_user.id,
+          parcel_id:    @parcel.id,
+          unlocked:     true,
+          unlocked_at:  Time.current
+        )
       end
 
       render json: { unlocked: true }
@@ -154,7 +165,7 @@ module Research
       end
 
       # ── Generación síncrona del PDF ──────────────────────────────
-      pdf = ReportPdfBuilder.build(report_type: "ficha_snapshot", parcel: @parcel)
+      pdf = ReportPdfBuilder.build(parcel: @parcel)
 
       filename = "TaxDeedLion_#{@parcel.parcel_id}_#{Date.today.strftime('%Y%m%d')}.pdf"
                  .gsub(/[^a-zA-Z0-9_\-.]/, "_")
@@ -173,9 +184,10 @@ module Research
       grouped = auctions.group_by { |a| [a.county, a.state] }
 
       results = grouped.filter_map do |(county, state), auction_list|
-        parcel_count  = auction_list.sum { |a| a.parcel_count || 0 }
-        total_amount  = auction_list.sum { |a| a.total_amount.to_f }
-        auction_count = auction_list.size
+        parcel_count       = auction_list.sum { |a| a.parcel_count || 0 }
+        total_amount       = auction_list.sum { |a| a.total_amount.to_f }
+        opening_bid_total  = auction_list.sum { |a| a.parcels.sum { |p| p.opening_bid.to_f } }
+        auction_count      = auction_list.size
 
         lat, lng = nil, nil
         auction_with_coords = auction_list.find { |a| a.latitude.present? && a.longitude.present? }
@@ -195,14 +207,15 @@ module Research
         next unless lat && lng
 
         {
-          county:        county,
-          state:         state,
-          lat:           lat.round(6),
-          lng:           lng.round(6),
-          parcel_count:  parcel_count,
-          auction_count: auction_count,
-          total_amount:  total_amount.round(2),
-          sale_dates:    auction_list.filter_map { |a| a.sale_date&.strftime("%b %d, %Y") }
+          county:             county,
+          state:              state,
+          lat:                lat.round(6),
+          lng:                lng.round(6),
+          parcel_count:       parcel_count,
+          auction_count:      auction_count,
+          total_amount:       total_amount.round(2),
+          opening_bid_total:  opening_bid_total.round(2),
+          sale_dates:         auction_list.filter_map { |a| a.sale_date&.strftime("%b %d, %Y") }
         }
       end
 

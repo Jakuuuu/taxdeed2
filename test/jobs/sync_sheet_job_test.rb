@@ -55,6 +55,8 @@ class SheetRowProcessorTest < ActiveSupport::TestCase
     row[ZONING]             = " R-1 "                      # Código con espacios
     row[JURISDICTION]       = "ESCAMBIA COUNTY UNINCORPORATED "
     row[LAND_USE]           = " Single Family "
+    row[HAB]                = " 3 "                         # col O "Habitaciones" → bedrooms (entero)
+    row[BD]                 = " 2.5 "                       # col P "BD" → bathrooms (decimal)
     row[OWNER_NAME]         = " John Doe "
     row[OWNER_MAIL_ADDRESS] = " 123 Main St, Pensacola FL 32501 "
     row[PROPERTY_ADDRESS]   = " 456 Oak Ave "
@@ -342,6 +344,10 @@ class SheetRowProcessorTest < ActiveSupport::TestCase
     # ── Premium: Locación ────────────────────────────────────────────────
     assert_equal "ESCAMBIA COUNTY UNINCORPORATED", parcel.jurisdiction
     assert_equal "Single Family",               parcel.land_use
+
+    # ── Premium: Habitaciones/Baños — guardia anti-SWAP (col O→bedrooms, col P→bathrooms) ──
+    assert_equal 3,                              parcel.bedrooms
+    assert_equal BigDecimal("2.5"),              parcel.bathrooms
 
     # ── Premium: Clasificación Inversión ─────────────────────────────────
     assert_equal "Investor",                    parcel.homestead_flag

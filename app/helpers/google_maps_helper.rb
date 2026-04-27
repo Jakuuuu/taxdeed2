@@ -23,6 +23,17 @@
 #
 # Usage in layouts:  <%= google_maps_script_tag %>
 module GoogleMapsHelper
+  # Builds the Street View embed iframe URL with the API key injected
+  # server-side. The key is exposed in the iframe src attribute, but is
+  # restricted by HTTP Referrer rules in the GCP Console (only requests
+  # from approved domains succeed).
+  def street_view_iframe_src(parcel)
+    return nil unless parcel.respond_to?(:has_coords?) && parcel.has_coords?
+    api_key = ENV['GOOGLE_MAPS_API_KEY']
+    return nil if api_key.blank?
+    parcel.street_view_url(api_key)
+  end
+
   def google_maps_script_tag
     return unless ENV['GOOGLE_MAPS_API_KEY'].present?
 

@@ -35,8 +35,8 @@ module SheetColumnMap
   LOT_AREA_ACRES      = 11  # col L  — Lot Area (acres)
   SQFT_LOT            = 12  # col M  — Lot Area sqft
   SQFT_LIVING         = 13  # col N  — Lot Area Home (sqft)
-  HAB                 = 14  # col O  — Habitaciones (bathrooms/rooms)
-  BD                  = 15  # col P  — Dormitorios (bedrooms)
+  HAB                 = 14  # col O  — "Habitaciones" → bedrooms (entero)
+  BD                  = 15  # col P  — "BD" → bathrooms (decimal(3,1))
 
   # ── TERRENO Y ZONING ────────────────────────────────────────────────────────
   MINIMUM_LOT_SIZE    = 16  # col Q  — Minimum Lot Size (texto)

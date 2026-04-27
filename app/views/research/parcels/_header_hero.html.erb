@@ -39,7 +39,14 @@
   <%# ── Address & Location ───────────────────────────────────────────── %>
   <h1 class="fp-hero__title" style="display: flex; align-items: center; gap: 8px;">
     <span class="fp-hero__pin">📍</span>
-    <%= @parcel.address.presence || "Address not available" %>
+    <% if @fully_verified %>
+      <%= @parcel.address.presence || "Address not available" %>
+    <% else %>
+      <span style="display:inline-flex;align-items:center;gap:6px;">
+        <span style="filter:blur(5px);user-select:none;pointer-events:none;"><%= @parcel.address.presence || "Address" %></span>
+        <span style="font-size:0.55em;background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;font-weight:500;letter-spacing:0.03em;">🔒</span>
+      </span>
+    <% end %>
   </h1>
   <% if @parcel.county.present? %>
     <p class="fp-hero__location" style="margin-top: 4px; opacity: 0.85;">
@@ -51,7 +58,11 @@
   <div class="fp-hero__meta-row">
     <div class="fp-hero__pill fp-hero__pill--apn">
       <div class="fp-hero__pill-dot"></div>
-      APN: <%= @parcel.parcel_id.presence || "—" %>
+      <% if @fully_verified %>
+        APN: <%= @parcel.parcel_id.presence || "—" %>
+      <% else %>
+        APN: <span style="filter:blur(5px);user-select:none;"><%= @parcel.parcel_id.presence || "00-00-00" %></span> 🔒
+      <% end %>
     </div>
     <% if @parcel.auction&.sale_date.present? %>
       <div class="fp-hero__pill">📅 <%= @parcel.auction.sale_date.strftime("%b %d, %Y") %></div>

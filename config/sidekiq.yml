@@ -33,3 +33,9 @@
     class: RegridKeyHealthCheckJob
     queue: low
     description: "Verificar validez mensual de la API key de Regrid (rota mes a mes)"
+
+  reset_monthly_usage:
+    cron: "0 0 * * *"   # Diario a las 00:00 UTC
+    class: ResetMonthlyUsageJob
+    queue: default
+    description: "Resetear used_parcels/avm/scope/title_search para suscripciones cuyo current_period_end ya venció"

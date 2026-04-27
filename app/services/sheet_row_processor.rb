@@ -56,8 +56,15 @@ class SheetRowProcessor
   def call
     return :skipped if row_empty?
 
-    auction = find_or_create_auction_cached
-    upsert_parcel(auction)
+    ActiveRecord::Base.transaction do
+      auction = find_or_create_auction_cached
+      upsert_parcel(auction)
+    end
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved
+    # Si la transacción rolleó, la auction recién creada (si lo fue) ya no existe.
+    # Limpiamos el cache para no servir referencias zombi en filas siguientes.
+    @auction_cache&.clear
+    raise
   end
 
   private
@@ -138,7 +145,12 @@ class SheetRowProcessor
       crime_level:          Sanitize.text(col(CRIME_LEVEL)),
       homestead_flag:       Sanitize.text(col(HOMESTEAD_FLAG)),
       land_use:             Sanitize.text(col(LAND_USE)),
-      property_type:        Sanitize.text(col(LAND_USE)),  # "Type Lot" = tipo de propiedad
+      # property_type espeja a land_use porque el Sheet "Propiedades1" sólo
+      # tiene una columna semántica (col T "Type Lot / Land Use"). Lo conservamos
+      # poblado para no romper la columna "Tipo de Propiedad" de la tabla Rama 2,
+      # las vistas admin y la cascada `property_type → land_use → zoning` del
+      # controller. La Ficha sólo renderiza `land_use` (no se duplica visualmente).
+      property_type:        Sanitize.text(col(LAND_USE)),
       zoning:               Sanitize.text(col(ZONING)),
       jurisdiction:         Sanitize.text(col(JURISDICTION)),
       minimum_lot_size:     Sanitize.text(col(MINIMUM_LOT_SIZE)),
@@ -149,10 +161,11 @@ class SheetRowProcessor
       fema_risk_level:      Sanitize.text(col(FEMA_RISK_LEVEL)),
       technical_analysis:   Sanitize.text(col(TECHNICAL_ANALYSIS)),
 
-      # ── HABITACIONES / DORMITORIOS ─────────────────────────────────────
-      # bathrooms: decimal(3,1) en BD → Sanitize.decimal preserva fracciones (1.5 baños)
-      bathrooms:            Sanitize.decimal(col(HAB)),
-      bedrooms:             col(BD).to_s.strip.presence&.to_i,
+      # ── HABITACIONES / BAÑOS ─────────────────────────────────────────
+      # col O "Habitaciones" (HAB) = bedrooms (entero)
+      # col P "BD" = bathrooms (decimal(3,1) — preserva fracciones tipo 1.5)
+      bedrooms:             col(HAB).to_s.strip.presence&.to_i,
+      bathrooms:            Sanitize.decimal(col(BD)),
 
       # ── BOOLEANOS (Sanitize.boolean) ──────────────────────────────────
       electric:             Sanitize.boolean(col(ELECTRIC)),

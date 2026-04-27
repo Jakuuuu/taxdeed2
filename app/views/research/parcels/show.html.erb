@@ -1,6 +1,7 @@
-<%# ═══ show.html.erb — Property Intelligence Report (Multi-Column Layout) ═══
+<%# ═══ show.html.erb — Property Intelligence Report (Two-Column Layout) ═══
     Drawer AJAX 95vw · render layout:false · CSS inline obligatorio
-    Diseño: ficha maestra con uso horizontal del espacio (3-col / 2-col grids)
+    Diseño: Two-Column Grid (datos físicos izq · financieros+sidebar der)
+    Responsive: colapsa a single-column < 900px
 ═══════════════════════════════════════════════════════════════════════════ %>
 <% content_for :title, "#{@parcel.address} — TaxDeed Lion" %>
 
@@ -12,20 +13,20 @@
     <%# ── HEADER: Intelligence Report banner ──────────────────────────── %>
     <%= render "research/parcels/header_hero" %>
 
-    <%# ── PAYWALL CTA (si locked) ─────────────────────────────────────── %>
+    <%# ── FULL WIDTH: Mini CRM (siempre visible — debajo del header) ──── %>
+    <%= render "research/parcels/mini_crm" %>
+
+    <%# ── PAYWALL CTA — Vault (si locked) ─────────────────────────────── %>
     <%= render "research/parcels/paywall_cta" %>
 
-    <%# ── PREMIUM DATA (con Gated Disclaimer si aplica) ──────────────── %>
-    <%#   Si el usuario desbloqueó pero NO aceptó el disclaimer legal,     %>
-    <%#   _premium_data renderiza un overlay opaco con el texto legal.      %>
-    <%#   Si ya aceptó, renderiza los datos normalmente con blur/unlock.    %>
-    <%= render "research/parcels/premium_data" %>
+    <%# ── TWO-COLUMN ZONE: Premium Data ─────────────────────────────── %>
+    <div class="ficha-two-col">
 
-    <%# ── Resource Center ─────────────────────────────────────────────── %>
-    <%= render "research/parcels/resource_center" %>
+      <%# Premium Data: internally renders left + right columns %>
+      <%#   Si locked: blur en cada card · Gated Disclaimer si aplica   %>
+      <%= render "research/parcels/premium_data" %>
 
-    <%# ── FULL WIDTH: Mini CRM (siempre visible) ──────────────────────── %>
-    <%= render "research/parcels/mini_crm" %>
+    </div>
 
     <%# ── FULL WIDTH: VA Analysis (siempre visible, condicional) ──────── %>
     <%= render "research/parcels/va_analysis" %>
@@ -54,7 +55,7 @@
              gap: 10px;
              width: 100%;
              padding: 16px 24px;
-             background: linear-gradient(135deg, #E67E22 0%, #D35400 100%);
+             background: linear-gradient(135deg, #1E3A5F 0%, #15294A 100%);
              color: #ffffff;
              font-size: 1rem;
              font-weight: 700;
@@ -62,13 +63,15 @@
              border-radius: 10px;
              text-decoration: none;
              cursor: pointer;
-             box-shadow: 0 4px 14px rgba(230,126,34,0.30);
+             box-shadow: 0 4px 14px rgba(30,58,95,0.30);
              transition: all 0.25s ease;
              letter-spacing: 0.03em;
              text-align: center;
            "
-           onmouseover="this.style.background='linear-gradient(135deg, #D35400 0%, #C0392B 100%)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(230,126,34,0.40)';"
-           onmouseout="this.style.background='linear-gradient(135deg, #E67E22 0%, #D35400 100%)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 14px rgba(230,126,34,0.30)';"
+           onmouseover="this.style.background='linear-gradient(135deg, #15294A 0%, #0E1E37 100%)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(30,58,95,0.40)';"
+           onmouseout="this.style.background='linear-gradient(135deg, #1E3A5F 0%, #15294A 100%)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 14px rgba(30,58,95,0.30)';"
+           onfocus="this.style.outline='2px solid #1E3A5F'; this.style.outlineOffset='3px'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(30,58,95,0.40)';"
+           onblur="this.style.outline='none'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 14px rgba(30,58,95,0.30)';"
         >
           📄 Descargar Reporte PDF
         </a>

@@ -47,6 +47,10 @@
              class="rn-nav__link <%= 'active' if controller_path.include?('market_study') %>">
             Market Study
           </a>
+          <a href="<%= research_portfolio_path %>"
+             class="rn-nav__link <%= 'active' if controller_name == 'portfolio' %>">
+            My Portfolio
+          </a>
         </nav>
       </div>
 

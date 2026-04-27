@@ -1,7 +1,8 @@
 <%# ─ PARTIAL: _premium_data.html.erb ────────────────────────────────────────
-    Datos avanzados premium — blur si locked, claro si unlocked.
-    PROTECCIÓN PAYWALL: .fp-premium.fp-locked { overflow: visible }
-    Las 4 secciones: Characteristics, Valuation, Calculator, Utilities/Risk.
+    Datos avanzados premium — Two-Column Grid Layout.
+    COLUMNA IZQUIERDA: Characteristics + Environmental (datos físicos)
+    COLUMNA DERECHA:   Investment + Valuation (datos financieros)
+    PROTECCIÓN PAYWALL: .fp-premium.fp-locked { blur en card__body }
 
     GATED DISCLAIMER (2026-04-24):
     Si el usuario ha desbloqueado la ficha pero NO ha firmado el disclaimer
@@ -9,6 +10,11 @@
     opaco que bloquea completamente la lectura e interacción con los datos
     premium. El overlay contiene el texto legal + checkbox + botón de Aceptar.
     Una vez aceptado, Turbo Stream reemplaza este wrapper completo.
+
+    TWO-COLUMN GRID (2026-04-26):
+    #premium-data-wrapper usa CSS Grid 2-col (definido en _ficha_styles).
+    Las .ficha-col agrupan cards por afinidad temática.
+    Responsive: colapsa a 1 columna en < 900px.
 ─────────────────────────────────────────────────────────────────────────── %>
 
 <%# ── Determinar si el disclaimer legal ya fue aceptado ──────────────── %>
@@ -27,15 +33,22 @@
     CSS: 100% INLINE — Gotcha: Drawer AJAX sin layout, content_for :head
     no funciona. Todo el styling va aquí.
     Botón: Regla Naranja #E67E22 — CTA transaccional.
-═══════════════════════════════════════════════════════════════════════ %>
-<div style="position:relative;">
 
-  <%# ── Los datos premium se renderizan pero quedan tapados ──────── %>
-  <div class="fp-premium-gated">
-    <%= render "research/parcels/card_characteristics" %>
-    <%= render "research/parcels/card_valuation" %>
-    <%= render "research/parcels/card_investment" %>
-    <%= render "research/parcels/card_environmental" %>
+    Nota: El grid 2-col se renderiza dentro del gated container con el
+    mismo layout para mantener consistencia visual al aceptar.
+═══════════════════════════════════════════════════════════════════════ %>
+<div style="position:relative; grid-column: 1 / -1;">
+
+  <%# ── Los datos premium se renderizan en 2-col pero quedan tapados ── %>
+  <div class="fp-premium-gated" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+    <div class="ficha-col">
+      <%= render "research/parcels/card_characteristics" %>
+      <%= render "research/parcels/card_environmental" %>
+    </div>
+    <div class="ficha-col">
+      <%= render "research/parcels/card_investment" %>
+      <%= render "research/parcels/card_valuation" %>
+    </div>
   </div>
 
   <%# ── OVERLAY: Disclaimer Legal ───────────────────────────────── %>
@@ -232,6 +245,8 @@
           "
           onmouseover="if(!this.disabled){this.style.background='linear-gradient(135deg, #D35400 0%, #C0392B 100%)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(230,126,34,0.4)';}"
           onmouseout="if(!this.disabled){this.style.background='linear-gradient(135deg, #E67E22 0%, #D35400 100%)';this.style.transform='translateY(0)';this.style.boxShadow='0 4px 12px rgba(230,126,34,0.3)';}"
+          onfocus="if(!this.disabled){this.style.outline='2px solid #E67E22';this.style.outlineOffset='3px';this.style.transform='translateY(-1px)';}"
+          onblur="this.style.outline='none';this.style.transform='translateY(0)';"
         >
           ✅ Aceptar y Ver Datos
         </button>
@@ -252,23 +267,33 @@
 
 <% else %>
 <%# ══════════════════════════════════════════════════════════════════════
-    NORMAL RENDER — Disclaimer ya aceptado (o admin override)
-    Se renderizan los datos premium usando los partials canónicos.
-    Orden: Investment Summary → Characteristics → Valuation → Environmental
-    Cada partial ya incluye fp-card, fp-premium, blur/unlock logic.
+    NORMAL RENDER — Two-Column Grid Layout
+    Disclaimer ya aceptado (o admin override).
+    Columna Izquierda: Characteristics + Environmental (datos físicos)
+    Columna Derecha: Investment + Valuation (datos financieros)
+    CSS Grid en #premium-data-wrapper maneja las 2 columnas.
 ═══════════════════════════════════════════════════════════════════════ %>
 
-  <%# ── 1. Investment Summary (KPI Hero Card) ──────────────────────────── %>
-  <%= render "research/parcels/card_investment" %>
+  <%# ── Columna Izquierda: Datos Físicos ─────────────────────────────── %>
+  <div class="ficha-col">
+    <%# 1. Property Characteristics %>
+    <%= render "research/parcels/card_characteristics" %>
 
-  <%# ── 2. Property Characteristics ────────────────────────────────────── %>
-  <%= render "research/parcels/card_characteristics" %>
+    <%# 2. Utilities & Environmental Risk %>
+    <%= render "research/parcels/card_environmental" %>
+  </div>
 
-  <%# ── 3. Valuation & Tax ─────────────────────────────────────────────── %>
-  <%= render "research/parcels/card_valuation" %>
+  <%# ── Columna Derecha: Datos Financieros + Resource Center ──────────── %>
+  <div class="ficha-col">
+    <%# 1. Investment Summary (KPI Hero Card) %>
+    <%= render "research/parcels/card_investment" %>
 
-  <%# ── 4. Utilities & Environmental Risk ──────────────────────────────── %>
-  <%= render "research/parcels/card_environmental" %>
+    <%# 2. Valuation & Tax %>
+    <%= render "research/parcels/card_valuation" %>
+
+    <%# 3. Resource Center (siempre visible, no premium) %>
+    <%= render "research/parcels/resource_center" %>
+  </div>
 
 <% end %>
 

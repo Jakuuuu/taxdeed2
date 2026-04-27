@@ -1,12 +1,18 @@
 # frozen_string_literal: true
 
 # ReportGenerationJob
-# Genera el PDF de un reporte AVM o Property Scope y lo adjunta via Active Storage.
-# Sólo aplica para report_type avm y property_scope.
+# ══════════════════════════════════════════════════════════════════════════
+# NOTA: Este job es LEGACY y actualmente no se invoca.
+#
+# El Property Intelligence Report (ficha) se genera SÍNCRONAMENTE en
+# ParcelsController#download_pdf — no pasa por este job.
+#
 # Title Search se gestiona manualmente desde el panel Admin.
 #
-# Uso:
-#   ReportGenerationJob.perform_later(report.id)
+# Este job se mantiene como infraestructura para posibles futuros
+# reportes que requieran generación asíncrona (ej. reportes pesados
+# con imágenes o datos de terceros).
+# ══════════════════════════════════════════════════════════════════════════
 class ReportGenerationJob < ApplicationJob
   queue_as :reports
 
@@ -16,7 +22,7 @@ class ReportGenerationJob < ApplicationJob
   def perform(report_id)
     report = Report.includes(parcel: [:parcel_liens, :auction]).find(report_id)
 
-    # Sólo procesamos tipos automáticos
+    # Title Search se gestiona manualmente — no auto-generar
     return if report.report_type == "title_search"
 
     # Si ya se generó (posible duplicado de job), salir
@@ -26,14 +32,11 @@ class ReportGenerationJob < ApplicationJob
     report.update!(status: "ordered", ordered_at: Time.current)
 
     begin
-      # 1. Generar PDF con datos de la BD
-      pdf = ReportPdfBuilder.build(
-        report_type: report.report_type,
-        parcel:      report.parcel
-      )
+      # Generar PDF con datos de la BD
+      pdf = ReportPdfBuilder.build(parcel: report.parcel)
 
-      # 2. Adjuntar a Active Storage
-      filename = "#{report.report_type}_#{report.parcel.parcel_id}_#{Date.today}.pdf"
+      # Adjuntar a Active Storage
+      filename = "PropertyIntelligence_#{report.parcel.parcel_id}_#{Date.today}.pdf"
                  .gsub(/[^a-zA-Z0-9_\-.]/, "_")
 
       report.pdf_file.attach(
@@ -42,10 +45,10 @@ class ReportGenerationJob < ApplicationJob
         content_type: "application/pdf"
       )
 
-      # 3. Marcar como generado
+      # Marcar como generado
       report.update!(status: "generated", generated_at: Time.current)
 
-      Rails.logger.info "[ReportGenerationJob] Report ##{report.id} (#{report.report_type}) generated successfully."
+      Rails.logger.info "[ReportGenerationJob] Report ##{report.id} generated successfully."
 
     rescue StandardError => e
       Rails.logger.error "[ReportGenerationJob] Report ##{report.id} FAILED: #{e.message}"

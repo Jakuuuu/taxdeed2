@@ -1,0 +1,398 @@
+<%# ═══ Rama 5: My Portfolio — Dashboard CRM personal del usuario ═══
+    Layout: research (heredado). Drawer AJAX reutilizado de Rama 2.
+    CSS inline obligatorio por: ningún yield :head fuera del layout.
+═══════════════════════════════════════════════════════════════════════ %>
+<% content_for :title, "My Portfolio — TaxDeed Lion" %>
+
+<style>
+  /* ── Portfolio shell ── */
+  .pf-shell {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+    font-family: var(--font, 'Inter', sans-serif);
+  }
+
+  /* ── Page header ── */
+  .pf-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.75rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .pf-page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary, #1E3A5F);
+    margin: 0;
+  }
+  .pf-page-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-muted, #6C757D);
+    margin: 0.25rem 0 0;
+  }
+  .pf-count-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.75rem;
+    background: #EEF2FF;
+    color: var(--color-primary, #1E3A5F);
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* ── Table ── */
+  .pf-table-wrapper {
+    background: #fff;
+    border: 1px solid var(--color-border, #E8ECF0);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .pf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.855rem;
+  }
+  .pf-table thead tr {
+    background: var(--color-bg-subtle, #F8F9FA);
+    border-bottom: 1px solid var(--color-border, #E8ECF0);
+  }
+  .pf-table th {
+    padding: 0.7rem 1rem;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-text-muted, #6C757D);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .pf-table tbody tr {
+    border-bottom: 1px solid var(--color-border, #E8ECF0);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .pf-table tbody tr:last-child { border-bottom: none; }
+  .pf-table tbody tr:hover { background: #F5F8FF; }
+  .pf-table td {
+    padding: 0.85rem 1rem;
+    color: var(--color-text, #1A2D42);
+    vertical-align: middle;
+  }
+
+  /* ── Address cell ── */
+  .pf-address { font-weight: 600; }
+  .pf-meta    { font-size: 0.75rem; color: var(--color-text-muted, #6C757D); margin-top: 2px; }
+
+  /* ── Bid cell ── */
+  .pf-bid {
+    font-weight: 700;
+    color: var(--color-primary, #1E3A5F);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Status badges ── */
+  .pf-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.2rem 0.55rem;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pf-badge--unlocked { background: #E8F5E9; color: #27AE60; }
+  .pf-badge--locked   { background: #F3F4F6; color: #9CA3AF; }
+
+  /* ── CRM Tag chip ── */
+  .pf-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.22rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.73rem;
+    font-weight: 600;
+  }
+  .pf-tag--target     { background: #DBEAFE; color: #2E86C1; }
+  .pf-tag--diligence  { background: #FEF3C7; color: #E67E22; }
+  .pf-tag--ready      { background: #D1FAE5; color: #27AE60; }
+  .pf-tag--dismissed  { background: #F3F4F6; color: #6C757D; }
+  .pf-tag--none       { background: #F3F4F6; color: #9CA3AF; font-style: italic; }
+
+  /* ── Notes indicator ── */
+  .pf-notes-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--color-text-muted, #6C757D);
+  }
+
+  /* ── Action cell ── */
+  .pf-view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.35rem 0.8rem;
+    border: 1.5px solid var(--color-primary, #1E3A5F);
+    border-radius: 8px;
+    color: var(--color-primary, #1E3A5F);
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .pf-view-btn:hover { background: var(--color-primary, #1E3A5F); color: #fff; }
+
+  /* ── Empty state ── */
+  .pf-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--color-text-muted, #6C757D);
+  }
+  .pf-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .pf-empty-title { font-size: 1.1rem; font-weight: 600; color: var(--color-text, #1A2D42); margin-bottom: 0.5rem; }
+  .pf-empty-sub   { font-size: 0.875rem; }
+  .pf-empty-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 1.25rem;
+    padding: 0.6rem 1.25rem;
+    background: var(--color-primary, #1E3A5F);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+  .pf-empty-cta:hover { opacity: 0.85; }
+
+  /* ── Drawer overlay (identical pattern to Rama 2) ── */
+  .pf-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(3px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 900;
+  }
+  .pf-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+  .pf-drawer {
+    position: fixed;
+    top: 0; right: 0;
+    width: 95vw; max-width: 1100px;
+    height: 100vh;
+    background: var(--color-bg, #F7F9FC);
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 901;
+    overflow: hidden;
+  }
+  .pf-drawer.is-open { transform: translateX(0); }
+  .pf-drawer-content {
+    height: 100%;
+    overflow-y: auto;
+    background: var(--color-bg, #F7F9FC);
+  }
+</style>
+
+<%# ── Drawer backdrop & container (idéntico a Rama 2) ── %>
+<div id="pf-backdrop" class="pf-backdrop" onclick="pfCloseDrawer()"></div>
+<div id="pf-drawer" class="pf-drawer">
+  <div id="pf-drawer-content" class="pf-drawer-content"></div>
+</div>
+
+<div class="pf-shell">
+  <%# ── Page Header ── %>
+  <div class="pf-page-header">
+    <div>
+      <h1 class="pf-page-title">📋 My Portfolio</h1>
+      <p class="pf-page-subtitle">Properties you've unlocked or tagged in your CRM</p>
+    </div>
+    <% unless @empty %>
+      <span class="pf-count-badge"><%= @parcels.size %> <%= 'property'.pluralize(@parcels.size) %></span>
+    <% end %>
+  </div>
+
+  <% if @empty %>
+    <%# ── Empty State ── %>
+    <div class="pf-empty">
+      <div class="pf-empty-icon">🗂️</div>
+      <div class="pf-empty-title">Your portfolio is empty</div>
+      <p class="pf-empty-sub">
+        Unlock a property or add a CRM tag in the Property Search to populate your portfolio.
+      </p>
+      <a href="<%= research_parcels_path %>" class="pf-empty-cta">
+        🔍 Go to Property Search
+      </a>
+    </div>
+
+  <% else %>
+    <%# ── Table ── %>
+    <div class="pf-table-wrapper">
+      <table class="pf-table">
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Opening Bid</th>
+            <th>Status</th>
+            <th>CRM Tag</th>
+            <th>Notes</th>
+            <th>Auction</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @parcels.each do |parcel| %>
+            <% tag      = @tags_by_parcel[parcel.id] %>
+            <% note_ct  = @note_counts.fetch(parcel.id, 0) %>
+            <% unlocked = @unlocked_set.include?(parcel.id) %>
+            <tr onclick="pfOpenDrawer('/research/parcels/<%= parcel.id %>')">
+              <td>
+                <div class="pf-address"><%= parcel.address.presence || "—" %></div>
+                <div class="pf-meta">
+                  <%= [parcel.city, parcel.state, parcel.zip_code].compact.join(", ") %>
+                  <% if parcel.parcel_id.present? %>
+                    &nbsp;·&nbsp;APN: <%= parcel.parcel_id %>
+                  <% end %>
+                </div>
+              </td>
+
+              <td>
+                <% if parcel.opening_bid %>
+                  <span class="pf-bid"><%= number_to_currency(parcel.opening_bid) %></span>
+                <% else %>
+                  <span style="color:var(--color-text-muted)">—</span>
+                <% end %>
+              </td>
+
+              <td>
+                <% if unlocked %>
+                  <span class="pf-badge pf-badge--unlocked">✓ Unlocked</span>
+                <% else %>
+                  <span class="pf-badge pf-badge--locked">🔒 Locked</span>
+                <% end %>
+              </td>
+
+              <td>
+                <% if tag %>
+                  <%
+                    tag_meta = {
+                      "target"    => { label: "🎯 Target",        css: "target"    },
+                      "diligence" => { label: "🔍 Due Diligence", css: "diligence" },
+                      "ready"     => { label: "✅ Ready to Bid",  css: "ready"     },
+                      "dismissed" => { label: "❌ Dismissed",     css: "dismissed" }
+                    }
+                    meta = tag_meta[tag.tag] || { label: tag.tag, css: "none" }
+                  %>
+                  <span class="pf-tag pf-tag--<%= meta[:css] %>"><%= meta[:label] %></span>
+                <% else %>
+                  <span class="pf-tag pf-tag--none">No tag</span>
+                <% end %>
+              </td>
+
+              <td>
+                <% if note_ct > 0 %>
+                  <span class="pf-notes-dot">📝 <%= note_ct %></span>
+                <% else %>
+                  <span style="color:var(--color-text-muted);font-size:0.78rem">—</span>
+                <% end %>
+              </td>
+
+              <td>
+                <div class="pf-meta">
+                  <%= parcel.auction&.county %><% if parcel.auction&.state.present? %>, <%= parcel.auction.state %><% end %>
+                </div>
+                <div class="pf-meta">
+                  <%= parcel.auction&.sale_date&.strftime("%b %d, %Y") %>
+                </div>
+              </td>
+
+              <td onclick="event.stopPropagation()">
+                <button class="pf-view-btn"
+                        onclick="pfOpenDrawer('/research/parcels/<%= parcel.id %>')">
+                  View →
+                </button>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  var PF_BASE_PATH = '<%= request.path %>';
+
+  // ── Open Drawer (mismo patrón que Rama 2) ────────────────────────────
+  function pfOpenDrawer(url) {
+    var backdrop = document.getElementById('pf-backdrop');
+    var drawer   = document.getElementById('pf-drawer');
+    var content  = document.getElementById('pf-drawer-content');
+
+    backdrop.classList.add('is-open');
+    drawer.classList.add('is-open');
+    window.history.pushState({ path: url }, '', url);
+
+    content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--color-text-muted,#6C757D);padding:4rem;"><div class="map-spinner"></div></div>';
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        content.innerHTML = html;
+        // innerHTML no ejecuta <script> — reemplazar cada tag manualmente
+        content.querySelectorAll('script').forEach(function(old) {
+          var s = document.createElement('script');
+          s.textContent = old.textContent;
+          old.replaceWith(s);
+        });
+      })
+      .catch(function() {
+        content.innerHTML = '<div style="padding:2rem;text-align:center;color:#E74C3C;">Failed to load property. <button onclick="pfCloseDrawer()" style="margin-top:1rem;padding:0.4rem 0.8rem;border:1px solid #E74C3C;border-radius:6px;background:none;cursor:pointer;color:#E74C3C;">Close</button></div>';
+      });
+  }
+
+  // ── Close Drawer ─────────────────────────────────────────────────────
+  function pfCloseDrawer() {
+    var backdrop = document.getElementById('pf-backdrop');
+    var drawer   = document.getElementById('pf-drawer');
+    if (backdrop) backdrop.classList.remove('is-open');
+    if (drawer)   drawer.classList.remove('is-open');
+
+    // Limpiar URL: quitar el path de la parcela, volver al Portfolio
+    window.history.pushState({}, '', PF_BASE_PATH);
+  }
+
+  // ESC para cerrar — función nombrada para poder removerla en cleanup
+  function pfEscHandler(e) { if (e.key === 'Escape') pfCloseDrawer(); }
+  function pfPopHandler()  { if (window.location.pathname === PF_BASE_PATH) pfCloseDrawer(); }
+
+  document.addEventListener('keydown', pfEscHandler);
+  window.addEventListener('popstate', pfPopHandler);
+
+  // Turbo lifecycle: limpiar antes de cachear la página
+  // Evita que el drawer quede en estado 'is-open' en la snapshot de Turbo
+  document.addEventListener('turbo:before-cache', function() {
+    var backdrop = document.getElementById('pf-backdrop');
+    var drawer   = document.getElementById('pf-drawer');
+    var content  = document.getElementById('pf-drawer-content');
+    if (backdrop) backdrop.classList.remove('is-open');
+    if (drawer)   drawer.classList.remove('is-open');
+    if (content)  content.innerHTML = '';
+    document.removeEventListener('keydown', pfEscHandler);
+    window.removeEventListener('popstate', pfPopHandler);
+  }, { once: true });
+</script>

@@ -7,7 +7,7 @@ class Report < ApplicationRecord
   # PDF stored in Active Storage
   has_one_attached :pdf_file
 
-  VALID_TYPES      = %w[avm property_scope title_search].freeze
+  VALID_TYPES      = %w[title_search].freeze
   VALID_STATUSES   = %w[pending ordered generated failed].freeze
   PAYMENT_STATUSES = %w[unpaid paid refunded].freeze
 
@@ -18,8 +18,6 @@ class Report < ApplicationRecord
 
   # Named type scopes — usados en admin controllers y dashboard
   scope :title_search,    -> { where(report_type: "title_search") }
-  scope :avm,             -> { where(report_type: "avm") }
-  scope :property_scope,  -> { where(report_type: "property_scope") }
 
   # Payment scopes — Rama 3 monetización directa vía Stripe
   scope :paid,            -> { where(payment_status: "paid") }
@@ -31,8 +29,6 @@ class Report < ApplicationRecord
   def failed?    = status == "failed"
 
   def title_search?    = report_type == "title_search"
-  def avm?             = report_type == "avm"
-  def property_scope?  = report_type == "property_scope"
 
   # ── Payment helpers ──────────────────────────────────────────────
   def paid?      = payment_status == "paid"
@@ -56,9 +52,7 @@ class Report < ApplicationRecord
 
   def type_label
     case report_type
-    when "avm"            then "AVM Report"
-    when "property_scope" then "Property Scope"
-    when "title_search"   then "Title Search"
+    when "title_search" then "Title Search"
     else report_type.to_s.humanize
     end
   end

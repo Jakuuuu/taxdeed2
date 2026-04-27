@@ -920,7 +920,7 @@ function loadPhase1Data() {
         var intensity = Math.min(c.parcel_count / 20, 1);
         var color = intensity < 0.3 ? '#3498DB' :
                     intensity < 0.6 ? '#1ABC9C' :
-                    intensity < 0.8 ? '#F1C40F' : '#E67E22';
+                    intensity < 0.8 ? '#F1C40F' : '#C0392B';
         var circle = new google.maps.Circle({
           map: r2Map,
           center: { lat: c.lat, lng: c.lng },
