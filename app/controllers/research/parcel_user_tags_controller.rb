@@ -28,6 +28,19 @@ module Research
         current_tag = params[:tag]
       end
 
+      # ── Bidirectional Sync: Ficha → Pipeline ──────────────────────────
+      # When a CRM tag is set/changed, move the property to the
+      # matching pipeline stage (if it exists in the user's pipeline).
+      if current_tag.present?
+        stage = current_user.pipeline_stages.find_by(crm_tag_map: current_tag)
+        if stage
+          pp = PipelineProperty.find_or_initialize_by(user: current_user, parcel: @parcel)
+          pp.pipeline_stage = stage
+          pp.position = stage.pipeline_properties.count unless pp.persisted?
+          pp.save!
+        end
+      end
+
       respond_to do |format|
         format.json { render json: { tag: current_tag } }
         format.html { redirect_back fallback_location: research_parcel_path(@parcel) }

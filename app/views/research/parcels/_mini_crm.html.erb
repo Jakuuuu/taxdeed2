@@ -48,5 +48,61 @@
           placeholder: "Add a private note about this property…\n(Only visible to you)" %>
       <%= f.submit "Save Note", class: "crm-save-btn" %>
     <% end %>
+
+    <%# ── Add to Pipeline button (Rama 5 integration) ─────────────────── %>
+    <% pipeline_prop = current_user.pipeline_properties.find_by(parcel_id: @parcel.id) %>
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+      <% if pipeline_prop %>
+        <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-2);">
+          <span style="background:var(--success-soft); color:var(--success); padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600;">
+            ✓ In Pipeline
+          </span>
+          <span>Stage: <strong><%= pipeline_prop.pipeline_stage.name %></strong></span>
+        </div>
+      <% else %>
+        <button type="button"
+                id="btn-add-to-pipeline"
+                onclick="addToPipeline(<%= @parcel.id %>)"
+                style="width:100%; padding:10px; background:var(--surface-2); color:var(--ink-2);
+                       border:1px dashed var(--border); border-radius:8px; cursor:pointer;
+                       font:500 12px var(--font-sans); transition:all 200ms;"
+                onmouseenter="this.style.borderColor='var(--accent)'; this.style.color='var(--accent)';"
+                onmouseleave="this.style.borderColor='var(--border)'; this.style.color='var(--ink-2)';">
+          🏗️ Add to My Pipeline
+        </button>
+        <script>
+        function addToPipeline(parcelId) {
+          var csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+          var btn = document.getElementById('btn-add-to-pipeline');
+          btn.disabled = true;
+          btn.textContent = '⏳ Adding...';
+
+          fetch('/research/portfolio/properties', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken,
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ parcel_id: parcelId })
+          })
+          .then(function(r) {
+            if (!r.ok) throw new Error('Failed');
+            return r.json();
+          })
+          .then(function(data) {
+            btn.outerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);">'
+              + '<span style="background:var(--success-soft);color:var(--success);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;">✓ In Pipeline</span>'
+              + '<span>Stage: <strong>' + (data.stage_name || 'New Lead') + '</strong></span>'
+              + '</div>';
+          })
+          .catch(function() {
+            btn.disabled = false;
+            btn.textContent = '❌ Failed — Try again';
+          });
+        }
+        </script>
+      <% end %>
+    </div>
   </div>
 </div>

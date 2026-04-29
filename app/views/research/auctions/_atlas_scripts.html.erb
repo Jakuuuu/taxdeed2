@@ -1,0 +1,374 @@
+<%# Atlas Scripts — Florida SVG Map + Interactions %>
+<%# NOTE: florida-geo.js is loaded dynamically below to survive Turbo Drive navigations %>
+<script>
+(function(){
+"use strict";
+
+// ═══════════════════════════════════════
+// Turbo-safe geo-data loader
+// ═══════════════════════════════════════
+function ensureGeoData(cb) {
+  if (window.FL_COUNTY_PATHS_REAL && Object.keys(window.FL_COUNTY_PATHS_REAL).length > 0) {
+    cb(); return;
+  }
+  // Dynamically inject the script so Turbo can't skip it
+  var s = document.createElement("script");
+  s.src = "/florida-geo.js?_t=" + Date.now(); // cache-bust for safety
+  s.onload = function() { cb(); };
+  s.onerror = function() { console.warn("[Atlas] florida-geo.js failed to load"); };
+  document.head.appendChild(s);
+}
+
+var P, L, VB;
+function initGeoRefs() {
+  P = window.FL_COUNTY_PATHS_REAL || {};
+  L = window.FL_COUNTY_LABELS_REAL || {};
+  VB = window.FL_MAP_VIEWBOX || "0 0 1000 800";
+}
+
+var CD={};
+<% (@county_rows || []).each do |cr| %>
+CD["<%= cr[:county]&.parameterize %>"]=
+{id:"<%= cr[:county]&.parameterize %>",name:"<%= cr[:county] %>",state:"<%= cr[:state] %>",
+props:<%= cr[:parcel_count].to_i %>,
+auctions:<%= cr[:auction_ids]&.size || 0 %>,
+next:"<%= cr[:next_sale_date].is_a?(Date) ? cr[:next_sale_date].strftime('%b %d') : cr[:next_sale_date] %>",
+url:"<%= research_parcels_path(county: cr[:county], state: cr[:state]) %>"};
+<% end %>
+
+function hc(n){
+ if(n===0)return{f:"var(--surface-2)",s:"var(--border)"};
+ if(n<=5)return{f:"oklch(0.92 0.04 280)",s:"oklch(0.78 0.08 280)"};
+ if(n<=20)return{f:"oklch(0.82 0.10 280)",s:"oklch(0.65 0.14 280)"};
+ if(n<=50)return{f:"oklch(0.65 0.16 280)",s:"oklch(0.50 0.18 280)"};
+ return{f:"oklch(0.48 0.20 280)",s:"oklch(0.35 0.22 280)"};
+}
+
+// ═══════════════════════════════════════
+// Pan & Zoom state (deferred — VB is set by initGeoRefs)
+// ═══════════════════════════════════════
+var vb = { x: 0, y: 0, w: 1000, h: 800 };
+var origVb = { x: 0, y: 0, w: 1000, h: 800 };
+var MIN_ZOOM = 0.25;  // max zoom-in: 25% of original viewBox
+var MAX_ZOOM = 1.2;   // max zoom-out: 120% of original
+var isPanning = false;
+var panStart = { x: 0, y: 0 };
+var panDragged = false;
+var DRAG_THRESHOLD = 5; // px before counting as drag vs click
+var mapSvg = null;
+
+function initViewBox() {
+  var vbParts = (VB || "0 0 1000 800").split(" ").map(Number);
+  vb = { x: vbParts[0], y: vbParts[1], w: vbParts[2], h: vbParts[3] };
+  origVb = { x: vb.x, y: vb.y, w: vb.w, h: vb.h };
+}
+
+function applyViewBox() {
+  if (!mapSvg) return;
+  mapSvg.setAttribute("viewBox", vb.x + " " + vb.y + " " + vb.w + " " + vb.h);
+}
+
+function resetView() {
+  vb.x = origVb.x; vb.y = origVb.y; vb.w = origVb.w; vb.h = origVb.h;
+  applyViewBox();
+}
+
+function screenToSVG(svg, clientX, clientY) {
+  var pt = svg.createSVGPoint();
+  pt.x = clientX; pt.y = clientY;
+  var ctm = svg.getScreenCTM();
+  if (!ctm) return { x: 0, y: 0 };
+  return pt.matrixTransform(ctm.inverse());
+}
+
+function renderMap(){
+ var w=document.getElementById("atlasMapWrap"); if(!w)return;
+ var ns="http://www.w3.org/2000/svg";
+ var svg=document.createElementNS(ns,"svg");
+ svg.setAttribute("viewBox",VB);
+ svg.setAttribute("preserveAspectRatio","xMidYMid meet");
+ svg.style.cssText="width:100%;height:100%;display:block;cursor:grab";
+ mapSvg = svg;
+
+ // Defs
+ var defs=document.createElementNS(ns,"defs");
+ var pat=document.createElementNS(ns,"pattern");
+ pat.setAttribute("id","grid-pat");pat.setAttribute("width","32");pat.setAttribute("height","32");
+ pat.setAttribute("patternUnits","userSpaceOnUse");
+ var pp=document.createElementNS(ns,"path");
+ pp.setAttribute("d","M 32 0 L 0 0 0 32");pp.setAttribute("fill","none");
+ pp.setAttribute("stroke","var(--border)");pp.setAttribute("stroke-width","0.5");pp.setAttribute("opacity","0.35");
+ pat.appendChild(pp);defs.appendChild(pat);svg.appendChild(defs);
+
+ var gr=document.createElementNS(ns,"rect");
+ gr.setAttribute("width","100%");gr.setAttribute("height","100%");gr.setAttribute("fill","url(#grid-pat)");
+ svg.appendChild(gr);
+
+ // Shadow halo
+ var sh=document.createElementNS(ns,"g");sh.setAttribute("opacity","0.1");
+ for(var id in P){var sp=document.createElementNS(ns,"path");
+  sp.setAttribute("d",P[id]);sp.setAttribute("fill","oklch(0.18 0.02 280)");
+  sp.setAttribute("transform","translate(2 4)");sh.appendChild(sp);}
+ svg.appendChild(sh);
+
+ // Counties — exclusive hover tracking (only 1 county label at a time)
+ var cg=document.createElementNS(ns,"g");
+ var activeCounty=null; // ref to currently hovered county item
+ function resetCounty(item){
+  if(!item)return;
+  item.g.style.transform="translate(0,0) scale(1)";item.g.style.filter="none";
+  item.p.setAttribute("fill",item.origFill);item.p.setAttribute("stroke","var(--surface-1)");
+  item.p.setAttribute("stroke-width","0.6");if(item.lg)item.lg.style.opacity="0";
+ }
+ for(var id in P){(function(id){
+  var c=CD[id]||{id:id,name:(L[id]||{}).name||id,state:"Florida",props:0,next:"—",url:""};
+  var lb=L[id], co=hc(c.props);
+  var g=document.createElementNS(ns,"g");
+  g.style.cssText="cursor:pointer;transition:transform 220ms cubic-bezier(.2,.8,.2,1),filter 220ms ease";
+  if(lb)g.style.transformOrigin=lb.x+"px "+lb.y+"px";
+
+  var p=document.createElementNS(ns,"path");
+  p.setAttribute("d",P[id]);p.setAttribute("fill",co.f);
+  p.dataset.origFill=co.f;
+  p.setAttribute("stroke","var(--surface-1)");p.setAttribute("stroke-width","0.6");
+  p.setAttribute("stroke-linejoin","round");p.setAttribute("vector-effect","non-scaling-stroke");
+  p.style.transition="fill 200ms ease,stroke 200ms ease";
+  g.appendChild(p);
+
+  // Hover label
+  var lg=null;
+  if(lb){
+   lg=document.createElementNS(ns,"g");lg.style.cssText="pointer-events:none;opacity:0;transition:opacity 180ms ease";
+   var t1=document.createElementNS(ns,"text");
+   t1.setAttribute("x",lb.x);t1.setAttribute("y",lb.y-2);
+   t1.setAttribute("text-anchor","middle");t1.setAttribute("dominant-baseline","middle");
+   t1.style.cssText="font-family:var(--font-sans);font-size:13px;font-weight:700;fill:var(--accent-strong);letter-spacing:-0.01em;paint-order:stroke;stroke:white;stroke-width:3.5;stroke-linejoin:round";
+   t1.textContent=lb.name;lg.appendChild(t1);
+   var t2=document.createElementNS(ns,"text");
+   t2.setAttribute("x",lb.x);t2.setAttribute("y",lb.y+13);
+   t2.setAttribute("text-anchor","middle");t2.setAttribute("dominant-baseline","middle");
+   t2.style.cssText="font-family:var(--font-mono);font-size:10px;font-weight:600;fill:var(--ink-2);paint-order:stroke;stroke:white;stroke-width:3;stroke-linejoin:round";
+   t2.textContent=c.props+(c.props===1?" property":" properties");lg.appendChild(t2);
+   g.appendChild(lg);
+  }
+
+  // Store ref for exclusive hover reset
+  var item={g:g,p:p,lg:lg,origFill:co.f};
+
+  g.addEventListener("mouseenter",function(){
+   if (isPanning) return;
+   // Exclusive: reset previous county before activating new one
+   if(activeCounty && activeCounty!==item){ resetCounty(activeCounty); hideTip(); }
+   activeCounty=item;
+   g.style.transform="translate(-3px,-8px) scale(1.04)";
+   g.style.filter="drop-shadow(0 10px 18px oklch(0.18 0.02 280/0.28)) drop-shadow(0 0 14px oklch(0.55 0.18 280/0.35))";
+   p.setAttribute("fill","var(--accent-soft)");p.setAttribute("stroke","var(--accent-strong)");
+   p.setAttribute("stroke-width","1.8");if(lg)lg.style.opacity="1";
+   cg.appendChild(g); showTip(c);
+  });
+  g.addEventListener("mouseleave",function(){
+   resetCounty(item);
+   if(activeCounty===item) activeCounty=null;
+   hideTip();
+  });
+  (function(county){
+   var downX=0,downY=0;
+   g.addEventListener("mousedown",function(e){ downX=e.clientX; downY=e.clientY; });
+   g.addEventListener("click",function(e){
+    var dx=Math.abs(e.clientX-downX), dy=Math.abs(e.clientY-downY);
+    if(dx>DRAG_THRESHOLD||dy>DRAG_THRESHOLD) return;
+    e.stopPropagation();
+    if(county.url) window.location.href=county.url;
+    else window.location.href="/research/parcels?county="+encodeURIComponent(county.name)+"&state="+encodeURIComponent(county.state||"Florida");
+   });
+  })(c);
+  cg.appendChild(g);
+ })(id);}
+ svg.appendChild(cg);
+ w.innerHTML="";w.appendChild(svg);
+
+ // ═══════════════════════════════════════
+ // Pan handlers on the SVG
+ // ═══════════════════════════════════════
+ svg.addEventListener("mousedown", function(e) {
+   if (e.button !== 0) return; // left-click only
+   isPanning = true;
+   panDragged = false;
+   panStart.x = e.clientX;
+   panStart.y = e.clientY;
+   svg.style.cursor = "grabbing";
+   e.preventDefault(); // prevent text selection
+ });
+
+ svg.addEventListener("mousemove", function(e) {
+   if (!isPanning) return;
+   var dx = e.clientX - panStart.x;
+   var dy = e.clientY - panStart.y;
+   if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+     panDragged = true;
+   }
+   // Convert screen px movement to SVG viewBox units
+   var rect = svg.getBoundingClientRect();
+   var scaleX = vb.w / rect.width;
+   var scaleY = vb.h / rect.height;
+   vb.x -= dx * scaleX;
+   vb.y -= dy * scaleY;
+   applyViewBox();
+   panStart.x = e.clientX;
+   panStart.y = e.clientY;
+ });
+
+ svg.addEventListener("mouseup", function() {
+   isPanning = false;
+   svg.style.cursor = "grab";
+   // Clear panDragged after a tick so click events can check it
+   setTimeout(function() { panDragged = false; }, 50);
+ });
+
+ svg.addEventListener("mouseleave", function() {
+   if (isPanning) {
+     isPanning = false;
+     svg.style.cursor = "grab";
+     setTimeout(function() { panDragged = false; }, 50);
+   }
+ });
+
+ // ═══════════════════════════════════════
+ // Zoom with scroll wheel
+ // ═══════════════════════════════════════
+ w.addEventListener("wheel", function(e) {
+   e.preventDefault();
+   var zoomFactor = e.deltaY > 0 ? 1.08 : 0.92; // scroll down = zoom out, up = zoom in
+   var newW = vb.w * zoomFactor;
+   var newH = vb.h * zoomFactor;
+   // Enforce limits
+   var ratioW = newW / origVb.w;
+   if (ratioW < MIN_ZOOM || ratioW > MAX_ZOOM) return;
+   // Zoom toward mouse position
+   var svgPt = screenToSVG(svg, e.clientX, e.clientY);
+   var dx = (newW - vb.w);
+   var dy = (newH - vb.h);
+   // Proportion of mouse position within current viewBox
+   var mx = (svgPt.x - vb.x) / vb.w;
+   var my = (svgPt.y - vb.y) / vb.h;
+   vb.x -= dx * mx;
+   vb.y -= dy * my;
+   vb.w = newW;
+   vb.h = newH;
+   applyViewBox();
+ }, { passive: false });
+}
+
+// Tooltip
+var tt=null,tn=null,tp=null,ta=null,tx=null;
+function initTip(){
+ tt=document.getElementById("atlasTooltip");
+ tn=document.getElementById("tooltipName");
+ tp=document.getElementById("tooltipProps");
+ ta=document.getElementById("tooltipAuctions");
+ tx=document.getElementById("tooltipNext");
+}
+function showTip(c){if(!tt)return;tn.innerHTML=c.name+' <span style="opacity:.5">County</span>';
+ tp.textContent=c.props;if(ta)ta.textContent=c.auctions||c.props;if(tx)tx.textContent=c.next||"—";
+ tt.classList.add("visible");}
+function hideTip(){if(tt)tt.classList.remove("visible");}
+// Named function so we can manage it via window._atlasMouseMoveHandler
+function _atlasMouseMove(e){if(!tt)return;
+ var x=e.clientX+12,y=e.clientY+12;
+ if(x+240>window.innerWidth)x=e.clientX-252;
+ if(y+180>window.innerHeight)y=e.clientY-192;
+ tt.style.left=x+"px";tt.style.top=y+"px";}
+// NOTE: mousemove listener is registered in the Turbo management section below
+
+// Expose resetView globally for the zoom controls
+window.atlasResetView = function() { resetView(); };
+
+function boot(){
+  // Guard: skip if the atlas map container is not in the DOM (we're on another page)
+  if (!document.getElementById("atlasMapWrap")) return;
+
+  // Ensure geo data is loaded (survives Turbo Drive navigations)
+  ensureGeoData(function() {
+    initGeoRefs();
+    initViewBox();
+    initTip();
+    renderMap();
+
+    // Zoom control buttons
+    var zoomIn = document.getElementById("atlasZoomIn");
+    var zoomOut = document.getElementById("atlasZoomOut");
+    var zoomReset = document.getElementById("atlasZoomReset");
+    if (zoomIn) zoomIn.addEventListener("click", function() {
+      var factor = 0.8;
+      var newW = vb.w * factor, newH = vb.h * factor;
+      if (newW / origVb.w < MIN_ZOOM) return;
+      vb.x += (vb.w - newW) / 2;
+      vb.y += (vb.h - newH) / 2;
+      vb.w = newW; vb.h = newH;
+      applyViewBox();
+    });
+    if (zoomOut) zoomOut.addEventListener("click", function() {
+      var factor = 1.25;
+      var newW = vb.w * factor, newH = vb.h * factor;
+      if (newW / origVb.w > MAX_ZOOM) return;
+      vb.x += (vb.w - newW) / 2;
+      vb.y += (vb.h - newH) / 2;
+      vb.w = newW; vb.h = newH;
+      applyViewBox();
+    });
+    if (zoomReset) zoomReset.addEventListener("click", function() { resetView(); });
+
+    // Force-hide tooltip AND reset all county highlights when mouse exits map area
+    var wrap = document.getElementById("atlasMapWrap");
+    if(wrap){
+      wrap.addEventListener("mouseleave", function(){
+        hideTip();
+        // Reset every county group inside the map
+        var groups = wrap.querySelectorAll("g[style]");
+        groups.forEach(function(g){
+          g.style.transform = "translate(0,0) scale(1)";
+          g.style.filter = "none";
+          // Reset path fill/stroke to original
+          var path = g.querySelector("path");
+          if(path && path.dataset.origFill){
+            path.setAttribute("fill", path.dataset.origFill);
+            path.setAttribute("stroke", "var(--surface-1)");
+            path.setAttribute("stroke-width", "0.6");
+          }
+          // Hide hover label
+          var label = g.querySelector("g[style*='pointer-events']");
+          if(label) label.style.opacity = "0";
+        });
+      });
+    }
+  });
+}
+
+// ── Turbo-safe listener management ──────────────────────────────────────
+// Store handlers on window so removeEventListener works across IIFE re-executions
+if (window._atlasTurboBeforeRender) {
+  document.removeEventListener("turbo:before-render", window._atlasTurboBeforeRender);
+}
+if (window._atlasTurboLoad) {
+  document.removeEventListener("turbo:load", window._atlasTurboLoad);
+}
+if (window._atlasMouseMoveHandler) {
+  document.removeEventListener("mousemove", window._atlasMouseMoveHandler);
+}
+
+window._atlasTurboBeforeRender = function() {
+  hideTip();
+  var tip = document.getElementById("atlasTooltip");
+  if (tip) tip.classList.remove("visible");
+};
+window._atlasTurboLoad = function() { boot(); };
+window._atlasMouseMoveHandler = _atlasMouseMove;
+
+document.addEventListener("turbo:before-render", window._atlasTurboBeforeRender);
+document.addEventListener("turbo:load", window._atlasTurboLoad);
+document.addEventListener("mousemove", window._atlasMouseMoveHandler);
+
+document.addEventListener("DOMContentLoaded", boot);
+})();
+</script>
+

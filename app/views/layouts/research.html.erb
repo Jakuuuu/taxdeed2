@@ -3,12 +3,16 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="TaxDeed Lion — Research Platform">
-    <title><%= content_for?(:title) ? yield(:title) : "TaxDeed Lion" %></title>
+    <meta name="description" content="LionTaxdeed — Research Platform">
+    <meta name="turbo-cache-control" content="no-preview">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <title><%= content_for?(:title) ? yield(:title) : "LionTaxdeed" %></title>
 
+    <%# ── Fonts: Inter, DM Serif Display, JetBrains Mono ── %>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <%# Google Maps API — GIS engine for Rama 2 (parcels) and Ficha (parcel boundary) [PIVOT-02] %>
     <%= google_maps_script_tag %>
@@ -21,47 +25,226 @@
     <% if content_for?(:head) %>
       <%= yield(:head) %>
     <% end %>
+
+    <style>
+      /* ═══════════════════════════════════════════════════════
+         LION TAXDEED — Global Design Tokens (from prototype)
+         ═══════════════════════════════════════════════════════ */
+      :root {
+        --surface-0: oklch(0.99 0.003 280);
+        --surface-1: oklch(1 0 0);
+        --surface-2: oklch(0.97 0.005 280);
+        --surface-3: oklch(0.94 0.008 280);
+        --border: oklch(0.91 0.01 280);
+        --border-strong: oklch(0.84 0.015 280);
+        --ink-1: oklch(0.18 0.02 280);
+        --ink-2: oklch(0.36 0.02 280);
+        --ink-3: oklch(0.55 0.015 280);
+        --ink-4: oklch(0.72 0.012 280);
+        --accent: oklch(0.55 0.18 280);
+        --accent-strong: oklch(0.42 0.22 280);
+        --accent-soft: oklch(0.92 0.06 280);
+        --accent-2: oklch(0.65 0.16 320);
+        /* Phase 2 map: stack-marker (multiple parcels at identical coords) */
+        --accent-stack: oklch(0.55 0.18 35);
+        --accent-stack-strong: oklch(0.42 0.22 35);
+        /* Phase 2 map: cluster bubble density buckets */
+        --cluster-density-1: oklch(0.78 0.10 220);
+        --cluster-density-2: oklch(0.65 0.16 220);
+        --cluster-density-3: oklch(0.52 0.20 30);
+        --cluster-density-4: oklch(0.42 0.24 30);
+        --success: oklch(0.62 0.16 155);
+        --success-soft: oklch(0.93 0.06 155);
+        --warning: oklch(0.72 0.16 70);
+        --warning-soft: oklch(0.95 0.06 70);
+        --danger: oklch(0.58 0.22 25);
+        --danger-soft: oklch(0.94 0.06 25);
+        --shadow-sm: 0 1px 2px oklch(0.18 0.02 280 / 0.04), 0 1px 1px oklch(0.18 0.02 280 / 0.03);
+        --shadow-md: 0 4px 14px oklch(0.18 0.02 280 / 0.06), 0 2px 4px oklch(0.18 0.02 280 / 0.04);
+        --shadow-lg: 0 16px 40px oklch(0.18 0.02 280 / 0.10), 0 6px 16px oklch(0.18 0.02 280 / 0.06);
+        --shadow-glow: 0 0 0 4px oklch(0.55 0.18 280 / 0.10);
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --radius-xl: 20px;
+        --font-display: "DM Serif Display", "Georgia", serif;
+        --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, monospace;
+        --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+        --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+        --pad-card: 22px; --gap-card: 16px; --row-h: 50px; --kpi-pad: 22px 24px;
+      }
+
+      /* ── Base reset ── */
+      *, *::before, *::after { box-sizing: border-box; }
+      body {
+        font-family: var(--font-sans);
+        color: var(--ink-1);
+        background: var(--surface-0);
+        font-feature-settings: "ss01", "cv11";
+        -webkit-font-smoothing: antialiased;
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 0; padding: 0;
+      }
+      button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+      /* ═══════════════════════════════════════════════════════
+         APP HEADER — LionTaxdeed branding (from prototype)
+         ═══════════════════════════════════════════════════════ */
+      .app-header {
+        display: grid;
+        grid-template-columns: 240px 1fr auto;
+        align-items: center;
+        gap: var(--space-6);
+        padding: 14px 24px;
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--border);
+      }
+      .brand { display: flex; align-items: center; gap: 10px; }
+      .brand-mark {
+        width: 32px; height: 32px;
+        display: grid; place-items: center;
+        background: var(--accent);
+        color: var(--surface-1);
+        border-radius: 9px;
+        box-shadow: 0 0 0 4px oklch(0.55 0.18 280 / 0.12);
+      }
+      .brand-name {
+        font-family: var(--font-display);
+        font-size: 22px;
+        letter-spacing: -0.01em;
+        font-weight: 400;
+        color: var(--ink-1);
+      }
+      .brand-accent { color: var(--accent); font-style: italic; }
+
+      .header-nav { display: flex; gap: 4px; }
+      .nav-item {
+        padding: 8px 14px;
+        font-size: 13.5px;
+        color: var(--ink-3);
+        border-radius: 8px;
+        transition: all 160ms ease;
+        letter-spacing: -0.005em;
+        text-decoration: none;
+        display: inline-flex; align-items: center;
+      }
+      .nav-item:hover { color: var(--ink-1); background: var(--surface-2); }
+      .nav-item--active { color: var(--ink-1); background: var(--surface-2); font-weight: 500; }
+
+      .header-right { display: flex; align-items: center; gap: 12px; }
+      .icon-btn {
+        width: 36px; height: 36px;
+        display: grid; place-items: center;
+        border-radius: 9px;
+        color: var(--ink-2);
+        position: relative;
+        transition: all 160ms ease;
+      }
+      .icon-btn:hover { background: var(--surface-2); color: var(--ink-1); }
+      .icon-btn svg { width: 18px; height: 18px; }
+      .dot-indicator {
+        position: absolute; top: 8px; right: 8px;
+        width: 7px; height: 7px;
+        background: var(--danger);
+        border-radius: 50%;
+        border: 2px solid var(--surface-1);
+      }
+      .plan-pill {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        padding: 5px 10px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: white;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+      .user-pill {
+        display: flex; align-items: center; gap: 8px;
+        padding: 5px 12px 5px 5px;
+        border-radius: 999px;
+        background: var(--surface-2);
+        font-size: 13px; font-weight: 500;
+      }
+      .avatar {
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: white;
+        display: grid; place-items: center;
+        font-size: 12px; font-weight: 600;
+      }
+
+      /* ── Flash messages (keep existing) ── */
+      .flash { padding: 12px 16px; border-radius: 8px; margin: 12px 24px 0; font-size: 13px; display: flex; align-items: center; justify-content: space-between; }
+      .flash--notice { background: var(--success-soft); color: var(--success); border: 1px solid oklch(0.62 0.16 155 / 0.2); }
+      .flash--alert { background: var(--danger-soft); color: var(--danger); border: 1px solid oklch(0.58 0.22 25 / 0.2); }
+      .flash__close { background: none; border: none; font-size: 18px; cursor: pointer; color: inherit; opacity: 0.6; }
+
+      /* ── Main content resets ── */
+      .rn-main { flex: 1; }
+
+      /* ── Dropdown (keep existing logic) ── */
+      .rn-dropdown { display: none; position: absolute; right: 0; top: 100%; min-width: 160px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-lg); padding: 6px; z-index: 50; margin-top: 6px; }
+      .rn-dropdown.open { display: block; }
+      .rn-dropdown__item { display: block; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: var(--ink-2); text-decoration: none; transition: background 120ms; }
+      .rn-dropdown__item:hover { background: var(--surface-2); color: var(--ink-1); }
+      .rn-dropdown__item--danger { color: var(--danger); }
+      .rn-dropdown__divider { height: 1px; background: var(--border); margin: 4px 0; }
+    </style>
+
+    <%# ── Atlas shared component tokens (global inject) ── %>
+    <%= render 'research/shared/atlas_tokens' %>
   </head>
 
-  <body class="research-layout">
-    <!-- Top Navbar -->
-    <header class="rn-header">
-      <div class="rn-header__left">
-        <a href="<%= research_parcels_path %>" class="rn-logo">
-          Tax Sale <span>Resources</span>
-        </a>
-        <nav class="rn-nav">
-          <a href="<%= research_auctions_path %>"
-             class="rn-nav__link <%= 'active' if controller_name == 'auctions' %>">
-            US Overview
-          </a>
-          <a href="<%= research_parcels_path %>"
-             class="rn-nav__link <%= 'active' if controller_name == 'parcels' %>">
-            Search
-          </a>
-          <a href="<%= research_purchased_reports_path %>"
-             class="rn-nav__link <%= 'active' if controller_name == 'purchased_reports' %>">
-            Reports
-          </a>
-          <a href="<%= research_market_study_counties_path %>"
-             class="rn-nav__link <%= 'active' if controller_path.include?('market_study') %>">
-            Market Study
-          </a>
-          <a href="<%= research_portfolio_path %>"
-             class="rn-nav__link <%= 'active' if controller_name == 'portfolio' %>">
-            My Portfolio
-          </a>
-        </nav>
+  <body>
+    <!-- LionTaxdeed Header (from prototype shared-ui.jsx) -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="22" height="22">
+            <path d="M16 3c-2 4-5 5-9 6 0 8 4 14 9 17 5-3 9-9 9-17-4-1-7-2-9-6z" fill="currentColor"/>
+            <circle cx="13" cy="14" r="1.4" fill="var(--surface-1)"/>
+            <circle cx="19" cy="14" r="1.4" fill="var(--surface-1)"/>
+            <path d="M13 19c1 1 2 1.5 3 1.5s2-.5 3-1.5" stroke="var(--surface-1)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">Lion<span class="brand-accent">Taxdeed</span></span>
+        </div>
       </div>
-
-      <div class="rn-header__right">
+      <nav class="header-nav">
+        <a href="<%= research_auctions_path %>"
+           class="nav-item <%= 'nav-item--active' if controller_name == 'auctions' %>">
+          US Overview
+        </a>
+        <a href="<%= research_parcels_path %>"
+           class="nav-item <%= 'nav-item--active' if controller_name == 'parcels' %>">
+          Search
+        </a>
+        <a href="<%= research_purchased_reports_path %>"
+           class="nav-item <%= 'nav-item--active' if controller_name == 'purchased_reports' %>">
+          Reports
+        </a>
+        <a href="<%= research_market_study_counties_path %>"
+           class="nav-item <%= 'nav-item--active' if controller_path.include?('market_study') %>">
+          Market Study
+        </a>
+        <a href="<%= research_portfolio_path %>"
+           class="nav-item <%= 'nav-item--active' if controller_name == 'portfolio' %>">
+          My Pipeline
+        </a>
+      </nav>
+      <div class="header-right">
         <% if current_user&.subscription %>
-          <span class="rn-plan-badge"><%= current_user.subscription.plan_name&.capitalize %></span>
+          <div class="plan-pill"><%= current_user.subscription.plan_name&.upcase %></div>
         <% end %>
-        <div class="rn-user-menu" data-controller="dropdown">
-          <button class="rn-user-btn" onclick="this.nextElementSibling.classList.toggle('open')">
-            <span class="rn-avatar"><%= current_user&.first_name&.first&.upcase %></span>
-            <span class="rn-username"><%= current_user&.first_name %></span>
+        <div style="position:relative;" data-controller="dropdown">
+          <button class="user-pill" onclick="this.nextElementSibling.classList.toggle('open')">
+            <div class="avatar"><%= current_user&.first_name&.first&.upcase %></div>
+            <span><%= current_user&.first_name %></span>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </button>
           <div class="rn-dropdown">

@@ -1,16 +1,16 @@
 <%# ═══════════════════════════════════════════════════════════════════════════
-     Partial: _index_styles — CSS Design Tokens para el Index de Market Study
-     Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA
+     Partial: _index_styles — Atlas Design Tokens para el Index de Market Study
+     Migrated from Navy/Gold → Atlas OKLCH tokens
      Regla: CSS inline estricto — prohibido content_for :head
     ═══════════════════════════════════════════════════════════════════════════ %>
 
 <style>
-  /* ── Market Study Index — Brand-Aligned Tokens ───────────────────────── */
+  /* ── Market Study Index — Atlas Tokens ───────────────────────────────── */
   .ms-index-container {
     min-height: calc(100vh - 56px);
-    background: var(--color-bg, #F5F7FA);
+    background: var(--surface-0);
     padding: 28px 32px;
-    font-family: var(--font, 'Inter', system-ui, sans-serif);
+    font-family: var(--font-sans);
   }
 
   /* ── Header ──────────────────────────────────────────────────────────── */
@@ -24,21 +24,25 @@
   }
 
   .ms-index-header h1 {
-    font-size: 1.65rem;
-    font-weight: 700;
-    color: var(--color-navy, #1E3A5F);
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--ink-1);
     margin: 0;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.02em;
   }
 
   .ms-index-header h1 span {
-    color: var(--color-gold, #C9A84C);
+    color: var(--accent);
+    font-style: italic;
   }
 
   .ms-index-meta {
-    color: var(--color-text-muted, #6B7280);
-    font-size: 0.82rem;
+    color: var(--ink-3);
+    font-size: 12.5px;
     font-weight: 500;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
   }
 
   /* ── Search & Filters ───────────────────────────────────────────────── */
@@ -52,163 +56,343 @@
   .ms-search-input {
     flex: 1;
     min-width: 240px;
-    padding: 0.55rem 1rem;
-    background: var(--color-surface, #fff);
-    border: 1.5px solid var(--color-border, #E2E8F0);
-    border-radius: var(--radius, 10px);
-    color: var(--color-text, #1A202C);
-    font-size: 0.82rem;
-    font-family: var(--font, 'Inter', sans-serif);
+    padding: 8px 14px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--ink-1);
+    font-size: 13px;
+    font-family: var(--font-sans);
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
   }
 
   .ms-search-input:focus {
-    border-color: var(--color-navy, #1E3A5F);
-    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.08);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-glow);
   }
 
   .ms-search-input::placeholder {
-    color: var(--color-text-muted, #6B7280);
+    color: var(--ink-4);
   }
 
   .ms-filter-select {
-    padding: 0.55rem 1rem;
-    background: var(--color-surface, #fff);
-    border: 1.5px solid var(--color-border, #E2E8F0);
-    border-radius: var(--radius, 10px);
-    color: var(--color-text, #1A202C);
-    font-size: 0.82rem;
-    font-family: var(--font, 'Inter', sans-serif);
+    padding: 8px 14px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--ink-1);
+    font-size: 13px;
+    font-family: var(--font-sans);
     outline: none;
     cursor: pointer;
     min-width: 160px;
   }
 
   .ms-filter-btn {
-    padding: 0.55rem 1.2rem;
-    background: var(--color-navy, #1E3A5F);
+    padding: 8px 16px;
+    background: var(--accent);
     border: none;
-    border-radius: var(--radius, 10px);
+    border-radius: var(--radius-md);
     color: #fff;
-    font-size: 0.82rem;
+    font-size: 13px;
     font-weight: 600;
-    font-family: var(--font, 'Inter', sans-serif);
+    font-family: var(--font-sans);
     cursor: pointer;
-    transition: all 0.18s;
+    transition: all 160ms ease;
   }
 
   .ms-filter-btn:hover {
-    background: var(--color-navy-light, #2C5282);
+    opacity: 0.9;
+    box-shadow: var(--shadow-md);
   }
 
   /* ── Grid de Condados ────────────────────────────────────────────────── */
   .ms-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 20px;
   }
 
+  /* ── County Card — Market Study Preview ─────────────────────────────── */
   .ms-county-card {
-    background: var(--color-surface, #fff);
-    border: 1.5px solid var(--color-border, #E2E8F0);
-    border-radius: var(--radius, 10px);
-    padding: 20px 22px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 26px 18px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
     text-decoration: none;
-    display: block;
-    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08));
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 3px oklch(0.2 0 0 / 0.06);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ms-county-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, oklch(0.55 0.18 280), oklch(0.62 0.20 260));
+    opacity: 0;
+    transition: opacity 240ms ease;
   }
 
   .ms-county-card:hover {
-    border-color: var(--color-navy, #1E3A5F);
-    box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.12));
-    transform: translateY(-2px);
+    border-color: oklch(0.55 0.18 280 / 0.3);
+    box-shadow: 0 8px 28px oklch(0.2 0 0 / 0.1), 0 2px 8px oklch(0.2 0 0 / 0.06);
+    transform: translateY(-3px);
   }
 
+  .ms-county-card:hover::before {
+    opacity: 1;
+  }
+
+  /* ── Card Header ────────────────────────────────────────────────────── */
   .ms-card-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+
+  .ms-card-header__left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .ms-card-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--color-navy, #1E3A5F);
+    font-size: 20px;
+    font-weight: 800;
+    color: oklch(0.25 0.04 260);
     margin: 0;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.01em;
+    font-family: var(--font-sans);
+    line-height: 1.2;
   }
 
-  .ms-card-state {
-    font-size: 0.68rem;
+  .ms-card-subtitle {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: oklch(0.55 0.15 160);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .ms-card-state-badge {
+    font-family: var(--font-sans);
+    font-size: 11px;
     font-weight: 700;
-    color: var(--color-navy, #1E3A5F);
-    background: rgba(30, 58, 95, 0.08);
-    padding: 3px 9px;
+    color: oklch(0.25 0.04 260);
+    background: oklch(0.95 0.01 260);
+    border: 1px solid oklch(0.88 0.02 260);
+    padding: 5px 14px;
     border-radius: 6px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
-  .ms-card-metrics {
+  /* ── Metrics Row (Estatus + Población) ──────────────────────────────── */
+  .ms-card-metrics-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px 16px;
-    margin-bottom: 14px;
+    gap: 8px 20px;
+    margin-bottom: 16px;
   }
 
-  .ms-metric-label {
-    font-size: 0.66rem;
-    color: var(--color-text-muted, #6B7280);
+  .ms-card-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .ms-card-metric__label {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: oklch(0.55 0.01 260);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.08em;
     font-weight: 600;
-    margin-bottom: 2px;
   }
 
-  .ms-metric-value {
-    font-size: 0.95rem;
+  .ms-card-metric__value {
+    font-size: 14px;
     font-weight: 700;
-    color: var(--color-text, #1A202C);
+    color: var(--ink-1);
   }
 
-  .ms-metric-value.green {
-    color: var(--color-success, #38A169);
+  .ms-card-metric__value--status {
+    color: oklch(0.55 0.15 160);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
   }
 
+  .ms-card-metric__value--population {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: oklch(0.25 0.04 260);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  /* ── Modalidad Subasta ──────────────────────────────────────────────── */
+  .ms-card-modality {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 18px;
+  }
+
+  .ms-card-modality__value {
+    font-size: 16px;
+    font-weight: 800;
+    color: oklch(0.25 0.04 260);
+    letter-spacing: 0.01em;
+  }
+
+  /* ── Ciudades Principales ───────────────────────────────────────────── */
+  .ms-card-cities {
+    margin-bottom: 18px;
+  }
+
+  .ms-card-cities__title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: oklch(0.55 0.01 260);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .ms-card-cities__title svg {
+    color: oklch(0.55 0.01 260);
+    flex-shrink: 0;
+  }
+
+  .ms-card-cities__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .ms-city-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: oklch(0.28 0.06 260);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    transition: all 180ms ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ms-city-pill__icon {
+    color: oklch(0.75 0.15 160);
+    flex-shrink: 0;
+  }
+
+  .ms-county-card:hover .ms-city-pill {
+    background: oklch(0.32 0.08 260);
+  }
+
+  /* ── Card Footer ────────────────────────────────────────────────────── */
   .ms-card-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: 12px;
-    border-top: 1px solid var(--color-border, #E2E8F0);
+    padding-top: 16px;
+    border-top: 1px solid oklch(0.93 0.01 260);
+    margin-top: auto;
   }
 
-  .ms-card-auctions {
-    font-size: 0.78rem;
+  .ms-card-footer__info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: oklch(0.97 0.005 80);
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid oklch(0.92 0.02 80);
+  }
+
+  .ms-card-footer__fire {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .ms-card-footer__text {
+    font-size: 13px;
     font-weight: 700;
-    color: var(--color-gold, #C9A84C);
+    color: oklch(0.35 0.04 260);
+    font-family: var(--font-sans);
   }
 
-  .ms-card-arrow {
-    color: var(--color-text-muted, #6B7280);
-    font-size: 1.1rem;
-    transition: transform 0.2s;
+  .ms-card-footer__arrow {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    background: oklch(0.55 0.18 280);
+    border-radius: 50%;
+    color: #fff;
+    transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    flex-shrink: 0;
   }
 
-  .ms-county-card:hover .ms-card-arrow {
-    transform: translateX(4px);
-    color: var(--color-navy, #1E3A5F);
+  .ms-county-card:hover .ms-card-footer__arrow {
+    background: oklch(0.48 0.20 280);
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px oklch(0.55 0.18 280 / 0.35);
+  }
+
+  /* ── Responsive ─────────────────────────────────────────────────────── */
+  @media (max-width: 860px) {
+    .ms-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .ms-county-card {
+      padding: 18px 18px 14px;
+    }
+    .ms-card-title {
+      font-size: 17px;
+    }
+    .ms-card-metric__value--population {
+      font-size: 22px;
+    }
+    .ms-card-cities__grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   /* ── Empty State ─────────────────────────────────────────────────────── */
   .ms-empty {
     text-align: center;
     padding: 80px 24px;
-    color: var(--color-text-muted, #6B7280);
+    color: var(--ink-3);
   }
 
   .ms-empty-icon {
@@ -218,9 +402,10 @@
   }
 
   .ms-empty h3 {
-    color: var(--color-text, #1A202C);
-    font-size: 1.15rem;
+    color: var(--ink-1);
+    font-family: var(--font-display);
+    font-size: 18px;
     margin-bottom: 8px;
-    font-weight: 600;
+    font-weight: 400;
   }
 </style>

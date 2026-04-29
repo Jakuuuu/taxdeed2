@@ -50,9 +50,20 @@ Rails.application.routes.draw do
     namespace :market_study do
       resources :counties, only: [:index, :show]
     end
-    # ── Rama 5: My Portfolio ──────────────────────────────────────────────
-    # GET /research/portfolio — dashboard CRM personal del usuario
-    resource  :portfolio, only: [:show], controller: "portfolio"
+    # ── Rama 5: My Portfolio (Pipeline CRM) ─────────────────────────────
+    # GET /research/portfolio — Pipeline Kanban board
+    resource :portfolio, only: [:show], controller: "portfolio" do
+      # Pipeline Stages CRUD
+      resources :stages, controller: "pipeline_stages", only: [:create, :update, :destroy]
+
+      # Pipeline Properties (add, move, note, remove)
+      resources :properties, controller: "pipeline_properties", only: [:create, :destroy] do
+        member do
+          patch :move         # PATCH /research/portfolio/properties/:id/move
+          patch :update_note  # PATCH /research/portfolio/properties/:id/update_note
+        end
+      end
+    end
 
     resource  :settings,          only: [:show] do
       patch  :profile

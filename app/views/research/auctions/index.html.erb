@@ -1,131 +1,384 @@
-<%#
-  Rama 1: US Overview — Condados con Subastas (Production View)
-  ══════════════════════════════════════════════════════════════
-  REFACTORED: Modular architecture via Rails Partials.
-  LAYOUT: 50/50 split — Left: SVG Map + State Selector | Right: State Data
-  ──────────────────────────────────────────────────────────────
-  ARCHITECTURE RULES:
-  • ⛔ NO Google Maps / Leaflet — SVG choropleth inline ONLY
-  • ⛔ NO "Aggregate Value" — ELIMINATED
-  • ✅ Terminología: "Condados con subastas" (NEVER "Sale Events")
-  • Rule 16: Map/Calendar/Table clicks → Rama 2 (NEVER Parcel#show)
-  ──────────────────────────────────────────────────────────────
-  PARTIALS:
-    _sub_navigation     → Tabs (Tax Sale Auctions | Prior Sale Results)
-    _filter_bar         → Filters, dropdowns, view toggle
-    _state_selector     → State dropdown above SVG map
-    _svg_map_container  → SVG choropleth + summary stats (NO aggregate value)
-    _state_overview_data→ Right panel: state header, counties, dates
-    _calendar_view      → Calendar panel
-    _list_view          → Table + pagination
-    _state_popup        → Map hover tooltip (NO aggregate value)
-    _rama1_scripts      → All JS (view switching, zoom, filters, etc.)
+<%# ═══════════════════════════════════════════════════════
+     US OVERVIEW — Atlas Layout
+     Direct ERB translation of proposal-atlas.jsx + shared-ui.jsx
+     ═══════════════════════════════════════════════════════ %>
+<% content_for :title, "LionTaxdeed — US Overview" %>
+<%= render "research/auctions/atlas_tokens" %>
+<%= render "research/auctions/atlas_styles" %>
+
+<%
+  # ── Dynamic data from controller ──
+  # Controller keys: :county, :state, :parcel_count, :auction_ids, :next_sale_date, :sale_dates
+  county_rows = @county_rows || []
+  total_props = county_rows.sum { |c| c[:parcel_count].to_i }
+  active_counties = county_rows.count { |c| c[:next_sale_date].present? }
+  top_counties = county_rows.sort_by { |c| -(c[:parcel_count].to_i) }.first(6)
+
+  # Extract unique upcoming sale_dates with their county info for the agenda panel
+  auctions_map = @auctions_by_state || {}
+  state_data = auctions_map.values.first || {}
+  state_auctions = state_data.is_a?(Hash) ? (state_data[:auctions] || []) : []
+  upcoming_grouped = county_rows
+    .select { |c| c[:next_sale_date].present? && c[:next_sale_date] >= Date.current }
+    .group_by { |c| c[:next_sale_date] }
+    .sort_by { |date, _| date }
+    .first(5)
+    .map do |date, counties|
+      {
+        date: date,
+        county_names: counties.map { |c| c[:county] }.compact,
+        parcel_count: counties.sum { |c| c[:parcel_count].to_i }
+      }
+    end
+  total_auction_dates = @count_unique_dates || county_rows.flat_map { |c| c[:sale_dates] || [] }.uniq.size
 %>
 
-<%# ── Sub-Navigation Tabs ─────────────────────────────────────────────── %>
-<%= render 'research/auctions/sub_navigation' %>
-
-<%# ── Filter Bar ──────────────────────────────────────────────────────── %>
-<%= render 'research/auctions/filter_bar' %>
-
-
-<%# ═══════════════════ MAIN CONTENT ═══════════════════════════════════ %>
-<div class="r1-main-content">
-
-  <%# ══ VIEW: MAP — 50/50 Split Layout ══ %>
-  <div class="r1-view-panel active" id="panel-map">
-    <div class="r1-split-layout">
-
-      <%# ── LEFT SIDE (50%): State Selector + SVG Map ── %>
-      <div class="r1-split-left">
-        <%= render 'research/auctions/state_selector' %>
-        <%= render 'research/auctions/svg_map_container' %>
-      </div>
-
-      <%# ── RIGHT SIDE (50%): State Overview Data ── %>
-      <div class="r1-split-right">
-        <%= render 'research/auctions/state_overview_data' %>
-      </div>
-
+<div class="atlas" data-density="comfortable">
+  <%# ── Tabs Row ── %>
+  <div class="tabs-row">
+    <div class="tabs">
+      <button class="tab <%= 'tab--active' unless params[:sub_tab] == 'prior' %>" data-atlas-tab="auctions" onclick="atlasTab(this, 'auctions')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-7 8-13a8 8 0 1 0-16 0c0 6 8 13 8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        <span>Tax Sale Auctions</span>
+      </button>
+      <button class="tab <%= 'tab--active' if params[:sub_tab] == 'prior' %>" data-atlas-tab="prior" onclick="atlasTab(this, 'prior')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 16h18M9 4v16M15 4v16"/></svg>
+        <span>Prior Sale Results</span>
+      </button>
     </div>
+    <% unless params[:sub_tab] == 'prior' %>
+    <div class="view-controls">
+      <div class="view-toggle">
+        <button class="view-btn view-btn--active" data-view="map" title="Map view" onclick="atlasView(this, 'map')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6 9 4l6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg>
+        </button>
+        <button class="view-btn" data-view="calendar" title="Calendar view" onclick="atlasView(this, 'calendar')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        </button>
+        <button class="view-btn" data-view="table" title="Table view" onclick="atlasView(this, 'table')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 16h18M9 4v16M15 4v16"/></svg>
+        </button>
+      </div>
+      <button class="ghost-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 9v6l-4-2v-4z"/></svg>
+        <span>Filters</span>
+      </button>
+    </div>
+    <% end %>
   </div>
 
-  <%# ══ VIEW: CALENDAR ══ %>
-  <div class="r1-view-panel" id="panel-calendar">
-    <%= render 'research/auctions/calendar_view' %>
+  <% if params[:sub_tab] == 'prior' %>
+    <%# ═══════════════════════════════════════
+         PRIOR SALE RESULTS — dedicated table view
+         ═══════════════════════════════════════ %>
+    <div class="atlas__prior" id="atlasPriorPanel">
+      <%= render "research/auctions/list_view" %>
+    </div>
+  <% else %>
+  <%# ═══════════════════════════════════════
+       MAP STAGE — fullbleed map with floating glass panels
+       ═══════════════════════════════════════ %>
+  <div class="atlas__stage" id="atlasStage">
+
+    <%# Background grid + compass + coordinates %>
+    <div class="atlas__map-bg">
+      <div class="atlas__compass">
+        <span class="atlas__compass-n">N</span>
+        <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.3"/><path d="M20 4 L23 20 L20 36 L17 20 Z" fill="currentColor" opacity="0.4"/></svg>
+      </div>
+      <div class="atlas__coord">26.97°N — 81.78°W</div>
+      <div class="atlas__map-wrap" id="atlasMapWrap">
+        <%# SVG Florida map rendered by JS %>
+      </div>
+
+      <%# ── Zoom controls ── %>
+      <div class="atlas__zoom-controls">
+        <button id="atlasZoomIn" class="atlas__zoom-btn" aria-label="Zoom in" title="Zoom in">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button id="atlasZoomOut" class="atlas__zoom-btn" aria-label="Zoom out" title="Zoom out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg>
+        </button>
+        <button id="atlasZoomReset" class="atlas__zoom-btn" aria-label="Reset view" title="Reset view">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 5 5 0 0 0-5 5"/><path d="m3 3 4 5H3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <%# ── Floating panel: State pill + title block ── %>
+    <div class="atlas__top-panel">
+      <div class="atlas__state-pill">
+        <span class="atlas__state-flag" aria-hidden="true">
+          <svg viewBox="0 0 24 16" width="22" height="14"><rect width="24" height="16" fill="#fff"/><g fill="#b22234"><rect y="0" width="24" height="1.23"/><rect y="2.46" width="24" height="1.23"/><rect y="4.92" width="24" height="1.23"/><rect y="7.38" width="24" height="1.23"/><rect y="9.84" width="24" height="1.23"/><rect y="12.30" width="24" height="1.23"/><rect y="14.76" width="24" height="1.23"/></g><rect width="10" height="8.61" fill="#3c3b6e"/></svg>
+        </span>
+        <div>
+          <div class="atlas__state-label">Active state</div>
+          <div class="atlas__state-name">Florida</div>
+        </div>
+        <span class="atlas__state-count"><%= active_counties %> counties</span>
+        <button class="atlas__state-switch" aria-label="Switch state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+
+      <div class="atlas__title-block">
+        <h1 class="atlas__title">
+          <span class="atlas__title-eyebrow">Tax deed auction map</span>
+          Florida overview
+        </h1>
+        <p class="atlas__subtitle"><%= active_counties %> counties · <%= total_auction_dates %> upcoming auction dates · <%= number_with_delimiter(total_props) %> properties up for bid</p>
+      </div>
+    </div>
+
+    <%# ── Floating left: Upcoming agenda ── %>
+    <div class="atlas__left-panel">
+      <div class="section-title">
+        <div class="section-title__main">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+          Next auctions
+        </div>
+        <span class="count-pill"><%= upcoming_grouped.size %></span>
+      </div>
+      <div class="atlas__agenda">
+        <% upcoming_grouped.each do |entry| %>
+          <%
+            auction_date = entry[:date]
+            diff_days = (auction_date.to_date - Date.today).to_i
+            month_str = auction_date.strftime("%b")
+            day_str = auction_date.strftime("%d")
+            weekday_str = auction_date.strftime("%A")
+            tone = diff_days == 0 ? "today" : diff_days == 1 ? "tomorrow" : diff_days < 7 ? "soon" : "later"
+            when_label = diff_days == 0 ? "Today" : diff_days == 1 ? "Tomorrow" : diff_days < 7 ? "In #{diff_days}d" : diff_days < 30 ? "In #{(diff_days / 7.0).round}w" : "In #{(diff_days / 30.0).round}mo"
+            counties_list = entry[:county_names]
+          %>
+          <div class="auction-card auction-card--<%= tone %>">
+            <div class="auction-card__date">
+              <span class="auction-card__month"><%= month_str %></span>
+              <span class="auction-card__day"><%= day_str %></span>
+            </div>
+            <div class="auction-card__body">
+              <div class="auction-card__weekday"><%= weekday_str %></div>
+              <div class="auction-card__counties">
+                <% counties_list.first(3).each do |county_name| %>
+                  <span class="auction-card__chip"><%= county_name %></span>
+                <% end %>
+                <% if counties_list.size > 3 %>
+                  <span class="auction-card__chip auction-card__chip--more">+<%= counties_list.size - 3 %></span>
+                <% end %>
+              </div>
+              <div class="auction-card__when auction-card__when--<%= tone %>"><%= when_label %></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <%# ── Floating right: Top counties ── %>
+    <div class="atlas__right-panel">
+      <div class="section-title">
+        <div class="section-title__main">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+          Top opportunities
+        </div>
+        <a href="#" class="atlas__see-all">
+          All
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+      <div class="atlas__top-counties">
+        <% top_counties.each do |county| %>
+          <%
+            props_count = county[:parcel_count].to_i
+            auction_count = county[:auction_ids]&.size || 0
+            next_date = county[:next_sale_date]
+            next_str = next_date.present? ? (next_date.is_a?(Date) ? next_date.strftime("Next %b %d") : "Next #{next_date}") : "—"
+            diff_days_c = next_date.is_a?(Date) ? (next_date - Date.today).to_i : 99
+            urgent = diff_days_c <= 2
+            # heat color based on parcel_count
+            heat_fill = case props_count
+                        when 0 then "var(--surface-2)"
+                        when 1..5 then "oklch(0.92 0.04 280)"
+                        when 6..20 then "oklch(0.82 0.10 280)"
+                        when 21..50 then "oklch(0.65 0.16 280)"
+                        else "oklch(0.48 0.20 280)"
+                        end
+          %>
+          <a href="<%= research_parcels_path(county: county[:county], state: county[:state]) %>"
+             class="county-row"
+             data-county-id="<%= county[:county]&.parameterize %>"
+             onmouseenter="atlasHighlight('<%= county[:county]&.parameterize %>')"
+             onmouseleave="atlasHighlight(null)">
+            <div class="county-row__main">
+              <div class="county-row__name">
+                <span class="county-row__bullet" style="background: <%= heat_fill %>"></span>
+                <%= county[:county] %>
+              </div>
+              <div class="county-row__meta">
+                <span class="meta-prop"><%= props_count %> <i>props</i></span>
+                <span class="meta-next <%= 'meta-next--urgent' if urgent %>"><%= next_str %></span>
+              </div>
+            </div>
+            <span class="county-row__chev">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+          </a>
+        <% end %>
+      </div>
+    </div>
+
+    <%# ── Heat legend (bottom-center) ── %>
+    <div class="atlas__legend">
+      <div class="heat-legend">
+        <span class="heat-legend__title">Properties up for bid</span>
+        <span class="heat-legend__item"><i style="background: var(--surface-2)"></i>0</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.92 0.04 280)"></i>1–5</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.82 0.10 280)"></i>6–20</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.65 0.16 280)"></i>21–50</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.48 0.20 280)"></i>51+</span>
+      </div>
+    </div>
+
+    <%# ── KPI strip (bottom) ── %>
+    <div class="atlas__kpis">
+      <div class="kpi-tile">
+        <div class="kpi-tile__head">
+          <span class="kpi-label">Counties active</span>
+          <span class="kpi-icon">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-7 8-13a8 8 0 1 0-16 0c0 6 8 13 8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          </span>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value"><%= active_counties %></span>
+        </div>
+        <div class="kpi-sub">of 67 in Florida</div>
+      </div>
+
+      <div class="kpi-tile">
+        <div class="kpi-tile__head">
+          <span class="kpi-label">Upcoming dates</span>
+          <span class="kpi-icon">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+          </span>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value"><%= total_auction_dates %></span>
+        </div>
+        <div class="kpi-sub">next 90 days</div>
+      </div>
+
+      <div class="kpi-tile">
+        <div class="kpi-tile__head">
+          <span class="kpi-label">Properties up for bid</span>
+          <span class="kpi-icon">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5M3 18l9 5 9-5"/></svg>
+          </span>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value kpi-value--accent"><%= number_with_delimiter(total_props) %></span>
+          <span class="kpi-trend">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+            +128
+          </span>
+        </div>
+        <div class="kpi-sub">across all counties</div>
+      </div>
+    </div>
+
+    <%# ── Tooltip (hidden, managed by JS) ── %>
+    <div class="county-tooltip" id="atlasTooltip">
+      <div class="county-tooltip__name" id="tooltipName"></div>
+      <div class="county-tooltip__grid">
+        <div><span class="t-label">Properties</span><strong id="tooltipProps">0</strong></div>
+        <div><span class="t-label">Auctions</span><strong id="tooltipAuctions">0</strong></div>
+        <div class="t-full"><span class="t-label">Next sale</span><strong id="tooltipNext">—</strong></div>
+      </div>
+      <div class="county-tooltip__cta" id="tooltipCta">
+        View opportunities
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </div>
+    </div>
+
   </div>
 
-  <%# ══ VIEW: LIST (Table) ══ %>
-  <div class="r1-view-panel" id="panel-list">
-    <%= render 'research/auctions/list_view' %>
+  <%# ═══════════════════════════════════════
+       CALENDAR VIEW — hidden by default, shown via view toggle
+       ═══════════════════════════════════════ %>
+  <div class="atlas__alt-panel" id="atlas-panel-calendar" style="display:none;">
+    <%= render "research/auctions/calendar_view" %>
   </div>
 
-</div><!-- /r1-main-content -->
+  <%# ═══════════════════════════════════════
+       TABLE VIEW — hidden by default, shown via view toggle
+       ═══════════════════════════════════════ %>
+  <div class="atlas__alt-panel" id="atlas-panel-table" style="display:none;">
+    <%= render "research/auctions/list_view" %>
+  </div>
 
+  <% end %>
+</div>
 
-<%# ── State Popup (map hover tooltip) ─────────────────────────────── %>
-<%= render 'research/auctions/state_popup' %>
+<%# ── Atlas scripts (map rendering + interactions) ── %>
+<%= render "research/auctions/atlas_scripts" %>
+<%# ── Legacy scripts for calendar render + table sort ── %>
+<%= render "research/auctions/rama1_scripts" %>
 
-
-<%# ── 50/50 Split Layout CSS ─────────────────────────────────────── %>
-<style>
-  /* ── Split Layout Container ── */
-  .r1-split-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    min-height: 600px;
-  }
-
-  .r1-split-left {
-    display: flex;
-    flex-direction: column;
-    padding-right: 20px;
-    border-right: 1px solid var(--r1-color-border, #DEE2E6);
-    gap: 12px;
-  }
-
-  .r1-split-right {
-    display: flex;
-    flex-direction: column;
-    max-height: 800px;
-    overflow-y: auto;
-  }
-
-  /* ── Responsive: stack on small screens ── */
-  @media (max-width: 1024px) {
-    .r1-split-layout {
-      grid-template-columns: 1fr;
+<script>
+  // Tab switching (Tax Sale Auctions / Prior Sale Results)
+  function atlasTab(btn, tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
+    btn.classList.add('tab--active');
+    if (tab === 'prior') {
+      window.location.href = '<%= research_auctions_path(sub_tab: "prior") %>';
+    } else {
+      window.location.href = '<%= research_auctions_path %>';
     }
-    .r1-split-left {
-      border-right: none;
-      padding-right: 0;
-      border-bottom: 1px solid var(--r1-color-border, #DEE2E6);
-      padding-bottom: 20px;
+  }
+
+  // View toggle — Map / Calendar / Table
+  function atlasView(btn, view) {
+    // Toggle button active state
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('view-btn--active'));
+    btn.classList.add('view-btn--active');
+
+    // Panels
+    const mapStage = document.getElementById('atlasStage');
+    const calPanel = document.getElementById('atlas-panel-calendar');
+    const tblPanel = document.getElementById('atlas-panel-table');
+
+    if (view === 'map') {
+      mapStage.style.display = '';
+      calPanel.style.display = 'none';
+      tblPanel.style.display = 'none';
+    } else if (view === 'calendar') {
+      mapStage.style.display = 'none';
+      calPanel.style.display = '';
+      tblPanel.style.display = 'none';
+      // Trigger calendar render from rama1_scripts
+      if (typeof r1RenderCalendar === 'function') r1RenderCalendar();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    } else if (view === 'table') {
+      mapStage.style.display = 'none';
+      calPanel.style.display = 'none';
+      tblPanel.style.display = '';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
     }
+
+    // Persist preference
+    try { localStorage.setItem('atlas_view', view); } catch(e) {}
   }
 
-  /* Ensure SVG map fills its container properly and centers the state */
-  .r1-split-left .r1-map-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+  // County highlight from sidebar
+  function atlasHighlight(id) {
+    document.querySelectorAll('#atlasMapWrap path[data-county]').forEach(p => {
+      if (id && p.dataset.county === id) {
+        p.style.filter = 'brightness(0.85)';
+        p.style.stroke = 'var(--accent-strong)';
+        p.style.strokeWidth = '2';
+      } else {
+        p.style.filter = '';
+        p.style.stroke = '';
+        p.style.strokeWidth = '';
+      }
+    });
   }
-  .r1-split-left .r1-map-svg-wrap {
-    height: 420px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-  .r1-split-left .r1-map-svg-wrap svg {
-    width: 100%;
-    height: 100%;
-    max-height: 420px;
-    transition: viewBox 0.4s ease;
-  }
-</style>
-
-
-<%# ── All JavaScript ──────────────────────────────────────────────── %>
-<%= render 'research/auctions/rama1_scripts' %>
+</script>

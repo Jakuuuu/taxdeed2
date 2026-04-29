@@ -1,38 +1,73 @@
 <%# ═══════════════════════════════════════════════════════════════════════════
      Partial: _index_county_card — Template de UNA tarjeta de condado
-     Variables: county (CountyDatum), auction_counts (Hash)
+     Diseño: Ficha preview estilo Market Study (análisis de mercado)
+     Variables: county (CountyMarketStat), auction_counts (Hash)
      Uso: Se renderiza dentro de un loop en index.html.erb
     ═══════════════════════════════════════════════════════════════════════════ %>
 
 <div class="ms-county-card" onclick="openCountyDrawer('<%= research_market_study_county_path(county) %>')">
+  <%# ── Header: Nombre + subtítulo + badge estado ─────────────────────── %>
   <div class="ms-card-header">
-    <h3 class="ms-card-title"><%= county.county %></h3>
-    <span class="ms-card-state"><%= county.state %></span>
+    <div class="ms-card-header__left">
+      <h3 class="ms-card-title"><%= county.county.upcase %></h3>
+      <span class="ms-card-subtitle">ANÁLISIS DE MERCADO</span>
+    </div>
+    <span class="ms-card-state-badge"><%= county.state.upcase %></span>
   </div>
 
-  <div class="ms-card-metrics">
-    <div class="ms-metric">
-      <div class="ms-metric-label">Precio Medio</div>
-      <div class="ms-metric-value"><%= county.format_currency(county.median_home_price) %></div>
+  <%# ── Métricas principales: Estatus + Población ─────────────────────── %>
+  <div class="ms-card-metrics-row">
+    <div class="ms-card-metric">
+      <span class="ms-card-metric__label">ESTATUS MERCADO</span>
+      <span class="ms-card-metric__value ms-card-metric__value--status">
+        <%= county.market_status.present? ? county.market_status.upcase : "—" %>
+      </span>
     </div>
-    <div class="ms-metric">
-      <div class="ms-metric-label">Población</div>
-      <div class="ms-metric-value"><%= county.format_population %></div>
-    </div>
-    <div class="ms-metric">
-      <div class="ms-metric-label">Crecimiento</div>
-      <div class="ms-metric-value green"><%= county.format_percentage(county.annual_growth_rate) %></div>
-    </div>
-    <div class="ms-metric">
-      <div class="ms-metric-label">Días en Mercado</div>
-      <div class="ms-metric-value"><%= county.days_on_market || "—" %></div>
+    <div class="ms-card-metric">
+      <span class="ms-card-metric__label">POBLACIÓN</span>
+      <span class="ms-card-metric__value ms-card-metric__value--population">
+        <%= county.format_population %>
+      </span>
     </div>
   </div>
 
-  <div class="ms-card-footer">
-    <span class="ms-card-auctions">
-      🔥 <%= auction_counts[[county.state.to_s.upcase, county.county.to_s.upcase]] || 0 %> propiedades
+  <%# ── Modalidad de subasta ──────────────────────────────────────────── %>
+  <div class="ms-card-modality">
+    <span class="ms-card-metric__label">MODALIDAD SUBASTA</span>
+    <span class="ms-card-modality__value">
+      <%= county.modalidad.present? ? county.modalidad.upcase : "—" %>
     </span>
-    <span class="ms-card-arrow">→</span>
+  </div>
+
+  <%# ── Ciudades principales ──────────────────────────────────────────── %>
+  <% cities = county.cities_list %>
+  <% if cities.any? %>
+    <div class="ms-card-cities">
+      <span class="ms-card-cities__title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="6" x2="12" y2="6.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="12" y1="18" x2="12" y2="18.01"/><line x1="8" y1="6" x2="8" y2="6.01"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="16" y1="6" x2="16" y2="6.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="16" y1="14" x2="16" y2="14.01"/><line x1="16" y1="18" x2="16" y2="18.01"/></svg>
+        CIUDADES PRINCIPALES
+      </span>
+      <div class="ms-card-cities__grid">
+        <% cities.each do |city| %>
+          <div class="ms-city-pill">
+            <svg class="ms-city-pill__icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            <span><%= city %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# ── Footer: Propiedades en subasta + botón flecha ─────────────────── %>
+  <div class="ms-card-footer">
+    <div class="ms-card-footer__info">
+      <span class="ms-card-footer__fire">🔥</span>
+      <span class="ms-card-footer__text">
+        <%= auction_counts[[county.state.to_s.upcase, county.county.to_s.upcase]] || 0 %> propiedades en subasta
+      </span>
+    </div>
+    <div class="ms-card-footer__arrow">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
   </div>
 </div>

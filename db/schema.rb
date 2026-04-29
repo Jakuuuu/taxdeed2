@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_27_100400) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_28_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -239,6 +239,36 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_27_100400) do
     t.index ["state", "county"], name: "idx_parcels_state_county"
   end
 
+  create_table "pipeline_properties", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "parcel_id", null: false
+    t.bigint "pipeline_stage_id", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "added_at", default: -> { "now()" }, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.text "notes"
+    t.index ["parcel_id"], name: "index_pipeline_properties_on_parcel_id"
+    t.index ["pipeline_stage_id", "position"], name: "idx_pipeline_props_stage"
+    t.index ["pipeline_stage_id"], name: "index_pipeline_properties_on_pipeline_stage_id"
+    t.index ["user_id", "parcel_id"], name: "idx_pipeline_props_user_parcel", unique: true
+    t.index ["user_id"], name: "index_pipeline_properties_on_user_id"
+  end
+
+  create_table "pipeline_stages", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "name", limit: 100, null: false
+    t.string "emoji", limit: 10
+    t.string "color", limit: 30
+    t.integer "position", null: false
+    t.boolean "is_default", default: false
+    t.string "crm_tag_map", limit: 50
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "position"], name: "idx_pipeline_stages_user"
+    t.index ["user_id"], name: "index_pipeline_stages_on_user_id"
+  end
+
   create_table "real_estate_monthly_volumes", force: :cascade do |t|
     t.bigint "county_market_stat_id", null: false
     t.date "period_date", null: false
@@ -372,6 +402,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_27_100400) do
   add_foreign_key "parcel_user_tags", "parcels"
   add_foreign_key "parcel_user_tags", "users"
   add_foreign_key "parcels", "auctions"
+  add_foreign_key "pipeline_properties", "parcels", on_delete: :cascade
+  add_foreign_key "pipeline_properties", "pipeline_stages", on_delete: :cascade
+  add_foreign_key "pipeline_properties", "users", on_delete: :cascade
+  add_foreign_key "pipeline_stages", "users", on_delete: :cascade
   add_foreign_key "real_estate_monthly_volumes", "county_market_stats"
   add_foreign_key "reports", "parcels"
   add_foreign_key "reports", "users"

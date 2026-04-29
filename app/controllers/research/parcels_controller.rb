@@ -259,19 +259,31 @@ module Research
         :property_type, :land_use, :zoning
       )
 
-      render json: parcels.map { |p|
+      # Group by exact rounded coords (~1cm precision). Multiple parcels can
+      # share identical coords when Regrid returns a polygon centroid for the
+      # same catastral block — this keeps cluster counts honest and lets the
+      # UI render a single "stack-marker" with a numeric badge instead of
+      # invisible overlapping pins.
+      stacks = parcels.group_by { |p| [p.latitude.to_f.round(7), p.longitude.to_f.round(7)] }
+
+      render json: stacks.map { |(lat, lng), at_point|
         {
-          id:            p.id,
-          address:       p.address,
-          city:          p.city,
-          county:        p.county,
-          state:         p.state,
-          zip:           p.zip_code,
-          parcel_id:     p.parcel_id,
-          opening_bid:   p.opening_bid&.to_f,
-          property_type: p.property_type.presence || p.land_use.presence || p.zoning.presence,
-          lat:           p.latitude.to_f,
-          lng:           p.longitude.to_f
+          lat:   lat,
+          lng:   lng,
+          count: at_point.size,
+          parcels: at_point.map { |p|
+            {
+              id:            p.id,
+              address:       p.address,
+              city:          p.city,
+              county:        p.county,
+              state:         p.state,
+              zip:           p.zip_code,
+              parcel_id:     p.parcel_id,
+              opening_bid:   p.opening_bid&.to_f,
+              property_type: p.property_type.presence || p.land_use.presence || p.zoning.presence
+            }
+          }
         }
       }
     end

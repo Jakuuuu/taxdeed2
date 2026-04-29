@@ -1,35 +1,35 @@
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    FICHA MAESTRA — Property Intelligence Report
-   Light mode · Aligned with TaxDeed Lion Design System (Navy / Gold / White)
+   Light mode · Atlas OKLCH Design System (tokens cascade from research.html.erb)
    Multi-column grid · Inline CSS (drawer AJAX, no content_for)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Design Tokens (inherits from application.css :root) ──────────────── */
+/* ── Design Tokens (remapped to Atlas OKLCH system) ──────────────── */
 :root {
-  --fp-bg:          #F5F7FA;
-  --fp-surface:     #FFFFFF;
-  --fp-surface-2:   #F0F2F5;
-  --fp-border:      #E2E8F0;
-  --fp-text:        #1A202C;
-  --fp-text-dim:    #6B7280;
-  --fp-navy:        #1E3A5F;
-  --fp-navy-light:  #2C5282;
-  --fp-gold:        #C9A84C;
-  --fp-gold-light:  #DEC06A;
-  --fp-gold-dim:    rgba(201,168,76,.08);
+  --fp-bg:          var(--surface-2);
+  --fp-surface:     var(--surface-1);
+  --fp-surface-2:   var(--surface-3);
+  --fp-border:      var(--border);
+  --fp-text:        var(--ink-1);
+  --fp-text-dim:    var(--ink-3);
+  --fp-navy:        var(--accent);
+  --fp-navy-light:  oklch(0.50 0.18 280);
+  --fp-gold:        oklch(0.72 0.14 85);
+  --fp-gold-light:  oklch(0.78 0.12 85);
+  --fp-gold-dim:    oklch(0.72 0.14 85 / 0.08);
   --fp-orange:      #E67E22;
-  --fp-green:       #38A169;
-  --fp-red:         #E53E3E;
-  --fp-blue:        #2E86C1;
+  --fp-green:       var(--success);
+  --fp-red:         var(--danger);
+  --fp-blue:        var(--accent);
   --fp-radius:      10px;
   --fp-radius-lg:   16px;
   --fp-radius-sm:   6px;
-  --fp-shadow:      0 2px 12px rgba(0,0,0,.06);
-  --fp-shadow-md:   0 4px 16px rgba(0,0,0,.10);
-  --fp-font:        'Inter', system-ui, sans-serif;
-  --fp-font-money:  'DM Serif Display', serif;
-  --fp-font-mono:   'JetBrains Mono', monospace;
+  --fp-shadow:      var(--shadow-sm);
+  --fp-shadow-md:   var(--shadow-md);
+  --fp-font:        var(--font-sans);
+  --fp-font-money:  var(--font-serif);
+  --fp-font-mono:   var(--font-mono);
 }
 
 /* ── Root & Container ─────────────────────────────────────────────────── */

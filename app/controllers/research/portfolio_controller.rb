@@ -4,43 +4,40 @@ module Research
   class PortfolioController < BaseController
     # GET /research/portfolio
     # ══════════════════════════════════════════════════════════════════════
-    # Rama 5: My Portfolio — lista todas las parcelas con las que el usuario
-    # ha interactuado: desbloqueadas (viewed_parcels) + con tag o nota CRM.
+    # Rama 5: My Portfolio — Pipeline Kanban CRM
     #
-    # Anti-N+1: 5 queries fijas sin importar el volumen de parcelas.
-    #   Q1: ParcelUserTag  → tags_by_parcel Hash + tagged_ids
-    #   Q2: ParcelUserNote → note_counts Hash + noted_ids
-    #   Q3: ViewedParcel   → unlocked_ids Array
-    #   Q4: Parcel.where(id: union).includes(:auction) — única query de carga
+    # Loads the pipeline board with all stages and their properties.
+    # Auto-seeds default stages on first access.
+    #
+    # Queries:
+    #   Q1: PipelineStage.ordered + eager-load pipeline_properties → parcel → auction
+    #   Q2: ParcelUserTag  → tags_by_parcel Hash (for mini-card CRM chip)
+    #   Q3: ParcelUserNote → latest note per parcel (for inline display)
     # ══════════════════════════════════════════════════════════════════════
     def show
-      # Q1 — Tags: un registro por parcela (UNIQUE INDEX en user_id+parcel_id)
-      tag_records     = ParcelUserTag.where(user_id: current_user.id).to_a
-      @tags_by_parcel = tag_records.index_by(&:parcel_id)
-      tagged_ids      = tag_records.map(&:parcel_id)
+      # Auto-seed pipeline stages on first access
+      PipelineStage.seed_for!(current_user)
 
-      # Q2 — Notes: cuenta por parcela (GROUP BY), devuelve Hash {parcel_id => count}
-      @note_counts = ParcelUserNote.where(user_id: current_user.id)
-                                   .group(:parcel_id).count
-      noted_ids    = @note_counts.keys
+      # Q1 — Stages with eager-loaded properties and parcels
+      @stages = current_user.pipeline_stages
+                            .ordered
+                            .includes(pipeline_properties: { parcel: :auction })
 
-      # Q3 — Unlocked: toda viewed_parcels = unlock (sin columna booleana, la existencia es el unlock)
-      unlocked_ids  = ViewedParcel.where(user_id: current_user.id).pluck(:parcel_id)
-      @unlocked_set = Set.new(unlocked_ids)
+      # Q2 — CRM tags (for tag chip on mini-cards)
+      @tags_by_parcel = current_user.parcel_user_tags.index_by(&:parcel_id)
 
-      # Union de los tres conjuntos — sin duplicados
-      parcel_ids = (unlocked_ids | tagged_ids | noted_ids)
+      # Q3 — Latest note per parcel (for inline note display, truncated)
+      @notes_by_parcel = current_user.parcel_user_notes
+                                     .select("DISTINCT ON (parcel_id) parcel_id, body, created_at")
+                                     .order(:parcel_id, created_at: :desc)
+                                     .index_by(&:parcel_id)
 
-      # Q4 — Carga de parcelas con auction eager-loaded
-      @parcels = if parcel_ids.any?
-        Parcel.where(id: parcel_ids)
-              .includes(:auction)
-              .order(updated_at: :desc)
-      else
-        Parcel.none
-      end
-
-      @empty = @parcels.empty?
+      # KPI data
+      all_props = @stages.flat_map(&:pipeline_properties)
+      @kpi_total = all_props.size
+      @kpi_total_bids = all_props.sum { |pp| pp.parcel.opening_bid.to_f }
+      ready_stage = @stages.find { |s| s.crm_tag_map == "ready" }
+      @kpi_ready = ready_stage ? ready_stage.pipeline_properties.size : 0
     end
   end
 end

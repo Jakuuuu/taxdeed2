@@ -1,7 +1,7 @@
-<% content_for :title, "#{@auction.county}, #{@auction.state} — TaxDeed Lion" %>
+<% content_for :title, "#{@auction.county}, #{@auction.state} — LionTaxdeed" %>
 
 <%# ──────────────────────────────────────────────────────────────────────
-    RAMA 1 — auctions#show (Estadístico puro)
+    RAMA 1 — auctions#show (Estadístico puro) — Atlas Identity
     ⛔ NO contiene links a Parcel#show ni tabla de parcelas.
     Único CTA hacia parcelas: "View Parcels →" → /research/parcels?auction_id=:id
     Ver: software/rules/16-navigation-and-module-boundaries.md
@@ -9,219 +9,473 @@
 
 <% content_for :head do %>
   <style>
-    /* ── Timeline ── */
-    .timeline {
-      display: flex; gap: 0; overflow-x: auto;
-      border: 1px solid var(--color-border, #DEE2E6);
-      border-radius: 10px; background: #fff;
+    /* ══════════════════════════════════════════════════════
+       AUCTION SHOW — Atlas Identity Tokens
+       Uses oklch palette, Geist/Instrument Serif, glassmorphism
+       ══════════════════════════════════════════════════════ */
+
+    /* ── Page wrapper ── */
+    .show-page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 2rem 3rem;
+    }
+
+    /* ── Breadcrumb ── */
+    .show-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-sans);
+      font-size: 0.8125rem;
+      color: var(--ink-3);
       margin-bottom: 1.5rem;
     }
-    .timeline__step {
-      flex: 1; min-width: 130px; padding: 0.85rem 1rem;
-      border-right: 1px solid var(--color-border, #DEE2E6);
-      text-align: center; position: relative;
+    .show-breadcrumb a {
+      color: var(--accent);
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 160ms ease;
     }
-    .timeline__step:last-child { border-right: none; }
-    .timeline__step.past    { opacity: 0.5; }
-    .timeline__step.current { background: rgba(30,58,95,.06); }
-    .timeline__label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.06em; color: var(--color-text-muted, #6C757D); margin-bottom: 0.25rem; }
-    .timeline__date  { font-size: 0.875rem; font-weight: 600; color: var(--color-primary); }
-    .timeline__side  { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.1rem; }
-    .timeline__dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      background: var(--color-border); margin: 0 auto 0.5rem;
-    }
-    .timeline__step.current .timeline__dot  { background: var(--color-primary); box-shadow: 0 0 0 3px rgba(30,58,95,.2); }
-    .timeline__step.upcoming .timeline__dot { background: #C9A84C; }
-    .timeline__step.past    .timeline__dot  { background: var(--color-success); }
+    .show-breadcrumb a:hover { color: var(--accent-strong); }
+    .show-breadcrumb__sep { color: var(--ink-3); opacity: 0.4; }
 
-    /* ── Info grid ── */
-    .auction-info-grid {
+    /* ── Header ── */
+    .show-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .show-header__title {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 400;
+      color: var(--ink-1);
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .show-header__subtitle {
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      color: var(--ink-3);
+      margin-top: 0.25rem;
+    }
+    .show-header__actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* ── Badges ── */
+    .atlas-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .atlas-badge--status {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+    .atlas-badge--type {
+      background: oklch(0.95 0.02 280);
+      color: var(--accent);
+    }
+    .atlas-badge--completed {
+      background: oklch(0.92 0.06 155);
+      color: oklch(0.38 0.10 155);
+    }
+    .atlas-badge--upcoming {
+      background: oklch(0.95 0.06 85);
+      color: oklch(0.45 0.12 85);
+    }
+    .btn-atlas-bid {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.45rem 1rem;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 160ms ease;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-atlas-bid:hover {
+      background: var(--accent-strong);
+      box-shadow: 0 4px 16px oklch(0.45 0.18 280 / 0.3);
+    }
+
+    /* ── Timeline ── */
+    .atlas-timeline {
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg, 12px);
+      background: var(--surface-1);
+      backdrop-filter: blur(12px);
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .atlas-timeline__step {
+      flex: 1;
+      min-width: 130px;
+      padding: 1rem 1rem;
+      border-right: 1px solid var(--border);
+      text-align: center;
+      position: relative;
+      transition: background 160ms ease;
+    }
+    .atlas-timeline__step:last-child { border-right: none; }
+    .atlas-timeline__step--past    { opacity: 0.45; }
+    .atlas-timeline__step--current { background: oklch(0.96 0.03 280); }
+    .atlas-timeline__dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--border);
+      margin: 0 auto 0.5rem;
+      transition: all 200ms ease;
+    }
+    .atlas-timeline__step--current .atlas-timeline__dot {
+      background: var(--accent);
+      box-shadow: 0 0 0 3px oklch(0.55 0.18 280 / 0.2);
+    }
+    .atlas-timeline__step--upcoming .atlas-timeline__dot {
+      background: oklch(0.72 0.14 85);
+    }
+    .atlas-timeline__step--past .atlas-timeline__dot {
+      background: oklch(0.60 0.14 155);
+    }
+    .atlas-timeline__label {
+      font-family: var(--font-sans);
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-3);
+      margin-bottom: 0.25rem;
+    }
+    .atlas-timeline__date {
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .atlas-timeline__countdown {
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      color: var(--ink-3);
+      margin-top: 0.15rem;
+    }
+
+    /* ── Info Grid ── */
+    .atlas-info-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
-      margin-bottom: 1.75rem;
+      margin-bottom: 2rem;
     }
-    .info-card {
-      background: #fff;
-      border: 1px solid var(--color-border, #DEE2E6);
-      border-radius: 10px;
-      padding: 1rem 1.25rem;
+    .atlas-info-card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg, 12px);
+      padding: 1.1rem 1.25rem;
+      backdrop-filter: blur(8px);
+      transition: all 200ms ease;
+      box-shadow: var(--shadow-sm);
     }
-    .info-card__label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 0.3rem; }
-    .info-card__value { font-size: 1.35rem; font-weight: 800; color: var(--color-primary); }
-    .info-card__sub   { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.15rem; }
+    .atlas-info-card:hover {
+      border-color: var(--accent-soft);
+      box-shadow: 0 4px 16px oklch(0.55 0.18 280 / 0.08);
+    }
+    .atlas-info-card__label {
+      font-family: var(--font-sans);
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-3);
+      margin-bottom: 0.35rem;
+    }
+    .atlas-info-card__value {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+    }
+    .atlas-info-card__value--text {
+      font-size: 1rem;
+      padding-top: 0.2rem;
+      color: var(--ink-1);
+    }
+    .atlas-info-card__sub {
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      color: var(--ink-3);
+      margin-top: 0.2rem;
+    }
 
-    /* ── CTA block ── */
-    .cta-block {
-      background: linear-gradient(135deg, #1E3A5F 0%, #2E5F8A 100%);
-      border-radius: 12px;
+    /* ── Notes / Alerts ── */
+    .atlas-alert {
+      border-radius: var(--radius-lg, 12px);
+      padding: 0.9rem 1.15rem;
+      margin-bottom: 1.5rem;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .atlas-alert--warn {
+      background: oklch(0.97 0.04 85);
+      border: 1px solid oklch(0.88 0.10 85);
+      color: oklch(0.42 0.10 85);
+    }
+    .atlas-alert--info {
+      background: oklch(0.97 0.02 280);
+      border: 1px solid oklch(0.88 0.06 280);
+      color: var(--accent);
+    }
+    .atlas-alert strong { font-weight: 700; }
+    .atlas-alert a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      word-break: break-all;
+    }
+    .atlas-alert a:hover { color: var(--accent-strong); }
+
+    /* ── CTA Block ── */
+    .atlas-cta {
+      background: linear-gradient(135deg, oklch(0.45 0.18 280) 0%, oklch(0.55 0.20 280) 100%);
+      border-radius: var(--radius-lg, 12px);
       padding: 1.75rem 2rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 1rem;
+      gap: 1.5rem;
       flex-wrap: wrap;
-      margin-top: 1.5rem;
+      margin-top: 2rem;
+      box-shadow: 0 8px 32px oklch(0.45 0.18 280 / 0.25);
+      position: relative;
+      overflow: hidden;
     }
-    .cta-block__text { color: #fff; }
-    .cta-block__title { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.2rem; }
-    .cta-block__sub   { font-size: 0.85rem; opacity: 0.8; }
-    .cta-block__actions { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
-    .btn-cta-white {
-      background: #fff; color: var(--color-primary);
-      font-weight: 700; font-size: 0.9rem;
-      padding: 0.6rem 1.4rem;
-      border-radius: 8px; text-decoration: none;
-      transition: box-shadow 0.15s;
+    .atlas-cta::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 90% 30%, oklch(1 0 0 / 0.08), transparent 70%);
+      pointer-events: none;
     }
-    .btn-cta-white:hover { box-shadow: 0 4px 16px rgba(0,0,0,.2); }
-    .btn-cta-outline {
-      background: transparent; color: #fff;
-      font-weight: 600; font-size: 0.875rem;
+    .atlas-cta__text {
+      color: #fff;
+      position: relative;
+    }
+    .atlas-cta__title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 400;
+      margin-bottom: 0.25rem;
+    }
+    .atlas-cta__sub {
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+    .atlas-cta__actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      position: relative;
+    }
+    .btn-cta-atlas-primary {
+      background: #fff;
+      color: var(--accent);
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.65rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 160ms ease;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-cta-atlas-primary:hover {
+      box-shadow: 0 4px 20px oklch(0 0 0 / 0.2);
+      transform: translateY(-1px);
+    }
+    .btn-cta-atlas-outline {
+      background: transparent;
+      color: #fff;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 0.875rem;
       padding: 0.55rem 1.2rem;
-      border-radius: 8px; text-decoration: none;
-      border: 1.5px solid rgba(255,255,255,.6);
-      transition: border-color 0.15s;
+      border-radius: 8px;
+      text-decoration: none;
+      border: 1.5px solid oklch(1 0 0 / 0.5);
+      transition: all 160ms ease;
     }
-    .btn-cta-outline:hover { border-color: #fff; color: #fff; }
+    .btn-cta-atlas-outline:hover {
+      border-color: #fff;
+      color: #fff;
+      background: oklch(1 0 0 / 0.08);
+    }
   </style>
 <% end %>
 
-<div class="rn-page">
-  <%# Full-width show — Rama 1 no tiene sidebar de filtros %>
-  <div style="width: 100%;" class="rn-content">
+<div class="show-page">
 
-    <%# Breadcrumb %>
-    <nav style="font-size: 0.8125rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
-      <%= link_to "← All Auctions", research_auctions_path,
-          style: "color: var(--color-accent); font-weight: 500;" %>
-      <span style="margin: 0 0.4rem;">/</span>
-      <%= @auction.county %>, <%= @auction.state %>
-    </nav>
+  <%# Breadcrumb %>
+  <nav class="show-breadcrumb">
+    <%= link_to "← All Auctions", research_auctions_path %>
+    <span class="show-breadcrumb__sep">/</span>
+    <span><%= @auction.county %>, <%= @auction.state %></span>
+  </nav>
 
-    <%# Header %>
-    <div class="rn-page-header">
-      <div>
-        <h1 class="rn-page-title"><%= @auction.county %>, <%= @auction.state %></h1>
-        <p class="rn-page-subtitle">
-          Tax Deed Auction
-          &nbsp;·&nbsp;
-          <%= @auction.date_range_label %>
-        </p>
-      </div>
-      <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
-        <span class="badge badge-<%= @auction.status %>"><%= @auction.status_label %></span>
-        <span class="badge" style="background: #EBF5FB; color: #2C5F8A;">Tax Deed</span>
-        <% if @auction.bidding_url.present? %>
-          <%= link_to "Bid Online ↗", @auction.bidding_url,
-              target: "_blank", rel: "noopener",
-              class: "btn-sm btn-sm-success" %>
-        <% end %>
-      </div>
+  <%# Header %>
+  <div class="show-header">
+    <div>
+      <h1 class="show-header__title"><%= @auction.county %>, <%= @auction.state %></h1>
+      <p class="show-header__subtitle">
+        Tax Deed Auction
+        &nbsp;·&nbsp;
+        <%= @auction.date_range_label %>
+      </p>
     </div>
-
-    <%# ── Timeline ── %>
-    <% if @timeline_steps.any? %>
-      <div class="timeline">
-        <% today = Date.today %>
-        <% @timeline_steps.each do |step| %>
-          <%
-            step_class = if step[:date] < today
-              'past'
-            elsif step[:date] == today
-              'current'
-            else
-              'upcoming'
-            end
-          %>
-          <div class="timeline__step <%= step_class %>">
-            <div class="timeline__dot"></div>
-            <div class="timeline__label"><%= step[:label] %></div>
-            <div class="timeline__date"><%= step[:date].strftime("%b %d, %Y") %></div>
-            <% if step[:date] >= today %>
-              <div class="timeline__side">
-                In <%= (step[:date] - today).to_i %> day<%= (step[:date] - today).to_i == 1 ? '' : 's' %>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-
-    <%# ── Info Grid (stats sin queries a parcels) ── %>
-    <div class="auction-info-grid">
-      <div class="info-card">
-        <p class="info-card__label">Parcels Listed</p>
-        <p class="info-card__value"><%= number_with_delimiter(@auction.parcel_count || 0) %></p>
-        <p class="info-card__sub">properties in auction</p>
-      </div>
-      <div class="info-card">
-        <p class="info-card__label">Estimated Total</p>
-        <p class="info-card__value">
-          <% if @auction.total_amount&.positive? %>
-            $<%= number_with_delimiter(@auction.total_amount.to_i) %>
-          <% else %>
-            —
-          <% end %>
-        </p>
-        <p class="info-card__sub">aggregate opening bids</p>
-      </div>
-      <div class="info-card">
-        <p class="info-card__label">Auction Type</p>
-        <p class="info-card__value" style="font-size: 1rem; padding-top: 0.25rem;">Tax Deed</p>
-        <p class="info-card__sub">county-run, title auction</p>
-      </div>
-      <div class="info-card">
-        <p class="info-card__label">Jurisdiction</p>
-        <p class="info-card__value" style="font-size: 1rem; padding-top: 0.25rem;"><%= @auction.county %></p>
-        <p class="info-card__sub"><%= @auction.state %></p>
-      </div>
-    </div>
-
-    <%# ── Notes / Alerts ── %>
-    <% if @auction.notes.present? %>
-      <div style="background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 8px;
-                  padding: 0.85rem 1rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: #92400E;">
-        <strong>📋 Auction Notes:</strong> <%= @auction.notes %>
-      </div>
-    <% end %>
-
-    <%# ── External Source ── %>
-    <% if @auction.source_url.present? %>
-      <div style="background: #EBF5FB; border: 1px solid #BFD9EC; border-radius: 8px;
-                  padding: 0.85rem 1rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: #2C5F8A;">
-        📎 <strong>Official Source:</strong>
-        <%= link_to @auction.source_url, @auction.source_url,
+    <div class="show-header__actions">
+      <%
+        status_class = case @auction.status
+                       when 'completed' then 'atlas-badge--completed'
+                       when 'upcoming'  then 'atlas-badge--upcoming'
+                       else 'atlas-badge--status'
+                       end
+      %>
+      <span class="atlas-badge <%= status_class %>"><%= @auction.status_label %></span>
+      <span class="atlas-badge atlas-badge--type">Tax Deed</span>
+      <% if @auction.bidding_url.present? %>
+        <%= link_to "Bid Online ↗", @auction.bidding_url,
             target: "_blank", rel: "noopener",
-            style: "color: var(--color-accent); word-break: break-all;" %>
-      </div>
-    <% end %>
+            class: "btn-atlas-bid" %>
+      <% end %>
+    </div>
+  </div>
 
-    <%# ── CTA Block — único punto de entrada a Rama 2 ── %>
-    <%#
-      ⛔ RESTRICCIÓN ARQUITECTURAL:
-      Este ÚNICO botón es el traspaso permitido Rama 1 → Rama 2.
-      Ver: software/rules/16-navigation-and-module-boundaries.md
-    %>
-    <div class="cta-block">
-      <div class="cta-block__text">
-        <div class="cta-block__title">Explore the <%= number_with_delimiter(@auction.parcel_count || 0) %> properties in this auction</div>
-        <div class="cta-block__sub">Use the full parcel search with GIS map, filters, property details and reports</div>
-      </div>
-      <div class="cta-block__actions">
-        <%= link_to "View Parcels →",
-            research_parcels_path(auction_id: @auction.id),
-            class: "btn-cta-white" %>
-        <% if @auction.bidding_url.present? %>
-          <%= link_to "Bid Online ↗", @auction.bidding_url,
-              target: "_blank", rel: "noopener",
-              class: "btn-cta-outline" %>
+  <%# ── Timeline ── %>
+  <% if @timeline_steps.any? %>
+    <div class="atlas-timeline">
+      <% today = Date.today %>
+      <% @timeline_steps.each do |step| %>
+        <%
+          step_class = if step[:date] < today
+            'atlas-timeline__step--past'
+          elsif step[:date] == today
+            'atlas-timeline__step--current'
+          else
+            'atlas-timeline__step--upcoming'
+          end
+        %>
+        <div class="atlas-timeline__step <%= step_class %>">
+          <div class="atlas-timeline__dot"></div>
+          <div class="atlas-timeline__label"><%= step[:label] %></div>
+          <div class="atlas-timeline__date"><%= step[:date].strftime("%b %d, %Y") %></div>
+          <% if step[:date] >= today %>
+            <div class="atlas-timeline__countdown">
+              In <%= (step[:date] - today).to_i %> day<%= (step[:date] - today).to_i == 1 ? '' : 's' %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# ── Info Grid ── %>
+  <div class="atlas-info-grid">
+    <div class="atlas-info-card">
+      <p class="atlas-info-card__label">Parcels Listed</p>
+      <p class="atlas-info-card__value"><%= number_with_delimiter(@auction.parcel_count || 0) %></p>
+      <p class="atlas-info-card__sub">properties in auction</p>
+    </div>
+    <div class="atlas-info-card">
+      <p class="atlas-info-card__label">Estimated Total</p>
+      <p class="atlas-info-card__value">
+        <% if @auction.total_amount&.positive? %>
+          $<%= number_with_delimiter(@auction.total_amount.to_i) %>
+        <% else %>
+          —
         <% end %>
+      </p>
+      <p class="atlas-info-card__sub">aggregate opening bids</p>
+    </div>
+    <div class="atlas-info-card">
+      <p class="atlas-info-card__label">Auction Type</p>
+      <p class="atlas-info-card__value atlas-info-card__value--text">Tax Deed</p>
+      <p class="atlas-info-card__sub">county-run, title auction</p>
+    </div>
+    <div class="atlas-info-card">
+      <p class="atlas-info-card__label">Jurisdiction</p>
+      <p class="atlas-info-card__value atlas-info-card__value--text"><%= @auction.county %></p>
+      <p class="atlas-info-card__sub"><%= @auction.state %></p>
+    </div>
+  </div>
+
+  <%# ── Notes / Alerts ── %>
+  <% if @auction.notes.present? %>
+    <div class="atlas-alert atlas-alert--warn">
+      <span>📋</span>
+      <div><strong>Auction Notes:</strong> <%= @auction.notes %></div>
+    </div>
+  <% end %>
+
+  <%# ── External Source ── %>
+  <% if @auction.source_url.present? %>
+    <div class="atlas-alert atlas-alert--info">
+      <span>📎</span>
+      <div>
+        <strong>Official Source:</strong>
+        <%= link_to @auction.source_url, @auction.source_url,
+            target: "_blank", rel: "noopener" %>
       </div>
     </div>
+  <% end %>
 
+  <%# ── CTA Block — único punto de entrada a Rama 2 ── %>
+  <%#
+    ⛔ RESTRICCIÓN ARQUITECTURAL:
+    Este ÚNICO botón es el traspaso permitido Rama 1 → Rama 2.
+    Ver: software/rules/16-navigation-and-module-boundaries.md
+  %>
+  <div class="atlas-cta">
+    <div class="atlas-cta__text">
+      <div class="atlas-cta__title">Explore the <%= number_with_delimiter(@auction.parcel_count || 0) %> properties in this auction</div>
+      <div class="atlas-cta__sub">Use the full parcel search with GIS map, filters, property details and reports</div>
+    </div>
+    <div class="atlas-cta__actions">
+      <%= link_to "View Parcels →",
+          research_parcels_path(auction_id: @auction.id),
+          class: "btn-cta-atlas-primary" %>
+      <% if @auction.bidding_url.present? %>
+        <%= link_to "Bid Online ↗", @auction.bidding_url,
+            target: "_blank", rel: "noopener",
+            class: "btn-cta-atlas-outline" %>
+      <% end %>
+    </div>
   </div>
+
 </div>

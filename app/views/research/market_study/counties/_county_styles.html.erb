@@ -1,13 +1,12 @@
 <%# ═══════════════════════════════════════════════════════════════════════════
-     Partial 1/10: _county_styles — Design Tokens + CSS Base
+     Partial 1/10: _county_styles — Atlas Design Tokens + CSS Base
+     Migrated from Navy/Gold hex → Atlas OKLCH tokens
      Regla: CSS inline estricto — prohibido content_for :head
-     Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA (Brand Identity)
     ═══════════════════════════════════════════════════════════════════════════ %>
 
 <style>
   /* ═══════════════════════════════════════════════════════════════════════════
-     FICHA DE CONDADO — Design System (Brand-Aligned Light Mode)
-     Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA
+     FICHA DE CONDADO — Atlas Design System
      ═══════════════════════════════════════════════════════════════════════════ */
 
   /* ── Container Principal ────────────────────────────────────────────────── */
@@ -15,37 +14,36 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 24px 32px 64px;
-    background: var(--color-bg, #F5F7FA);
+    background: var(--surface-0);
     min-height: 100vh;
-    font-family: var(--font, 'Inter', system-ui, sans-serif);
-    color: var(--color-text, #1A202C);
+    font-family: var(--font-sans);
+    color: var(--ink-1);
   }
 
   /* ── Section Module (reusable) ──────────────────────────────────────────── */
   .fc-section {
-    background: var(--color-surface, #fff);
-    border: 1.5px solid var(--color-border, #E2E8F0);
-    border-radius: var(--radius, 10px);
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     padding: 24px;
     margin-bottom: 16px;
-    transition: all 0.18s ease;
-    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08));
+    transition: all 160ms ease;
+    box-shadow: var(--shadow-sm);
   }
 
   .fc-section:hover {
-    border-color: rgba(30, 58, 95, 0.2);
-    box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.12));
+    border-color: var(--border-strong);
   }
 
   .fc-section-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
-    color: var(--color-navy, #1E3A5F);
+    color: var(--ink-1);
     margin: 0 0 16px 0;
     display: flex;
     align-items: center;
     gap: 8px;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.01em;
   }
 
   .fc-section-title .icon {
@@ -56,38 +54,38 @@
   .fc-badge {
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
   }
 
   .fc-badge-blue {
-    background: rgba(30, 58, 95, 0.08);
-    color: var(--color-navy, #1E3A5F);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
   }
 
   .fc-badge-green {
-    background: rgba(56, 161, 105, 0.1);
-    color: var(--color-success, #38A169);
+    background: var(--success-soft);
+    color: var(--success);
   }
 
   .fc-badge-orange {
-    background: rgba(214, 158, 46, 0.12);
-    color: #B7791F;
+    background: var(--warning-soft);
+    color: var(--warning);
   }
 
   .fc-badge-red {
-    background: rgba(229, 62, 62, 0.1);
-    color: var(--color-error, #E53E3E);
+    background: var(--danger-soft);
+    color: var(--danger);
   }
 
   /* ── Divider ────────────────────────────────────────────────────────────── */
   .fc-divider {
     border: none;
-    border-top: 1px solid var(--color-border, #E2E8F0);
+    border-top: 1px solid var(--border);
     margin: 16px 0;
   }
 
@@ -96,15 +94,15 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--color-text-muted, #6B7280);
+    color: var(--ink-3);
     font-size: 13px;
     text-decoration: none;
     margin-bottom: 20px;
-    transition: color 0.2s;
+    transition: color 160ms ease;
   }
 
   .fc-back-link:hover {
-    color: var(--color-navy, #1E3A5F);
+    color: var(--accent);
   }
 
   /* ── Data Row (key-value pair) ──────────────────────────────────────────── */
@@ -113,7 +111,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 0;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+    border-bottom: 1px solid oklch(0.91 0.01 280 / 0.6);
   }
 
   .fc-data-row:last-child {
@@ -121,19 +119,19 @@
   }
 
   .fc-data-label {
-    font-size: 13px;
-    color: var(--color-text-muted, #6B7280);
+    font-size: 12.5px;
+    color: var(--ink-3);
     font-weight: 500;
   }
 
   .fc-data-value {
-    font-size: 14px;
-    color: var(--color-text, #1A202C);
+    font-size: 13.5px;
+    color: var(--ink-1);
     font-weight: 600;
     text-align: right;
   }
 
-  /* ── CTA Button (Regla Naranja) ─────────────────────────────────────────── */
+  /* ── CTA Button (Regla Naranja — Immutable #E67E22) ────────────────────── */
   .fc-cta-btn {
     display: inline-flex;
     align-items: center;
@@ -145,11 +143,12 @@
     font-size: 14px;
     font-weight: 700;
     border: none;
-    border-radius: var(--radius, 10px);
+    border-radius: var(--radius-md);
     cursor: pointer;
     text-decoration: none;
-    transition: all 0.18s ease;
-    letter-spacing: 0.3px;
+    transition: all 160ms ease;
+    letter-spacing: 0.02em;
+    font-family: var(--font-sans);
   }
 
   .fc-cta-btn:hover {
@@ -167,16 +166,17 @@
   }
 
   .fc-kpi-card {
-    background: var(--color-surface, #fff);
-    border: 1.5px solid var(--color-border, #E2E8F0);
-    border-radius: var(--radius, 10px);
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     padding: 18px 20px;
-    border-top: 3px solid var(--color-navy, #1E3A5F);
-    transition: all 0.18s ease;
+    border-top: 3px solid var(--accent);
+    transition: all 160ms ease;
   }
 
   .fc-kpi-card:hover {
-    box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.12));
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
   }
 
   .fc-kpi-icon {
@@ -185,19 +185,22 @@
   }
 
   .fc-kpi-value {
-    font-size: 1.35rem;
-    font-weight: 800;
-    color: var(--color-text, #1A202C);
-    letter-spacing: -0.5px;
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--ink-1);
+    letter-spacing: -0.02em;
     margin-bottom: 4px;
+    line-height: 1;
   }
 
   .fc-kpi-label {
-    font-size: 0.7rem;
-    color: var(--color-text-muted, #6B7280);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.06em;
   }
 
   /* ── External Links ─────────────────────────────────────────────────────── */
@@ -212,20 +215,20 @@
     align-items: center;
     gap: 4px;
     padding: 6px 12px;
-    background: rgba(30, 58, 95, 0.05);
-    border: 1px solid var(--color-border, #E2E8F0);
-    border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     font-size: 12px;
     font-weight: 500;
-    color: var(--color-navy, #1E3A5F);
+    color: var(--ink-2);
     text-decoration: none;
-    transition: all 0.18s;
+    transition: all 160ms ease;
   }
 
   .fc-ext-link:hover {
-    background: var(--color-navy, #1E3A5F);
+    background: var(--accent);
     color: #fff;
-    border-color: var(--color-navy, #1E3A5F);
+    border-color: var(--accent);
   }
 
   /* ── Responsive ─────────────────────────────────────────────────────────── */

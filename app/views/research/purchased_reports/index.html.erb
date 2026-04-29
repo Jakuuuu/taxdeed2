@@ -1,4 +1,274 @@
-<% content_for :title, "Reports — TaxDeed Lion" %>
+<% content_for :title, "Reports — LionTaxdeed" %>
+
+<%# ═══════════════════════════════════════════════════════
+     ATLAS OVERRIDE — Purchased Reports (Fase 1)
+     Maps legacy application.css classes to Atlas OKLCH tokens.
+     No HTML structure changes needed.
+     ═══════════════════════════════════════════════════════ %>
+<style>
+/* ── Page layout ── */
+.rn-content { padding: 2rem 2.5rem; max-width: 1100px; margin: 0 auto; }
+.rn-page-header { margin-bottom: 1.75rem; }
+.rn-page-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--ink-1);
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+.rn-page-subtitle {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  margin: 0;
+}
+
+/* ── Tab navigation ── */
+.tab-nav {
+  display: flex; gap: 4px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+  margin-bottom: 1.5rem !important;
+}
+.tab-nav__btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 14px 12px;
+  font-size: 13.5px; font-weight: 500;
+  color: var(--ink-3);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 160ms ease;
+  text-decoration: none;
+  background: none; border-top: none; border-left: none; border-right: none;
+}
+.tab-nav__btn:hover { color: var(--ink-1); }
+.tab-nav__btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.badge-count {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  background: var(--accent);
+  color: white;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+/* ── Credit summary bar ── */
+.credit-summary-bar {
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  padding: 14px 20px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+.credit-item { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 140px; }
+.credit-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  width: 42px;
+  font-weight: 600;
+}
+.credit-track {
+  flex: 1; height: 6px;
+  background: var(--surface-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.credit-fill { height: 100%; border-radius: 999px; transition: width 400ms ease; }
+.credit-fill--avm   { background: var(--accent); }
+.credit-fill--scope  { background: var(--success); }
+.credit-fill--title  { background: var(--warning); }
+.credit-count {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  min-width: 50px;
+  text-align: right;
+}
+.credit-reset {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+/* ── Data table ── */
+.data-table-wrap {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: var(--font-sans);
+}
+.data-table th {
+  background: var(--surface-2);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink-1);
+  vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--surface-2); }
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px; font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.badge-report-pending, .badge-report-ordered { background: var(--warning-soft); color: var(--warning); }
+.badge-report-generated { background: var(--success-soft); color: var(--success); }
+.badge-report-failed    { background: var(--danger-soft);  color: var(--danger); }
+.badge-sold   { background: var(--success-soft); color: var(--success); }
+.badge-unsold { background: var(--danger-soft);  color: var(--danger); }
+
+.report-type-badge {
+  display: inline-flex; padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px; font-weight: 600;
+  background: var(--accent-soft); color: var(--accent-strong);
+}
+
+/* ── Buttons ── */
+.btn-sm {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; border: 1px solid transparent;
+  transition: all 160ms ease;
+  text-decoration: none;
+  font-family: var(--font-sans);
+}
+.btn-sm-primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-sm-primary:hover { opacity: 0.9; box-shadow: var(--shadow-md); }
+.btn-sm-success { background: var(--success); color: white; border-color: var(--success); }
+.btn-sm-success:hover { opacity: 0.9; }
+.btn-sm-outline { background: var(--surface-1); color: var(--ink-2); border-color: var(--border); }
+.btn-sm-outline:hover { background: var(--surface-2); color: var(--ink-1); }
+
+/* ── Pagination ── */
+.pagination {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--ink-3);
+  font-family: var(--font-mono);
+}
+.pagination__btns { display: flex; gap: 4px; }
+.pagination__btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 500;
+  background: var(--surface-1);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all 120ms ease;
+  text-decoration: none;
+  font-family: var(--font-sans);
+}
+.pagination__btn:hover:not([disabled]) { background: var(--surface-2); }
+.pagination__btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+.pagination__btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.empty-state__icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.empty-state__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--ink-1);
+  margin: 0 0 6px;
+}
+.empty-state__desc {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  max-width: 360px;
+  margin: 0 auto 1.25rem;
+  line-height: 1.6;
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: oklch(0.18 0.02 280 / 0.5);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-box {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 440px;
+  overflow: hidden;
+}
+.modal-box--sm { max-width: 380px; }
+.modal-box__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-box__body { padding: 18px; }
+.modal-box__footer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end;
+}
+.modal-close {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border-radius: 6px;
+  font-size: 18px;
+  color: var(--ink-3);
+  cursor: pointer; border: none; background: none;
+  transition: background 120ms ease;
+}
+.modal-close:hover { background: var(--surface-2); }
+
+/* ── Legacy inline color overrides ── */
+[style*="color: var(--color-primary)"]   { color: var(--accent) !important; }
+[style*="color: var(--color-text-muted)"]{ color: var(--ink-3)  !important; }
+[style*="color: var(--color-text)"]      { color: var(--ink-1)  !important; }
+[style*="color: var(--color-danger)"]    { color: var(--danger) !important; }
+[style*="color: var(--color-accent)"]    { color: var(--accent) !important; }
+</style>
 
 <%# ── Credit Summary Helper ──────────────────────────────────────────────── %>
 <% sub = current_user.subscription %>

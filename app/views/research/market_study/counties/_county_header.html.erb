@@ -1,13 +1,12 @@
-<%# ── Header de la ficha de condado ─────────────────────────────────── %>
-<%# Título, badges de estado/modalidad, y quick-stats.                  %>
-<%# Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA             %>
+<%# ── Header de la ficha de condado (Atlas Design System) ──────── %>
+<%# Título, badges de estado/modalidad, y quick-stats.            %>
 
 <div style="margin-bottom: 1.5rem;">
   <%# ── Título principal ──── %>
-  <h1 style="color: #1E3A5F; font-size: 1.8rem; font-weight: 700; margin: 0 0 0.5rem 0;
-             letter-spacing: -0.02em;">
+  <h1 style="font-family: var(--font-display); color: var(--ink-1); font-size: 28px;
+             font-weight: 400; margin: 0 0 0.5rem 0; letter-spacing: -0.02em;">
     <%= @county.county %>
-    <span style="color: #6B7280; font-weight: 400;">, <%= @county.state %></span>
+    <span style="color: var(--ink-3); font-weight: 400;">, <%= @county.state %></span>
   </h1>
 
   <%# ── Badges ──── %>
@@ -15,9 +14,10 @@
     <%# Badge: Modalidad %>
     <% if @county.modalidad.present? %>
       <span style="display: inline-flex; align-items: center; gap: 0.3rem;
-                   background: rgba(30, 58, 95, 0.08); border: 1px solid rgba(30, 58, 95, 0.15);
-                   border-radius: 6px; padding: 0.25rem 0.7rem; font-size: 0.75rem;
-                   color: #1E3A5F; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">
+                   background: var(--accent-soft); border: 1px solid oklch(0.65 0.18 255 / 0.15);
+                   border-radius: var(--radius-sm); padding: 3px 10px; font-size: 11px;
+                   color: var(--accent-strong); font-weight: 600; text-transform: uppercase;
+                   letter-spacing: 0.04em; font-family: var(--font-mono);">
         💻 <%= @county.modalidad %>
       </span>
     <% end %>
@@ -25,15 +25,16 @@
     <%# Badge: Estado del mercado %>
     <% if @county.market_status.present? %>
       <% is_active = @county.market_status.downcase.include?("activo") %>
-      <% market_color = is_active ? "#38A169" : "#E53E3E" %>
-      <% market_bg = is_active ? "rgba(56, 161, 105, 0.08)" : "rgba(229, 62, 62, 0.08)" %>
-      <% market_border = is_active ? "rgba(56, 161, 105, 0.2)" : "rgba(229, 62, 62, 0.2)" %>
       <span style="display: inline-flex; align-items: center; gap: 0.3rem;
-                   background: <%= market_bg %>; border: 1px solid <%= market_border %>;
-                   border-radius: 6px; padding: 0.25rem 0.7rem; font-size: 0.75rem;
-                   color: <%= market_color %>; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">
+                   background: var(<%= is_active ? '--success-soft' : '--danger-soft' %>);
+                   border: 1px solid <%= is_active ? 'oklch(0.62 0.16 155 / 0.2)' : 'oklch(0.58 0.22 25 / 0.2)' %>;
+                   border-radius: var(--radius-sm); padding: 3px 10px; font-size: 11px;
+                   color: var(<%= is_active ? '--success' : '--danger' %>);
+                   font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+                   font-family: var(--font-mono);">
         <span style="width: 6px; height: 6px; border-radius: 50%;
-                     background: <%= market_color %>; display: inline-block;"></span>
+                     background: var(<%= is_active ? '--success' : '--danger' %>);
+                     display: inline-block;"></span>
         Mercado <%= @county.market_status %>
       </span>
     <% end %>
@@ -42,34 +43,40 @@
   <%# ── Quick Stats (3 tarjetas horizontales) ──── %>
   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem;">
     <%# Median Home %>
-    <div style="background: #fff; border: 1.5px solid #E2E8F0;
-                border-radius: 10px; padding: 0.8rem 1rem; text-align: center;
-                border-top: 3px solid #38A169;">
-      <div style="color: #6B7280; font-size: 0.65rem; text-transform: uppercase;
-                  letter-spacing: 0.05em; margin-bottom: 0.3rem;">Median Home</div>
-      <div style="color: #1A202C; font-size: 1.1rem; font-weight: 700;">
+    <div style="background: var(--surface-1); border: 1px solid var(--border);
+                border-radius: var(--radius-lg); padding: 0.8rem 1rem; text-align: center;
+                border-top: 3px solid var(--success);">
+      <div style="font-family: var(--font-mono); color: var(--ink-3); font-size: 10.5px;
+                  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem;
+                  font-weight: 600;">Median Home</div>
+      <div style="color: var(--ink-1); font-family: var(--font-display); font-size: 22px;
+                  font-weight: 400;">
         <%= @county.format_currency(@county.median_home_price) %>
       </div>
     </div>
 
     <%# Población %>
-    <div style="background: #fff; border: 1.5px solid #E2E8F0;
-                border-radius: 10px; padding: 0.8rem 1rem; text-align: center;
-                border-top: 3px solid #1E3A5F;">
-      <div style="color: #6B7280; font-size: 0.65rem; text-transform: uppercase;
-                  letter-spacing: 0.05em; margin-bottom: 0.3rem;">Población</div>
-      <div style="color: #1A202C; font-size: 1.1rem; font-weight: 700;">
+    <div style="background: var(--surface-1); border: 1px solid var(--border);
+                border-radius: var(--radius-lg); padding: 0.8rem 1rem; text-align: center;
+                border-top: 3px solid var(--accent);">
+      <div style="font-family: var(--font-mono); color: var(--ink-3); font-size: 10.5px;
+                  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem;
+                  font-weight: 600;">Población</div>
+      <div style="color: var(--ink-1); font-family: var(--font-display); font-size: 22px;
+                  font-weight: 400;">
         <%= @county.format_population %>
       </div>
     </div>
 
     <%# Crecimiento %>
-    <div style="background: #fff; border: 1.5px solid #E2E8F0;
-                border-radius: 10px; padding: 0.8rem 1rem; text-align: center;
-                border-top: 3px solid #C9A84C;">
-      <div style="color: #6B7280; font-size: 0.65rem; text-transform: uppercase;
-                  letter-spacing: 0.05em; margin-bottom: 0.3rem;">Crecimiento</div>
-      <div style="color: #38A169; font-size: 1.1rem; font-weight: 700;">
+    <div style="background: var(--surface-1); border: 1px solid var(--border);
+                border-radius: var(--radius-lg); padding: 0.8rem 1rem; text-align: center;
+                border-top: 3px solid var(--warning);">
+      <div style="font-family: var(--font-mono); color: var(--ink-3); font-size: 10.5px;
+                  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem;
+                  font-weight: 600;">Crecimiento</div>
+      <div style="color: var(--success); font-family: var(--font-display); font-size: 22px;
+                  font-weight: 400;">
         <%= @county.format_percentage(@county.annual_growth_rate) %>
       </div>
     </div>
@@ -81,13 +88,13 @@
        data-turbo="false"
        onclick="event.stopPropagation(); window.location.href = this.href; return false;"
        style="display: inline-flex; align-items: center; gap: 8px;
-              padding: 12px 28px; background: #1E3A5F; color: #fff;
-              font-size: 14px; font-weight: 700; border: none;
-              border-radius: 10px; cursor: pointer; text-decoration: none;
-              transition: all 0.18s ease; letter-spacing: 0.3px;
-              box-shadow: 0 2px 8px rgba(30, 58, 95, 0.25);"
-       onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(30, 58, 95, 0.35)';"
-       onmouseout="this.style.opacity='1'; this.style.transform='none'; this.style.boxShadow='0 2px 8px rgba(30, 58, 95, 0.25)';">
+              padding: 12px 28px; background: var(--accent); color: #fff;
+              font-family: var(--font-sans); font-size: 14px; font-weight: 700;
+              border: none; border-radius: var(--radius-md); cursor: pointer;
+              text-decoration: none; transition: all 160ms ease; letter-spacing: 0.02em;
+              box-shadow: var(--shadow-md);"
+       onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-1px)';"
+       onmouseout="this.style.opacity='1'; this.style.transform='none';">
       🔍 Ver propiedades
       <span style="background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 12px;
                    font-size: 0.8rem; font-weight: 800;">

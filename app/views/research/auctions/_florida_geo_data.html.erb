@@ -1,0 +1,17 @@
+<%#
+  Partial: Florida County GeoData (Rama 1 — Atlas Redesign)
+  ═══════════════════════════════════════════════════════════
+  Real TopoJSON SVG paths for all 67 Florida counties.
+  Source: us-atlas counties-10m.json (FIPS state 12)
+  Used by the interactive SVG map in _svg_map_container.html.erb
+  
+  ARCHITECTURE: This data is injected as JS globals, consumed by
+  the Atlas map renderer. NO external JS files needed.
+%>
+<script>
+// Florida county SVG path data (real boundaries from TopoJSON)
+// Keys are lowercase-hyphenated county names
+window.FL_COUNTY_PATHS = <%= raw File.read(Rails.root.join('..', 'Lion Deed Rediseño', 'florida-geo.js')).match(/window\.FL_COUNTY_PATHS_REAL\s*=\s*(\{.*?\});/m)&.captures&.first || '{}' %>;
+window.FL_COUNTY_LABELS = <%= raw File.read(Rails.root.join('..', 'Lion Deed Rediseño', 'florida-geo.js')).match(/window\.FL_COUNTY_LABELS_REAL\s*=\s*(\{.*?\});/m)&.captures&.first || '{}' %>;
+window.FL_MAP_VIEWBOX = '0 0 1000 800';
+</script>

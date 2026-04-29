@@ -8,13 +8,13 @@
 
      Paywall: Este gráfico es PREMIUM — aplica Regla Naranja y blur
      Empty State: 8 condados sin historial → UI elegante sin Canvas
-     Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA
+     Paleta: Atlas OKLCH Design System
     ═══════════════════════════════════════════════════════════════════════════ %>
 
 <style>
   .fc-chart-section {
     background: var(--color-surface, #fff);
-    border: 1.5px solid var(--color-border, #E2E8F0);
+    border: 1.5px solid var(--border);
     border-radius: var(--radius, 10px);
     padding: 24px;
     margin-bottom: 20px;
@@ -84,7 +84,7 @@
   .fc-paywall-cta .fc-unlock-subtext {
     display: block;
     font-size: 11px;
-    color: var(--color-text-muted, #6B7280);
+    color: var(--ink-3);
     margin-top: 8px;
     letter-spacing: 0.3px;
   }
@@ -112,7 +112,7 @@
     background: rgba(30, 58, 95, 0.08);
     border: 1.5px solid rgba(30, 58, 95, 0.2);
     border-radius: 6px;
-    color: #1E3A5F;
+    color: var(--accent);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -120,9 +120,9 @@
   }
 
   .fc-chart-back-btn:hover {
-    background: #1E3A5F;
+    background: var(--accent);
     color: #fff;
-    border-color: #1E3A5F;
+    border-color: var(--accent);
   }
 
   .fc-chart-back-btn.visible {
@@ -131,7 +131,7 @@
 
   .fc-chart-subtitle {
     font-size: 12px;
-    color: var(--color-text-muted, #6B7280);
+    color: var(--ink-3);
     font-weight: 400;
     margin-left: 4px;
   }
@@ -166,7 +166,7 @@
     height: 64px;
     border-radius: 50%;
     background: rgba(30, 58, 95, 0.06);
-    border: 1.5px solid #E2E8F0;
+    border: 1.5px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -177,14 +177,14 @@
   .fc-chart-empty-title {
     font-size: 15px;
     font-weight: 600;
-    color: var(--color-text, #1A202C);
+    color: var(--ink-1);
     margin: 0;
     letter-spacing: -0.2px;
   }
 
   .fc-chart-empty-desc {
     font-size: 13px;
-    color: var(--color-text-muted, #6B7280);
+    color: var(--ink-3);
     max-width: 380px;
     line-height: 1.5;
     margin: 0;
@@ -194,7 +194,7 @@
     display: flex;
     gap: 24px;
     padding-top: 16px;
-    border-top: 1px solid var(--color-border, #E2E8F0);
+    border-top: 1px solid var(--border);
     margin-top: 16px;
     flex-wrap: wrap;
   }
@@ -207,7 +207,7 @@
 
   .fc-chart-stat-label {
     font-size: 11px;
-    color: var(--color-text-muted, #6B7280);
+    color: var(--ink-3);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-weight: 600;
@@ -216,12 +216,12 @@
   .fc-chart-stat-value {
     font-size: 16px;
     font-weight: 700;
-    color: var(--color-text, #1A202C);
+    color: var(--ink-1);
   }
 
   .fc-chart-hint {
     font-size: 11px;
-    color: var(--color-text-muted, #6B7280);
+    color: var(--ink-3);
     text-align: center;
     margin-top: 10px;
     opacity: 0.7;
@@ -293,7 +293,7 @@
       </div>
       <div class="fc-chart-stat">
         <span class="fc-chart-stat-label">CAGR</span>
-        <span class="fc-chart-stat-value" style="color: #1E3A5F;">
+        <span class="fc-chart-stat-value" style="color: var(--accent);">
           <%= cagr.round(1) %>%
         </span>
       </div>

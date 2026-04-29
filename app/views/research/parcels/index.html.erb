@@ -21,30 +21,30 @@
   .parcels-topbar {
     display: flex; align-items: center; gap: 0.75rem;
     padding: 0.65rem 1.1rem; background: #fff;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--border);
     flex-wrap: wrap; z-index: 10; flex-shrink: 0;
   }
   .auction-selector-btn {
     display: inline-flex; align-items: center; gap: 0.45rem;
-    padding: 0.5rem 1rem; border: 1.5px solid var(--color-primary);
-    border-radius: 8px; background: #fff; color: var(--color-primary);
-    font-family: var(--font); font-size: 0.8125rem; font-weight: 600;
+    padding: 0.5rem 1rem; border: 1.5px solid var(--accent);
+    border-radius: 8px; background: #fff; color: var(--accent);
+    font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 600;
     cursor: pointer; transition: all 0.15s; white-space: nowrap;
   }
-  .auction-selector-btn:hover { background: var(--color-primary); color: #fff; }
-  .auction-selector-btn.has-auction { background: var(--color-primary); color: #fff; }
-  .toggle-view-group { display: flex; border: 1.5px solid var(--color-border); border-radius: 8px; overflow: hidden; margin-left: auto; }
-  .toggle-view-btn { padding: 0.42rem 0.9rem; background: #fff; border: none; font-size: 0.8rem; font-family: var(--font); cursor: pointer; color: var(--color-text-muted); transition: all 0.15s; }
-  .toggle-view-btn.active { background: var(--color-primary); color: #fff; font-weight: 600; }
+  .auction-selector-btn:hover { background: var(--accent); color: #fff; }
+  .auction-selector-btn.has-auction { background: var(--accent); color: #fff; }
+  .toggle-view-group { display: flex; border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; margin-left: auto; }
+  .toggle-view-btn { padding: 0.42rem 0.9rem; background: #fff; border: none; font-size: 0.8rem; font-family: var(--font-sans); cursor: pointer; color: var(--ink-3); transition: all 0.15s; }
+  .toggle-view-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
   .topbar-search { flex: 1; min-width: 180px; max-width: 340px; }
   .topbar-search input {
     width: 100%; padding: 0.45rem 0.8rem;
-    border: 1.5px solid var(--color-border); border-radius: 8px;
-    font-size: 0.8125rem; font-family: var(--font); outline: none;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: 0.8125rem; font-family: var(--font-sans); outline: none;
     transition: border-color 0.15s;
   }
-  .topbar-search input:focus { border-color: var(--color-primary); }
-  .results-meta { font-size: 0.78rem; color: var(--color-text-muted); white-space: nowrap; }
+  .topbar-search input:focus { border-color: var(--accent); }
+  .results-meta { font-size: 0.78rem; color: var(--ink-3); white-space: nowrap; }
 
   /* ── Topbar inline filters ── */
   .topbar-filter-group {
@@ -52,35 +52,35 @@
   }
   .topbar-filter-input {
     width: 80px; padding: 0.38rem 0.5rem;
-    border: 1.5px solid var(--color-border); border-radius: 7px;
-    font-size: 0.78rem; font-family: var(--font); outline: none;
+    border: 1.5px solid var(--border); border-radius: 7px;
+    font-size: 0.78rem; font-family: var(--font-sans); outline: none;
     transition: border-color 0.15s; background: #fff;
   }
-  .topbar-filter-input:focus { border-color: var(--color-primary); }
+  .topbar-filter-input:focus { border-color: var(--accent); }
   .topbar-filter-select {
-    padding: 0.38rem 0.5rem; border: 1.5px solid var(--color-border);
-    border-radius: 7px; font-size: 0.78rem; font-family: var(--font);
+    padding: 0.38rem 0.5rem; border: 1.5px solid var(--border);
+    border-radius: 7px; font-size: 0.78rem; font-family: var(--font-sans);
     background: #fff; outline: none; cursor: pointer;
     appearance: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236c757d'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 8px; padding-right: 1.5rem;
   }
   .topbar-filter-label {
-    font-size: 0.72rem; color: var(--color-text-muted); font-weight: 600;
+    font-size: 0.72rem; color: var(--ink-3); font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.04em;
   }
   .topbar-filter-apply {
     padding: 0.38rem 0.7rem; border-radius: 7px; border: none;
-    background: var(--color-primary); color: #fff; font-size: 0.78rem;
-    font-family: var(--font); font-weight: 600; cursor: pointer;
+    background: var(--accent); color: #fff; font-size: 0.78rem;
+    font-family: var(--font-sans); font-weight: 600; cursor: pointer;
     transition: opacity 0.15s;
   }
   .topbar-filter-apply:hover { opacity: 0.85; }
   .topbar-filter-clear {
-    padding: 0.38rem 0.6rem; border-radius: 7px; border: 1.5px solid var(--color-border);
-    background: #fff; color: var(--color-text-muted); font-size: 0.78rem;
-    font-family: var(--font); cursor: pointer; transition: all 0.15s;
+    padding: 0.38rem 0.6rem; border-radius: 7px; border: 1.5px solid var(--border);
+    background: #fff; color: var(--ink-3); font-size: 0.78rem;
+    font-family: var(--font-sans); cursor: pointer; transition: all 0.15s;
   }
-  .topbar-filter-clear:hover { border-color: var(--color-danger); color: var(--color-danger); }
+  .topbar-filter-clear:hover { border-color: var(--danger); color: var(--danger); }
 
   /* ── SINGLE MAP CONTAINER — shared across Phase 1 & Phase 2 ── */
   #r2-map { width: 100%; height: 100%; }
@@ -90,9 +90,9 @@
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
     background: rgba(248,249,250,.88); z-index: 10; flex-direction: column; gap: .75rem;
-    font-size: .875rem; color: var(--color-text-muted);
+    font-size: .875rem; color: var(--ink-3);
   }
-  .map-spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .7s linear infinite; }
+  .map-spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ── Phase visibility control ── */
@@ -106,7 +106,7 @@
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
     background: rgba(248,249,250,.92); z-index: 20; flex-direction: column; gap: .75rem;
-    font-size: .875rem; color: var(--color-text-muted);
+    font-size: .875rem; color: var(--ink-3);
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -121,13 +121,13 @@
   .r2-split-map {
     flex: 1; min-height: 0;
     position: relative; overflow: hidden;
-    border-bottom: 2px solid var(--color-border);
+    border-bottom: 2px solid var(--border);
   }
 
   /* List panel (bottom half) */
   .r2-split-list {
     flex: 1; min-height: 0;
-    overflow-y: auto; background: #F8F9FA;
+    overflow-y: auto; background: var(--surface-2);
   }
 
   /* ── View modes ── */
@@ -147,49 +147,49 @@
   }
   .r2-table {
     width: 100%; border-collapse: collapse;
-    font-size: 0.85rem; font-family: var(--font);
+    font-size: 0.85rem; font-family: var(--font-sans);
     table-layout: fixed;
   }
   .r2-table thead {
     position: sticky; top: 0; z-index: 5;
-    background: #F8F9FA;
-    border-bottom: 2px solid var(--color-border);
+    background: var(--surface-2);
+    border-bottom: 2px solid var(--border);
   }
   .r2-table th {
     padding: 0.75rem 0.85rem;
     text-align: left; font-weight: 800;
     font-size: 0.72rem; text-transform: uppercase;
-    letter-spacing: 0.05em; color: #34495E;
+    letter-spacing: 0.05em; color: var(--ink-2);
     user-select: none; cursor: pointer;
     white-space: nowrap;
     transition: background 0.15s, color 0.15s;
   }
-  .r2-table th:hover { background: #EBF5FB; color: var(--color-primary); }
+  .r2-table th:hover { background: oklch(0.96 0.03 280); color: var(--accent); }
   .r2-table th.col-checkbox { width: 44px; cursor: default; text-align: center; }
-  .r2-table th.col-checkbox:hover { background: #F8F9FA; }
+  .r2-table th.col-checkbox:hover { background: var(--surface-2); }
   .r2-table th .sort-arrows {
     display: inline-flex; flex-direction: column;
     margin-left: 0.4rem; vertical-align: middle;
-    font-size: 0.55rem; line-height: 0.55rem; color: #BDC3C7;
+    font-size: 0.55rem; line-height: 0.55rem; color: var(--ink-4);
   }
   .r2-table th.sorted-asc .arrow-up,
-  .r2-table th.sorted-desc .arrow-down { color: var(--color-primary); font-weight: 900; }
+  .r2-table th.sorted-desc .arrow-down { color: var(--accent); font-weight: 900; }
   .r2-table td {
-    padding: 0.75rem 0.85rem; border-bottom: 1px solid #F4F6F7;
-    color: var(--color-text); vertical-align: middle;
+    padding: 0.75rem 0.85rem; border-bottom: 1px solid var(--border);
+    color: var(--ink-1); vertical-align: middle;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .r2-table tbody tr { cursor: pointer; transition: all 0.15s ease; }
-  .r2-table tbody tr:hover { background: #F4FAFE; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(52, 152, 219, 0.06); z-index: 2; position: relative; border-color: transparent; }
-  .r2-table tbody tr:nth-child(even) { background: #FAFCFD; }
-  .r2-table tbody tr:nth-child(even):hover { background: #F4FAFE; }
+  .r2-table tbody tr:hover { background: oklch(0.96 0.03 280); transform: translateY(-1px); box-shadow: var(--shadow-sm); z-index: 2; position: relative; border-color: transparent; }
+  .r2-table tbody tr:nth-child(even) { background: var(--surface-2); }
+  .r2-table tbody tr:nth-child(even):hover { background: oklch(0.96 0.03 280); }
   .r2-table .td-address {
-    color: var(--color-primary); font-weight: 700;
+    color: var(--accent); font-weight: 700;
     max-width: 280px; overflow: hidden; text-overflow: ellipsis;
   }
   .r2-table .td-address:hover { text-decoration: underline; }
   .r2-table .td-bid {
-    text-align: right; font-weight: 800; color: #27AE60;
+    text-align: right; font-weight: 800; color: var(--success);
     font-variant-numeric: tabular-nums;
     font-size: 0.9rem;
   }
@@ -197,13 +197,13 @@
     text-align: right; font-variant-numeric: tabular-nums;
   }
   .r2-table .td-parcel {
-    font-family: 'Roboto Mono', monospace; font-size: 0.75rem; color: #7F8C8D;
+    font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-3);
     max-width: 200px; overflow: hidden; text-overflow: ellipsis;
-    background: #F4F6F7; padding: 0.2rem 0.5rem; border-radius: 4px;
+    background: var(--surface-2); padding: 0.2rem 0.5rem; border-radius: 4px;
     display: inline-block;
   }
   .r2-table input[type='checkbox'] {
-    width: 16px; height: 16px; accent-color: var(--color-primary);
+    width: 16px; height: 16px; accent-color: var(--accent);
     cursor: pointer; border-radius: 4px;
   }
   .r2-table .col-checkbox { width: 44px; text-align: center; }
@@ -221,124 +221,124 @@
     width: 100%;
   }
   .td-masked__visible {
-    color: var(--color-text);
+    color: var(--ink-1);
     flex-shrink: 0;
   }
   .td-masked__hidden {
-    color: var(--color-text-muted);
+    color: var(--ink-3);
     letter-spacing: 0.1em;
     opacity: 0.4;
     user-select: none;
-    font-family: 'Roboto Mono', monospace;
+    font-family: var(--font-mono);
   }
   .td-masked__lock {
     flex-shrink: 0;
-    font-size: 0.75rem; color: #BDC3C7;
+    font-size: 0.75rem; color: var(--ink-4);
     opacity: 0.6;
     margin-left: auto;
     transition: all 0.2s ease;
   }
-  .r2-table tbody tr:hover .td-masked__lock { color: var(--color-primary); opacity: 1; transform: scale(1.1); }
+  .r2-table tbody tr:hover .td-masked__lock { color: var(--accent); opacity: 1; transform: scale(1.1); }
 
   /* ── Pagination bar ── */
   .r2-list-pagination {
     display: flex; align-items: center; justify-content: center;
     gap: 0.25rem; padding: 0.65rem 1rem;
-    border-top: 1px solid var(--color-border); background: #fff;
+    border-top: 1px solid var(--border); background: #fff;
     flex-wrap: wrap;
   }
   .r2-list-pagination__info {
-    font-size: 0.78rem; color: var(--color-text-muted);
+    font-size: 0.78rem; color: var(--ink-3);
     margin-right: 0.75rem;
   }
   .r2-list-pagination__btn {
     min-width: 32px; height: 32px;
     display: inline-flex; align-items: center; justify-content: center;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border);
     border-radius: 6px; background: #fff; font-size: 0.78rem;
-    font-family: var(--font); cursor: pointer; color: var(--color-text);
+    font-family: var(--font-sans); cursor: pointer; color: var(--ink-1);
     transition: all 0.12s; padding: 0 0.5rem;
   }
   .r2-list-pagination__btn:hover:not(:disabled):not(.r2-list-pagination__btn--active) {
-    border-color: var(--color-primary); color: var(--color-primary);
-    background: #EBF5FB;
+    border-color: var(--accent); color: var(--accent);
+    background: oklch(0.96 0.03 280);
   }
   .r2-list-pagination__btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .r2-list-pagination__btn--active {
-    background: var(--color-primary); color: #fff;
-    border-color: var(--color-primary); font-weight: 700;
+    background: var(--accent); color: #fff;
+    border-color: var(--accent); font-weight: 700;
   }
   .r2-list-pagination__ellipsis {
     min-width: 28px; display: inline-flex; align-items: center;
-    justify-content: center; font-size: 0.78rem; color: #90A4AE;
+    justify-content: center; font-size: 0.78rem; color: var(--ink-4);
   }
 
   /* ── List loading / empty states ── */
   .r2-list-loading {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; padding: 3rem; gap: 0.75rem;
-    color: var(--color-text-muted); font-size: 0.875rem;
+    color: var(--ink-3); font-size: 0.875rem;
   }
   .r2-list-empty {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; padding: 3rem; gap: 0.75rem; text-align: center;
   }
   .r2-list-empty__icon { font-size: 2.5rem; }
-  .r2-list-empty__title { font-size: 1rem; font-weight: 700; color: var(--color-text); margin: 0; }
-  .r2-list-empty__desc { font-size: 0.8125rem; color: var(--color-text-muted); margin: 0; }
+  .r2-list-empty__title { font-size: 1rem; font-weight: 700; color: var(--ink-1); margin: 0; }
+  .r2-list-empty__desc { font-size: 0.8125rem; color: var(--ink-3); margin: 0; }
 
   /* ── County header badge ── */
   .r2-county-badge {
     display: inline-flex; align-items: center; gap: 0.4rem;
-    padding: 0.35rem 0.8rem; background: #EBF5FB;
+    padding: 0.35rem 0.8rem; background: oklch(0.96 0.03 280);
     border-radius: 20px; font-size: 0.8rem; font-weight: 600;
-    color: var(--color-primary);
+    color: var(--accent);
   }
   .r2-county-badge__count {
-    background: var(--color-primary); color: #fff;
+    background: var(--accent); color: #fff;
     padding: 0.1rem 0.45rem; border-radius: 12px;
     font-size: 0.7rem; font-weight: 700;
   }
 
   /* Auction picker modal redesigned */
   .auction-picker-grid { display: flex; height: 100%; }
-  .master-col { width: 32%; border-right: 1px solid var(--color-border); overflow-y: auto; background: #F8F9FA; }
+  .master-col { width: 32%; border-right: 1px solid var(--border); overflow-y: auto; background: var(--surface-2); }
   .master-col-item {
-    padding: 1.25rem 1rem; cursor: pointer; border-bottom: 1px solid var(--color-border);
+    padding: 1.25rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border);
     transition: background 0.15s; display: flex; justify-content: space-between; align-items: center;
   }
-  .master-col-item:hover, .master-col-item.active { background: #EBF5FB; }
-  .master-col-item.active { border-left: 4px solid var(--color-primary); padding-left: calc(1rem - 4px); }
-  .master-col-item__name { font-weight: 700; color: var(--color-text); font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; }
+  .master-col-item:hover, .master-col-item.active { background: oklch(0.96 0.03 280); }
+  .master-col-item.active { border-left: 4px solid var(--accent); padding-left: calc(1rem - 4px); }
+  .master-col-item__name { font-weight: 700; color: var(--ink-1); font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; }
   
-  .picker-state-badge { font-size: 0.75rem; background: var(--color-primary); color: #fff; padding: 0.25rem 0.6rem; border-radius: 12px; font-weight: 700; }
+  .picker-state-badge { font-size: 0.75rem; background: var(--accent); color: #fff; padding: 0.25rem 0.6rem; border-radius: 12px; font-weight: 700; }
   
   .detail-col { width: 68%; overflow-y: auto; padding: 1.5rem; background: #fff; position: relative; }
   .picker-search { margin-bottom: 1.5rem; position: sticky; top: -1.5rem; background: #fff; z-index: 10; padding: 1.5rem 0 0.5rem 0; border-bottom: none; }
   .picker-search input {
-    width: 100%; padding: 0.85rem 1.15rem; border: 1.5px solid var(--color-border);
-    border-radius: 8px; font-size: 0.875rem; font-family: var(--font); outline: none; box-sizing: border-box;
+    width: 100%; padding: 0.85rem 1.15rem; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 0.875rem; font-family: var(--font-sans); outline: none; box-sizing: border-box;
     transition: border-color 0.2s, box-shadow 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
   }
-  .picker-search input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15); }
+  .picker-search input:focus { border-color: var(--accent); box-shadow: var(--shadow-glow); }
 
   .picker-state-rows { display: none; grid-gap: 0.85rem; }
   .picker-state-rows.open { display: grid; }
   
   .picker-auction-card {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 1.15rem 1.25rem; border: 1px solid var(--color-border);
+    padding: 1.15rem 1.25rem; border: 1px solid var(--border);
     border-radius: 10px; cursor: pointer; transition: all 0.2s ease;
     background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .picker-auction-card:hover {
-    border-color: var(--color-primary); transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.12);
+    border-color: var(--accent); transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
   }
-  .picker-auction-card__name { font-weight: 700; color: var(--color-text); font-size: 1.05rem; }
-  .picker-auction-card__date { font-size: 0.8125rem; color: var(--color-text-muted); display: flex; align-items: center; gap: 0.35rem; margin-top: 0.35rem; }
-  .picker-auction-card__props-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); margin-bottom: 0.35rem; text-align: right; }
-  .picker-auction-card__props-count { background: var(--color-primary); color: #fff; padding: 0.3rem 0.85rem; border-radius: 14px; font-weight: 800; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2); }
+  .picker-auction-card__name { font-weight: 700; color: var(--ink-1); font-size: 1.05rem; }
+  .picker-auction-card__date { font-size: 0.8125rem; color: var(--ink-3); display: flex; align-items: center; gap: 0.35rem; margin-top: 0.35rem; }
+  .picker-auction-card__props-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 0.35rem; text-align: right; }
+  .picker-auction-card__props-count { background: var(--accent); color: #fff; padding: 0.3rem 0.85rem; border-radius: 14px; font-weight: 800; font-size: 0.85rem; box-shadow: var(--shadow-sm); }
 
   /* ── Phase 2 Individual Parcel Pin — Advanced Marker (coherente) ── */
   .r2-parcel-pin {
@@ -347,24 +347,108 @@
   }
   .r2-parcel-pin__dot {
     width: 14px; height: 14px; border-radius: 50%;
-    background: #1B2A4A;
-    border: 2.5px solid rgba(52,152,219,0.75);
+    background: var(--ink-1);
+    border: 2.5px solid oklch(0.55 0.18 280 / 0.75);
     box-shadow: 0 2px 6px rgba(0,0,0,0.35);
     transition: transform 0.15s, box-shadow 0.15s;
   }
   .r2-parcel-pin:hover .r2-parcel-pin__dot {
     transform: scale(1.35);
     box-shadow: 0 3px 10px rgba(0,0,0,0.5);
-    background: #2E86C1;
+    background: var(--accent);
   }
   .r2-parcel-pin__label {
     margin-top: 3px;
     padding: 2px 6px; border-radius: 4px;
-    background: #1B2A4A; color: #fff;
+    background: var(--ink-1); color: #fff;
     font-size: 0.62rem; font-weight: 700;
-    font-family: var(--font); white-space: nowrap;
+    font-family: var(--font-sans); white-space: nowrap;
     box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     line-height: 1.4;
+  }
+
+  /* ── Phase 2 STACK Pin (multiple parcels at identical coords) ── */
+  .r2-parcel-pin--stack { position: relative; }
+  .r2-parcel-pin--stack .r2-parcel-pin__dot {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--accent-stack);
+    border: 2.5px solid oklch(1 0 0 / 0.85);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35), 0 0 0 1px var(--accent-stack-strong);
+  }
+  .r2-parcel-pin--stack:hover .r2-parcel-pin__dot {
+    background: var(--accent-stack-strong);
+    transform: scale(1.18);
+  }
+  .r2-parcel-pin--stack .r2-parcel-pin__label {
+    background: var(--accent-stack-strong);
+    color: oklch(0.99 0 0);
+  }
+  .r2-parcel-pin__stack-badge {
+    position: absolute;
+    top: -7px; right: -9px;
+    min-width: 18px; height: 18px; padding: 0 5px;
+    border-radius: 9px;
+    background: var(--accent-stack-strong);
+    color: oklch(0.99 0 0);
+    font-size: 0.66rem; font-weight: 800;
+    font-family: var(--font-sans);
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1.5px solid oklch(1 0 0 / 0.95);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    line-height: 1;
+    z-index: 2;
+  }
+
+  /* ── Phase 2 Cluster bubble (custom MarkerClusterer renderer) ── */
+  .r2-cluster-bubble {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 38px; height: 38px; padding: 0 10px;
+    border-radius: 19px;
+    color: oklch(0.99 0 0);
+    font-family: var(--font-sans);
+    font-size: 0.78rem; font-weight: 800;
+    border: 2px solid oklch(1 0 0 / 0.85);
+    box-shadow: 0 4px 14px oklch(0.18 0.02 280 / 0.30), 0 1px 3px oklch(0.18 0.02 280 / 0.20);
+    cursor: pointer; user-select: none;
+    transition: transform 0.12s ease;
+  }
+  .r2-cluster-bubble:hover { transform: scale(1.08); }
+  .r2-cluster-bubble--d1 { background: var(--cluster-density-1); color: var(--ink-1); }
+  .r2-cluster-bubble--d2 { background: var(--cluster-density-2); }
+  .r2-cluster-bubble--d3 { background: var(--cluster-density-3); }
+  .r2-cluster-bubble--d4 { background: var(--cluster-density-4); }
+
+  /* ── Phase 2 InfoWindow: stack list (N parcels at the same point) ── */
+  .r2-popup--stack { min-width: 240px; max-width: 320px; }
+  .r2-popup--stack h4 {
+    margin: 0 0 8px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem; font-weight: 800; color: var(--ink-1);
+  }
+  .r2-popup-stack-list {
+    display: flex; flex-direction: column; gap: 4px;
+    max-height: 280px; overflow-y: auto;
+  }
+  .r2-popup-stack-row {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 8px 10px;
+    background: var(--surface-1, #fff);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer; text-align: left;
+    font-family: var(--font-sans);
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .r2-popup-stack-row:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .r2-popup-stack-row__addr {
+    font-size: 0.78rem; font-weight: 700; color: var(--ink-1);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .r2-popup-stack-row__meta {
+    font-size: 0.7rem; color: var(--ink-3); font-weight: 600;
   }
 
 </style>
@@ -375,7 +459,7 @@
   <!-- ── BLUR BACKDROP & DRAWER CONTAINER ── -->
   <div id="map-backdrop" class="map-backdrop-blur" onclick="closeParcelDrawer()"></div>
   <div id="property-detail-overlay" class="property-detail-overlay">
-    <div id="property-detail-content" style="height:100%;overflow-y:auto;background:var(--color-bg);"></div>
+    <div id="property-detail-content" style="height:100%;overflow-y:auto;background:var(--surface-1);"></div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════════
@@ -419,7 +503,7 @@
       </button>
 
       <!-- Back to Phase 1 -->
-      <button type="button" class="auction-selector-btn" onclick="backToPhase1()" style="border-color:#6C757D; color:#6C757D;" title="Back to Geographic Overview">
+      <button type="button" class="auction-selector-btn" onclick="backToPhase1()" style="border-color:var(--ink-3); color:var(--ink-3);" title="Back to Geographic Overview">
         ← Overview
       </button>
 
@@ -509,10 +593,10 @@
             <% @picker_counties_by_state.each_with_index do |(state, county_rows), index| %>
               <div class="picker-state-details" id="state-auctions-<%= state.parameterize %>" style="display: <%= index == 0 ? 'block' : 'none' %>;">
                 <div style="margin-bottom: 1.5rem;">
-                  <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-text); margin: 0 0 0.35rem 0; letter-spacing: -0.01em;">
+                  <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--ink-1); margin: 0 0 0.35rem 0; letter-spacing: -0.01em;">
                     Condados en <%= state %>
                   </h3>
-                  <p style="font-size: 0.875rem; color: var(--color-text-muted); margin: 0;">
+                  <p style="font-size: 0.875rem; color: var(--ink-3); margin: 0;">
                     Selecciona un condado para explorar sus propiedades en el mapa.
                   </p>
                 </div>
@@ -547,8 +631,8 @@
       <% else %>
         <div class="empty-state" style="padding:4rem 2rem; text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100%;">
           <div class="empty-state__icon" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.8;">🏛️</div>
-          <p class="empty-state__title" style="font-size: 1.25rem; font-weight: 700; color: var(--color-text); margin: 0 0 0.5rem 0;">No hay condados con subastas</p>
-          <p class="empty-state__desc" style="font-size: 0.95rem; color: var(--color-text-muted); margin: 0;">Vuelve a revisar después de la próxima sincronización de datos.</p>
+          <p class="empty-state__title" style="font-size: 1.25rem; font-weight: 700; color: var(--ink-1); margin: 0 0 0.5rem 0;">No hay condados con subastas</p>
+          <p class="empty-state__desc" style="font-size: 0.95rem; color: var(--ink-3); margin: 0;">Vuelve a revisar después de la próxima sincronización de datos.</p>
         </div>
       <% end %>
     </div>
@@ -602,6 +686,8 @@ var phase1Markers = [];
 var phase1Circles = [];
 var phase2Markers = [];
 var phase2Cluster = null;
+var phase2FetchController = null;
+var phase2FetchSeq = 0;
 
 // ── County centroids cache (populated from county_overview) ──
 var countyData = {};
@@ -666,7 +752,7 @@ function r2Init() {
     } else if (safetyAttempts >= 80) { // 8 second timeout
       clearInterval(safetyPoll);
       var loading = document.getElementById('r2-phase1-loading');
-      if (loading) loading.innerHTML = '<span style="color:var(--color-danger);">⚠️ Map library failed to load. <a href="" style="text-decoration:underline;">Refresh</a></span>';
+      if (loading) loading.innerHTML = '<span style="color:var(--danger);">⚠️ Map library failed to load. <a href="" style="text-decoration:underline;">Refresh</a></span>';
     }
   }, 100);
 }
@@ -790,6 +876,12 @@ function clearPhase1Overlays() {
 }
 
 function clearPhase2Overlays() {
+  // Abort any in-flight map_data fetch so its markers don't land after we've
+  // already cleared overlays (race condition when user spams filters).
+  if (phase2FetchController) {
+    try { phase2FetchController.abort(); } catch(e) { /* ignore */ }
+    phase2FetchController = null;
+  }
   if (phase2Cluster) {
     phase2Cluster.clearMarkers();
     phase2Cluster.setMap(null);
@@ -1020,7 +1112,7 @@ function loadPhase1Data() {
       console.error('County overview load failed:', err);
       if (currentPhase !== 1) return; // Don't show error if we already left Phase 1
       var loading = document.getElementById('r2-phase1-loading');
-      if (loading) loading.innerHTML = '<span style="color:var(--color-danger);">⚠️ Failed to load geographic data. <button onclick="loadPhase1Data()" style="text-decoration:underline;background:none;border:none;cursor:pointer;">Retry</button></span>';
+      if (loading) loading.innerHTML = '<span style="color:var(--danger);">⚠️ Failed to load geographic data. <button onclick="loadPhase1Data()" style="text-decoration:underline;background:none;border:none;cursor:pointer;">Retry</button></span>';
     });
 }
 
@@ -1143,8 +1235,19 @@ function enterPhase2Async(auctionId, county, state) {
 // ══════════════════════════════════════════════════════════════
 // PHASE 2: Load parcel markers into the SINGLE map instance
 // ══════════════════════════════════════════════════════════════
+//
+// Coherence contract (cluster count vs reality):
+//   • Backend groups parcels by exact coords → each JSON element is a
+//     "stack" with { lat, lng, count, parcels: [...] }.
+//   • Each stack becomes ONE marker. Stacks with count>1 render a stack-pin
+//     with a numeric badge so the user sees "3 parcels here" instead of
+//     three invisible overlapping pins.
+//   • The MarkerClusterer renderer sums marker.userData.count (NOT
+//     markers.length), so the cluster bubble always reflects the true
+//     number of parcels in the area, not the number of stack-points.
+//
 function loadPhase2Markers(auctionId, county, state) {
-  if (!r2Map || phase2MapLoaded) return;
+  if (!r2Map) return;
 
   var fetchUrl = MAP_DATA_URL;
   var params = [];
@@ -1168,60 +1271,111 @@ function loadPhase2Markers(auctionId, county, state) {
 
   fetchUrl += '?' + params.join('&');
 
-  fetch(fetchUrl, { headers: { 'Accept': 'application/json' } })
+  // Abort any previous in-flight fetch + bump the seq so its late .then()
+  // is ignored (race-condition guard against rapid filter changes).
+  if (phase2FetchController) {
+    try { phase2FetchController.abort(); } catch(e) { /* ignore */ }
+  }
+  phase2FetchController = new AbortController();
+  var mySeq = ++phase2FetchSeq;
+  var mySignal = phase2FetchController.signal;
+
+  fetch(fetchUrl, { headers: { 'Accept': 'application/json' }, signal: mySignal })
     .then(function(r) { return r.json(); })
-    .then(function(parcels) {
-      if (!parcels || !parcels.length) return;
+    .then(function(stacks) {
+      // Discard if a newer fetch superseded this one.
+      if (mySeq !== phase2FetchSeq || !r2Map) return;
+      if (!stacks || !stacks.length) {
+        phase2MapLoaded = true;
+        return;
+      }
 
       var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
       var bounds = new google.maps.LatLngBounds();
 
-      parcels.forEach(function(p) {
-        if (!p.lat || !p.lng) return;
+      stacks.forEach(function(stack) {
+        if (!stack.lat || !stack.lng || !stack.parcels || !stack.parcels.length) return;
 
-        var position = { lat: p.lat, lng: p.lng };
+        var position = { lat: stack.lat, lng: stack.lng };
         bounds.extend(position);
         var marker;
+        var isStack = stack.count > 1;
+        var primary = stack.parcels[0];
 
-        var bid = p.opening_bid ? '$' + Math.round(p.opening_bid).toLocaleString() : '—';
-        var typeLabel = p.property_type || '—';
+        var bid = primary.opening_bid ? '$' + Math.round(primary.opening_bid).toLocaleString() : '—';
 
         if (useAdvanced) {
-          // ── Advanced Marker: pin personalizado coherente ──
           var pinEl = document.createElement('div');
-          pinEl.className = 'r2-parcel-pin';
-          pinEl.innerHTML =
-            '<div class="r2-parcel-pin__dot"></div>' +
-            '<div class="r2-parcel-pin__label">' + bid + '</div>';
+          if (isStack) {
+            pinEl.className = 'r2-parcel-pin r2-parcel-pin--stack';
+            pinEl.innerHTML =
+              '<div class="r2-parcel-pin__stack-badge">' + stack.count + '</div>' +
+              '<div class="r2-parcel-pin__dot"></div>' +
+              '<div class="r2-parcel-pin__label">' + stack.count + ' parcels</div>';
+          } else {
+            pinEl.className = 'r2-parcel-pin';
+            pinEl.innerHTML =
+              '<div class="r2-parcel-pin__dot"></div>' +
+              '<div class="r2-parcel-pin__label">' + bid + '</div>';
+          }
           marker = new google.maps.marker.AdvancedMarkerElement({
             position: position,
             content:  pinEl,
-            title:    p.address || p.parcel_id || ''
+            title:    isStack
+                        ? (stack.count + ' parcels at this location')
+                        : (primary.address || primary.parcel_id || '')
           });
         } else {
           marker = new google.maps.Marker({
             map: r2Map,
             position: position,
+            label: isStack ? { text: String(stack.count), color: '#fff', fontWeight: '700' } : null,
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
-              scale: 8,
-              fillColor: '#1B2A4A',
+              scale: isStack ? 12 : 8,
+              fillColor: isStack ? '#B45309' : '#1B2A4A',
               fillOpacity: 0.92,
-              strokeColor: 'rgba(52,152,219,0.6)',
+              strokeColor: 'rgba(255,255,255,0.85)',
               strokeWeight: 2
             },
-            title: p.address || ''
+            title: isStack
+                     ? (stack.count + ' parcels at this location')
+                     : (primary.address || '')
           });
         }
 
-        var popupHtml =
-          '<div class="r2-popup">' +
-            '<h4>' + (p.address || 'Parcel ' + p.parcel_id) + '</h4>' +
-            '<div class="r2-popup-row"><span>County</span><strong>' + [p.county, p.state].filter(Boolean).join(', ') + '</strong></div>' +
-            '<div class="r2-popup-row"><span>Opening Bid</span><strong>' + bid + '</strong></div>' +
-            '<div class="r2-popup-row"><span>Type</span><strong>' + typeLabel + '</strong></div>' +
-            '<button class="r2-popup-cta" onclick="openParcelDrawer(\'/research/parcels/' + p.id + '\')">View Property Card &#8594;</button>' +
-          '</div>';
+        // Annotate marker so the cluster renderer can sum REAL parcel counts
+        // (not stack-point counts).
+        marker.userData = { count: stack.count, parcels: stack.parcels };
+
+        var popupHtml;
+        if (isStack) {
+          var rows = stack.parcels.map(function(p) {
+            var rbid = p.opening_bid ? '$' + Math.round(p.opening_bid).toLocaleString() : '—';
+            var rtype = p.property_type || '—';
+            var addr = p.address || ('Parcel ' + p.parcel_id);
+            return '<button type="button" class="r2-popup-stack-row" ' +
+                     'onclick="openParcelDrawer(\'/research/parcels/' + p.id + '\')">' +
+                     '<span class="r2-popup-stack-row__addr">' + addr + '</span>' +
+                     '<span class="r2-popup-stack-row__meta">' + rtype + ' · ' + rbid + '</span>' +
+                   '</button>';
+          }).join('');
+          popupHtml =
+            '<div class="r2-popup r2-popup--stack">' +
+              '<h4>' + stack.count + ' parcels at this location</h4>' +
+              '<div class="r2-popup-stack-list">' + rows + '</div>' +
+            '</div>';
+        } else {
+          var typeLabel = primary.property_type || '—';
+          popupHtml =
+            '<div class="r2-popup">' +
+              '<h4>' + (primary.address || 'Parcel ' + primary.parcel_id) + '</h4>' +
+              '<div class="r2-popup-row"><span>County</span><strong>' + [primary.county, primary.state].filter(Boolean).join(', ') + '</strong></div>' +
+              '<div class="r2-popup-row"><span>Opening Bid</span><strong>' + bid + '</strong></div>' +
+              '<div class="r2-popup-row"><span>Type</span><strong>' + typeLabel + '</strong></div>' +
+              '<button class="r2-popup-cta" onclick="openParcelDrawer(\'/research/parcels/' + primary.id + '\')">View Property Card &#8594;</button>' +
+            '</div>';
+        }
 
         marker.addListener('click', function() {
           r2InfoWindow.close();
@@ -1236,11 +1390,55 @@ function loadPhase2Markers(auctionId, county, state) {
         phase2Markers.push(marker);
       });
 
-      // MarkerClusterer
+      // ── MarkerClusterer with custom renderer ───────────────────
+      // The cluster bubble shows the SUM of userData.count across grouped
+      // markers — i.e. the real number of parcels in the area, not the
+      // number of stack-points. This is what guarantees coherence between
+      // the cluster's number and what the user finds when zooming in.
       if (typeof markerClusterer !== 'undefined' && markerClusterer.MarkerClusterer) {
+        var useAdv = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
         phase2Cluster = new markerClusterer.MarkerClusterer({
           map: r2Map,
-          markers: phase2Markers
+          markers: phase2Markers,
+          renderer: {
+            render: function(args) {
+              var clusterMarkers = args.markers || [];
+              var position = args.position;
+              var realCount = clusterMarkers.reduce(function(sum, m) {
+                var c = (m && m.userData && m.userData.count) || 1;
+                return sum + c;
+              }, 0);
+
+              var bucket = realCount >= 200 ? 4 : realCount >= 50 ? 3 : realCount >= 10 ? 2 : 1;
+
+              if (useAdv) {
+                var bubble = document.createElement('div');
+                bubble.className = 'r2-cluster-bubble r2-cluster-bubble--d' + bucket;
+                bubble.textContent = realCount.toLocaleString();
+                bubble.title = realCount + ' parcels in this area';
+                return new google.maps.marker.AdvancedMarkerElement({
+                  position: position,
+                  content:  bubble,
+                  title:    realCount + ' parcels in this area'
+                });
+              }
+              // Fallback (classic Marker): use a colored circle with label
+              var fillByBucket = ['', '#7AA9D6', '#3F7BB0', '#B45309', '#7C3A09'];
+              return new google.maps.Marker({
+                position: position,
+                label: { text: String(realCount), color: '#fff', fontWeight: '700' },
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 16 + Math.min(8, Math.log10(realCount + 1) * 4),
+                  fillColor: fillByBucket[bucket],
+                  fillOpacity: 0.92,
+                  strokeColor: 'rgba(255,255,255,0.9)',
+                  strokeWeight: 2
+                },
+                title: realCount + ' parcels in this area'
+              });
+            }
+          }
         });
       } else {
         phase2Markers.forEach(function(m) {
@@ -1261,6 +1459,7 @@ function loadPhase2Markers(auctionId, county, state) {
       } catch(e) { /* ignore */ }
     })
     .catch(function(err) {
+      if (err && err.name === 'AbortError') return; // expected on filter spam
       console.error('Phase 2 map load failed:', err);
     });
 }
@@ -1573,7 +1772,7 @@ function openParcelDrawer(url) {
   overlay.classList.add('is-open');
   window.history.pushState({ path: url }, '', url);
 
-  content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--color-text-muted);"><div class="map-spinner"></div></div>';
+  content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--ink-3);"><div class="map-spinner"></div></div>';
 
   fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
     .then(function(r) { return r.text(); })
@@ -1587,7 +1786,7 @@ function openParcelDrawer(url) {
       });
     })
     .catch(function(err) {
-      content.innerHTML = '<div style="padding:2rem;color:var(--color-danger);text-align:center;">Failed to load property details. <br><button onclick="closeParcelDrawer()" class="btn-sm btn-sm-outline" style="margin-top:1rem;">Close</button></div>';
+      content.innerHTML = '<div style="padding:2rem;color:var(--danger);text-align:center;">Failed to load property details. <br><button onclick="closeParcelDrawer()" class="btn-sm btn-sm-outline" style="margin-top:1rem;">Close</button></div>';
     });
 }
 

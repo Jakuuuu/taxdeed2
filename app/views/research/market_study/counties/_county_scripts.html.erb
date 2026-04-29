@@ -37,7 +37,8 @@
     const dpr = window.devicePixelRatio || 1;
 
     // ── Theme colors ────────────────────────────────────────────────────
-    // Brand-aligned colors for light background (Navy/Gold/Off-white)
+    // Canvas 2D API requires literal hex — var() not supported in ctx.*Style.
+    // Values aligned with Atlas OKLCH equivalents (--accent, --gold, --ink-*).
     const COLORS = {
       barBase:     '#1E3A5F',
       barHover:    '#2C5282',

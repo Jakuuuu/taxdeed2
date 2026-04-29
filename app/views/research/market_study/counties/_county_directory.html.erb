@@ -1,7 +1,6 @@
-<%# ── Directorio institucional del condado ──────────────────────────── %>
-<%# Muestra los 4 contactos fijos: Planning & Zoning, Building Division, %>
-<%# Clerk Office, Tax Collector. Cada uno puede ser email o teléfono.   %>
-<%# Paleta: Navy #1E3A5F | Gold #C9A84C | Off-white #F5F7FA             %>
+<%# ── Directorio institucional del condado (Atlas) ──────────────── %>
+<%# Muestra los 4 contactos fijos: Planning & Zoning, Building,   %>
+<%# Clerk Office, Tax Collector. Cada uno puede ser email/tel.    %>
 
 <% contacts = @county.institutional_contacts %>
 <% if contacts.any? %>
@@ -12,26 +11,27 @@
 
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
       <% contacts.each do |c| %>
-        <div style="background: rgba(30, 58, 95, 0.03); border: 1.5px solid #E2E8F0;
-                    border-radius: 10px; padding: 1rem 1.2rem;">
-          <div style="color: #6B7280; font-size: 0.75rem; text-transform: uppercase;
-                      letter-spacing: 0.05em; margin-bottom: 0.4rem; font-weight: 600;">
+        <div style="background: var(--surface-2); border: 1px solid var(--border);
+                    border-radius: var(--radius-lg); padding: 1rem 1.2rem;">
+          <div style="font-family: var(--font-mono); color: var(--ink-3); font-size: 10.5px;
+                      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.4rem;
+                      font-weight: 600;">
             <%= c[:dept] %>
           </div>
-          <div style="color: #1A202C; font-size: 0.95rem;">
+          <div style="color: var(--ink-1); font-size: 13.5px;">
             <% contact_val = c[:contact] %>
             <% if contact_val.include?("@") %>
-              <%# Es un email %>
               <a href="mailto:<%= contact_val %>"
-                 style="color: #1E3A5F; text-decoration: none; transition: opacity 0.2s; font-weight: 500;"
+                 style="color: var(--accent); text-decoration: none; transition: opacity 160ms ease;
+                        font-weight: 500;"
                  onmouseover="this.style.opacity='0.8'"
                  onmouseout="this.style.opacity='1'">
                 📧 <%= contact_val %>
               </a>
             <% elsif contact_val.match?(/\(\d{3}\)/) %>
-              <%# Es un teléfono %>
               <a href="tel:<%= contact_val.gsub(/[^\d+]/, '') %>"
-                 style="color: #1E3A5F; text-decoration: none; transition: opacity 0.2s; font-weight: 500;"
+                 style="color: var(--accent); text-decoration: none; transition: opacity 160ms ease;
+                        font-weight: 500;"
                  onmouseover="this.style.opacity='0.8'"
                  onmouseout="this.style.opacity='1'">
                 📞 <%= contact_val %>

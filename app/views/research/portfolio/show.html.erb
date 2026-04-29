@@ -1,212 +1,12 @@
-<%# ═══ Rama 5: My Portfolio — Dashboard CRM personal del usuario ═══
+<%# ═══ Rama 5: My Portfolio — Pipeline Kanban CRM ═══════════════════════
     Layout: research (heredado). Drawer AJAX reutilizado de Rama 2.
     CSS inline obligatorio por: ningún yield :head fuera del layout.
+    Atlas Design System tokens (OKLCH).
 ═══════════════════════════════════════════════════════════════════════ %>
-<% content_for :title, "My Portfolio — TaxDeed Lion" %>
+<% content_for :title, "My Pipeline — LionTaxdeed" %>
 
-<style>
-  /* ── Portfolio shell ── */
-  .pf-shell {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 2rem 1.25rem 4rem;
-    font-family: var(--font, 'Inter', sans-serif);
-  }
-
-  /* ── Page header ── */
-  .pf-page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1.75rem;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-  .pf-page-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--color-primary, #1E3A5F);
-    margin: 0;
-  }
-  .pf-page-subtitle {
-    font-size: 0.85rem;
-    color: var(--color-text-muted, #6C757D);
-    margin: 0.25rem 0 0;
-  }
-  .pf-count-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.3rem 0.75rem;
-    background: #EEF2FF;
-    color: var(--color-primary, #1E3A5F);
-    border-radius: 20px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  /* ── Table ── */
-  .pf-table-wrapper {
-    background: #fff;
-    border: 1px solid var(--color-border, #E8ECF0);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-  .pf-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.855rem;
-  }
-  .pf-table thead tr {
-    background: var(--color-bg-subtle, #F8F9FA);
-    border-bottom: 1px solid var(--color-border, #E8ECF0);
-  }
-  .pf-table th {
-    padding: 0.7rem 1rem;
-    text-align: left;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--color-text-muted, #6C757D);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
-  .pf-table tbody tr {
-    border-bottom: 1px solid var(--color-border, #E8ECF0);
-    cursor: pointer;
-    transition: background 0.12s;
-  }
-  .pf-table tbody tr:last-child { border-bottom: none; }
-  .pf-table tbody tr:hover { background: #F5F8FF; }
-  .pf-table td {
-    padding: 0.85rem 1rem;
-    color: var(--color-text, #1A2D42);
-    vertical-align: middle;
-  }
-
-  /* ── Address cell ── */
-  .pf-address { font-weight: 600; }
-  .pf-meta    { font-size: 0.75rem; color: var(--color-text-muted, #6C757D); margin-top: 2px; }
-
-  /* ── Bid cell ── */
-  .pf-bid {
-    font-weight: 700;
-    color: var(--color-primary, #1E3A5F);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* ── Status badges ── */
-  .pf-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0.2rem 0.55rem;
-    border-radius: 12px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .pf-badge--unlocked { background: #E8F5E9; color: #27AE60; }
-  .pf-badge--locked   { background: #F3F4F6; color: #9CA3AF; }
-
-  /* ── CRM Tag chip ── */
-  .pf-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 0.22rem 0.6rem;
-    border-radius: 10px;
-    font-size: 0.73rem;
-    font-weight: 600;
-  }
-  .pf-tag--target     { background: #DBEAFE; color: #2E86C1; }
-  .pf-tag--diligence  { background: #FEF3C7; color: #E67E22; }
-  .pf-tag--ready      { background: #D1FAE5; color: #27AE60; }
-  .pf-tag--dismissed  { background: #F3F4F6; color: #6C757D; }
-  .pf-tag--none       { background: #F3F4F6; color: #9CA3AF; font-style: italic; }
-
-  /* ── Notes indicator ── */
-  .pf-notes-dot {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.75rem;
-    color: var(--color-text-muted, #6C757D);
-  }
-
-  /* ── Action cell ── */
-  .pf-view-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 0.35rem 0.8rem;
-    border: 1.5px solid var(--color-primary, #1E3A5F);
-    border-radius: 8px;
-    color: var(--color-primary, #1E3A5F);
-    font-size: 0.78rem;
-    font-weight: 600;
-    background: none;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .pf-view-btn:hover { background: var(--color-primary, #1E3A5F); color: #fff; }
-
-  /* ── Empty state ── */
-  .pf-empty {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: var(--color-text-muted, #6C757D);
-  }
-  .pf-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
-  .pf-empty-title { font-size: 1.1rem; font-weight: 600; color: var(--color-text, #1A2D42); margin-bottom: 0.5rem; }
-  .pf-empty-sub   { font-size: 0.875rem; }
-  .pf-empty-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 1.25rem;
-    padding: 0.6rem 1.25rem;
-    background: var(--color-primary, #1E3A5F);
-    color: #fff;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: opacity 0.15s;
-  }
-  .pf-empty-cta:hover { opacity: 0.85; }
-
-  /* ── Drawer overlay (identical pattern to Rama 2) ── */
-  .pf-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.35);
-    backdrop-filter: blur(3px);
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.3s;
-    z-index: 900;
-  }
-  .pf-backdrop.is-open { opacity: 1; pointer-events: all; }
-
-  .pf-drawer {
-    position: fixed;
-    top: 0; right: 0;
-    width: 95vw; max-width: 1100px;
-    height: 100vh;
-    background: var(--color-bg, #F7F9FC);
-    transform: translateX(100%);
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    z-index: 901;
-    overflow: hidden;
-  }
-  .pf-drawer.is-open { transform: translateX(0); }
-  .pf-drawer-content {
-    height: 100%;
-    overflow-y: auto;
-    background: var(--color-bg, #F7F9FC);
-  }
-</style>
+<%# ── Inline CSS ── %>
+<%= render "research/portfolio/pipeline_styles" %>
 
 <%# ── Drawer backdrop & container (idéntico a Rama 2) ── %>
 <div id="pf-backdrop" class="pf-backdrop" onclick="pfCloseDrawer()"></div>
@@ -214,130 +14,412 @@
   <div id="pf-drawer-content" class="pf-drawer-content"></div>
 </div>
 
-<div class="pf-shell">
-  <%# ── Page Header ── %>
-  <div class="pf-page-header">
-    <div>
-      <h1 class="pf-page-title">📋 My Portfolio</h1>
-      <p class="pf-page-subtitle">Properties you've unlocked or tagged in your CRM</p>
+<%# ── Add Stage Modal ── %>
+<div id="pl-add-stage-modal" class="pl-modal-backdrop">
+  <div class="pl-modal">
+    <h3>➕ Add Stage</h3>
+    <label for="pl-stage-name-input">Stage Name</label>
+    <input type="text" id="pl-stage-name-input" placeholder="e.g., Under Contract" maxlength="40">
+    <label for="pl-stage-emoji-input">Emoji (optional)</label>
+    <input type="text" id="pl-stage-emoji-input" placeholder="e.g., 📃" maxlength="4">
+    <div class="pl-modal__actions">
+      <button class="pl-btn pl-btn--ghost" onclick="plCloseModal()">Cancel</button>
+      <button class="pl-btn pl-btn--primary" onclick="plSubmitNewStage()">Create Stage</button>
     </div>
-    <% unless @empty %>
-      <span class="pf-count-badge"><%= @parcels.size %> <%= 'property'.pluralize(@parcels.size) %></span>
-    <% end %>
   </div>
+</div>
 
-  <% if @empty %>
-    <%# ── Empty State ── %>
-    <div class="pf-empty">
-      <div class="pf-empty-icon">🗂️</div>
-      <div class="pf-empty-title">Your portfolio is empty</div>
-      <p class="pf-empty-sub">
-        Unlock a property or add a CRM tag in the Property Search to populate your portfolio.
-      </p>
-      <a href="<%= research_parcels_path %>" class="pf-empty-cta">
-        🔍 Go to Property Search
-      </a>
-    </div>
+<%# ── Toast ── %>
+<div id="pl-toast" class="pl-toast"></div>
 
-  <% else %>
-    <%# ── Table ── %>
-    <div class="pf-table-wrapper">
-      <table class="pf-table">
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Opening Bid</th>
-            <th>Status</th>
-            <th>CRM Tag</th>
-            <th>Notes</th>
-            <th>Auction</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @parcels.each do |parcel| %>
-            <% tag      = @tags_by_parcel[parcel.id] %>
-            <% note_ct  = @note_counts.fetch(parcel.id, 0) %>
-            <% unlocked = @unlocked_set.include?(parcel.id) %>
-            <tr onclick="pfOpenDrawer('/research/parcels/<%= parcel.id %>')">
-              <td>
-                <div class="pf-address"><%= parcel.address.presence || "—" %></div>
-                <div class="pf-meta">
-                  <%= [parcel.city, parcel.state, parcel.zip_code].compact.join(", ") %>
-                  <% if parcel.parcel_id.present? %>
-                    &nbsp;·&nbsp;APN: <%= parcel.parcel_id %>
-                  <% end %>
-                </div>
-              </td>
+<%# ── Toolbar ── %>
+<div class="pipeline__toolbar">
+  <div class="pipeline__toolbar-title">🏗️ My Pipeline</div>
+  <input type="search" class="pipeline__search" id="pl-search"
+         placeholder="🔍 Search properties..." oninput="plFilter(this.value)">
+</div>
 
-              <td>
-                <% if parcel.opening_bid %>
-                  <span class="pf-bid"><%= number_to_currency(parcel.opening_bid) %></span>
-                <% else %>
-                  <span style="color:var(--color-text-muted)">—</span>
+<%# ── KPI Strip ── %>
+<div class="pipeline__kpis">
+  <div class="kpi-mini">
+    <span class="kpi-mini__value" id="kpi-total"><%= @kpi_total %></span>
+    <span class="kpi-mini__label">Total properties</span>
+  </div>
+  <div class="kpi-mini">
+    <span class="kpi-mini__value" id="kpi-bids"><%= number_to_currency(@kpi_total_bids, precision: 0) %></span>
+    <span class="kpi-mini__label">Total bids</span>
+  </div>
+  <div class="kpi-mini">
+    <span class="kpi-mini__value" id="kpi-ready"><%= @kpi_ready %></span>
+    <span class="kpi-mini__label">Ready to Bid</span>
+  </div>
+</div>
+
+<%# ── Pipeline Board ── %>
+<div class="pipeline__board" id="pl-board">
+  <% @stages.each do |stage| %>
+    <div class="pipeline__column"
+         data-stage-id="<%= stage.id %>"
+         data-stage-default="<%= stage.is_default? %>"
+         ondragover="plDragOver(event)" ondragleave="plDragLeave(event)" ondrop="plDrop(event)">
+      <%# Column Header %>
+      <div class="pipeline__column-header">
+        <span class="pipeline__column-emoji"><%= stage.emoji %></span>
+        <span class="pipeline__column-name"
+              contenteditable="<%= !stage.is_default? %>"
+              data-stage-id="<%= stage.id %>"
+              onblur="plRenameStage(this, <%= stage.id %>)"
+              title="<%= stage.is_default? ? 'Default stage' : 'Click to rename' %>"><%= stage.name %></span>
+        <span class="count-pill" data-count-for="<%= stage.id %>"><%= stage.pipeline_properties.size %></span>
+        <% unless stage.is_default? %>
+          <button class="pipeline__column-menu" onclick="plDeleteStage(<%= stage.id %>, this)" title="Delete stage">🗑</button>
+        <% end %>
+      </div>
+
+      <%# Column Body (cards) %>
+      <div class="pipeline__column-body">
+        <% stage.pipeline_properties.order(:position).each do |pp| %>
+          <% parcel = pp.parcel %>
+          <% tag    = @tags_by_parcel[parcel.id] %>
+          <% note   = @notes_by_parcel[parcel.id] %>
+          <div class="pipeline__card"
+               draggable="true"
+               data-property-id="<%= pp.id %>"
+               data-parcel-id="<%= parcel.id %>"
+               data-searchable="<%= [parcel.address, parcel.city, parcel.parcel_id].compact.join(' ').downcase %>"
+               ondragstart="plDragStart(event)" ondragend="plDragEnd(event)">
+
+            <%# Address + APN %>
+            <div class="pipeline__card-address" title="<%= parcel.address %>">
+              <%= parcel.address.presence || "—" %>
+            </div>
+            <% if parcel.parcel_id.present? %>
+              <div class="pipeline__card-apn">APN: <%= parcel.parcel_id %></div>
+            <% end %>
+
+            <%# Tag chip + county %>
+            <div class="pipeline__card-metrics">
+              <% if tag %>
+                <% tag_colors = { "target" => "accent", "diligence" => "warning", "ready" => "success", "dismissed" => "ink-3" } %>
+                <span class="pipeline__chip" style="background: var(--<%= tag_colors[tag.tag] || 'surface-2' %>-soft); color: var(--<%= tag_colors[tag.tag] || 'ink-3' %>);">
+                  <%= tag.tag.humanize %>
+                </span>
+              <% end %>
+              <% if parcel.auction&.county.present? %>
+                <span class="pipeline__chip">📍 <%= parcel.auction.county %></span>
+              <% end %>
+            </div>
+
+            <%# Bid value %>
+            <div class="pipeline__card-values">
+              <div>
+                <span class="pipeline__card-value-label">Bid</span>
+                <span class="pipeline__card-value-amount">
+                  <%= parcel.opening_bid ? number_to_currency(parcel.opening_bid, precision: 0) : "—" %>
+                </span>
+              </div>
+              <div>
+                <span class="pipeline__card-value-label">Assessed</span>
+                <span class="pipeline__card-value-amount">
+                  <%= parcel.assessed_value ? number_to_currency(parcel.assessed_value, precision: 0) : "—" %>
+                </span>
+              </div>
+            </div>
+
+            <%# Inline Note %>
+            <div class="pipeline__card-note" data-pp-id="<%= pp.id %>">
+              <p><%= pp.notes.presence || "Click to add a note..." %></p>
+              <textarea placeholder="Add your notes..."><%= pp.notes %></textarea>
+              <button class="pipeline__note-btn" onclick="plToggleNote(this)">✏️ edit</button>
+            </div>
+
+            <%# Footer: date + actions %>
+            <div class="pipeline__card-footer">
+              <span class="pipeline__card-date">
+                <% if parcel.auction&.sale_date %>
+                  🗓 <%= parcel.auction.sale_date.strftime("%b %d, %Y") %>
                 <% end %>
-              </td>
-
-              <td>
-                <% if unlocked %>
-                  <span class="pf-badge pf-badge--unlocked">✓ Unlocked</span>
-                <% else %>
-                  <span class="pf-badge pf-badge--locked">🔒 Locked</span>
-                <% end %>
-              </td>
-
-              <td>
-                <% if tag %>
-                  <%
-                    tag_meta = {
-                      "target"    => { label: "🎯 Target",        css: "target"    },
-                      "diligence" => { label: "🔍 Due Diligence", css: "diligence" },
-                      "ready"     => { label: "✅ Ready to Bid",  css: "ready"     },
-                      "dismissed" => { label: "❌ Dismissed",     css: "dismissed" }
-                    }
-                    meta = tag_meta[tag.tag] || { label: tag.tag, css: "none" }
-                  %>
-                  <span class="pf-tag pf-tag--<%= meta[:css] %>"><%= meta[:label] %></span>
-                <% else %>
-                  <span class="pf-tag pf-tag--none">No tag</span>
-                <% end %>
-              </td>
-
-              <td>
-                <% if note_ct > 0 %>
-                  <span class="pf-notes-dot">📝 <%= note_ct %></span>
-                <% else %>
-                  <span style="color:var(--color-text-muted);font-size:0.78rem">—</span>
-                <% end %>
-              </td>
-
-              <td>
-                <div class="pf-meta">
-                  <%= parcel.auction&.county %><% if parcel.auction&.state.present? %>, <%= parcel.auction.state %><% end %>
-                </div>
-                <div class="pf-meta">
-                  <%= parcel.auction&.sale_date&.strftime("%b %d, %Y") %>
-                </div>
-              </td>
-
-              <td onclick="event.stopPropagation()">
-                <button class="pf-view-btn"
-                        onclick="pfOpenDrawer('/research/parcels/<%= parcel.id %>')">
+              </span>
+              <div style="display:flex;gap:6px;">
+                <button class="pl-btn pl-btn--ghost pl-btn--sm"
+                        onclick="event.stopPropagation(); pfOpenDrawer('/research/parcels/<%= parcel.id %>')"
+                        title="Open full property card">
                   View →
                 </button>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
+                <button class="pl-btn pl-btn--danger pl-btn--sm"
+                        onclick="event.stopPropagation(); plRemoveProperty(<%= pp.id %>, this)"
+                        title="Remove from pipeline">
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
     </div>
   <% end %>
+
+  <%# ── Add Stage Button ── %>
+  <div class="pipeline__add-stage" onclick="plOpenModal()">
+    <div class="pipeline__add-stage-icon">+</div>
+    <span class="pipeline__add-stage-text">Add Stage</span>
+  </div>
 </div>
 
 <script>
-  var PF_BASE_PATH = '<%= request.path %>';
+  // ══════════════════════════════════════════════════════════════════════
+  // Pipeline Board — Vanilla JS (Sin dependencias externas)
+  // ══════════════════════════════════════════════════════════════════════
 
-  // ── Open Drawer (mismo patrón que Rama 2) ────────────────────────────
+  var PF_BASE_PATH = '<%= request.path %>';
+  var CSRF_TOKEN   = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+  // ── Helpers ──────────────────────────────────────────────────────────
+  function plHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': CSRF_TOKEN,
+      'X-Requested-With': 'XMLHttpRequest'
+    };
+  }
+
+  function plToast(msg, isError) {
+    var t = document.getElementById('pl-toast');
+    t.textContent = msg;
+    t.style.background = isError ? 'var(--danger)' : 'var(--ink-1)';
+    t.classList.add('visible');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function() { t.classList.remove('visible'); }, 2400);
+  }
+
+  function plUpdateCounts() {
+    document.querySelectorAll('.pipeline__column').forEach(function(col) {
+      var stageId = col.dataset.stageId;
+      var count   = col.querySelectorAll('.pipeline__card').length;
+      var pill    = col.querySelector('[data-count-for="' + stageId + '"]');
+      if (pill) pill.textContent = count;
+    });
+    // KPI total
+    var totalCards = document.querySelectorAll('.pipeline__card').length;
+    var kpiTotal   = document.getElementById('kpi-total');
+    if (kpiTotal) kpiTotal.textContent = totalCards;
+  }
+
+  // ── Drag & Drop ────────────────────────────────────────────────────
+  var _draggedCard = null;
+
+  function plDragStart(e) {
+    _draggedCard = e.target.closest('.pipeline__card');
+    _draggedCard.classList.add('pipeline__card--dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', _draggedCard.dataset.propertyId);
+  }
+
+  function plDragEnd(e) {
+    if (_draggedCard) _draggedCard.classList.remove('pipeline__card--dragging');
+    document.querySelectorAll('.pipeline__column--drag-over').forEach(function(col) {
+      col.classList.remove('pipeline__column--drag-over');
+    });
+    _draggedCard = null;
+  }
+
+  function plDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var col = e.target.closest('.pipeline__column');
+    if (col) col.classList.add('pipeline__column--drag-over');
+  }
+
+  function plDragLeave(e) {
+    var col = e.target.closest('.pipeline__column');
+    if (col && !col.contains(e.relatedTarget)) {
+      col.classList.remove('pipeline__column--drag-over');
+    }
+  }
+
+  function plDrop(e) {
+    e.preventDefault();
+    var col = e.target.closest('.pipeline__column');
+    if (!col || !_draggedCard) return;
+    col.classList.remove('pipeline__column--drag-over');
+
+    var newStageId  = col.dataset.stageId;
+    var propId      = _draggedCard.dataset.propertyId;
+    var body        = col.querySelector('.pipeline__column-body');
+
+    // Optimistic UI: move card immediately
+    body.appendChild(_draggedCard);
+    _draggedCard.classList.remove('pipeline__card--dragging');
+    plUpdateCounts();
+
+    // Persist
+    fetch('/research/portfolio/properties/' + propId + '/move', {
+      method: 'PATCH',
+      headers: plHeaders(),
+      body: JSON.stringify({ stage_id: newStageId })
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('Move failed');
+      return r.json();
+    })
+    .then(function(data) {
+      plToast('Moved to ' + (data.stage_name || 'new stage'));
+    })
+    .catch(function(err) {
+      plToast('Failed to move — please refresh', true);
+    });
+  }
+
+  // ── Inline Notes ───────────────────────────────────────────────────
+  function plToggleNote(btn) {
+    var noteDiv  = btn.closest('.pipeline__card-note');
+    var isEditing = noteDiv.classList.contains('pipeline__card-note--editing');
+
+    if (isEditing) {
+      // Save
+      var textarea = noteDiv.querySelector('textarea');
+      var ppId     = noteDiv.dataset.ppId;
+      var newNote  = textarea.value.trim();
+
+      noteDiv.classList.remove('pipeline__card-note--editing');
+      noteDiv.querySelector('p').textContent = newNote || 'Click to add a note...';
+      btn.innerHTML = '✏️ edit';
+
+      fetch('/research/portfolio/properties/' + ppId + '/update_note', {
+        method: 'PATCH',
+        headers: plHeaders(),
+        body: JSON.stringify({ body: newNote })
+      })
+      .then(function(r) {
+        if (!r.ok) throw new Error('Note save failed');
+        plToast('Note saved ✓');
+      })
+      .catch(function() { plToast('Failed to save note', true); });
+    } else {
+      // Edit mode
+      noteDiv.classList.add('pipeline__card-note--editing');
+      btn.innerHTML = '💾 save';
+      var textarea = noteDiv.querySelector('textarea');
+      textarea.focus();
+    }
+  }
+
+  // ── Stage Management ───────────────────────────────────────────────
+  function plOpenModal() {
+    var modal = document.getElementById('pl-add-stage-modal');
+    modal.classList.add('active');
+    document.getElementById('pl-stage-name-input').value = '';
+    document.getElementById('pl-stage-emoji-input').value = '';
+    document.getElementById('pl-stage-name-input').focus();
+  }
+
+  function plCloseModal() {
+    document.getElementById('pl-add-stage-modal').classList.remove('active');
+  }
+
+  function plSubmitNewStage() {
+    var name  = document.getElementById('pl-stage-name-input').value.trim();
+    var emoji = document.getElementById('pl-stage-emoji-input').value.trim() || '📋';
+
+    if (!name) { plToast('Please enter a stage name', true); return; }
+
+    fetch('/research/portfolio/stages', {
+      method: 'POST',
+      headers: plHeaders(),
+      body: JSON.stringify({ name: name, emoji: emoji })
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('Create failed');
+      return r.json();
+    })
+    .then(function(data) {
+      plCloseModal();
+      plToast('Stage "' + name + '" created ✓');
+      // Insert new column before the "Add Stage" button
+      var board   = document.getElementById('pl-board');
+      var addBtn  = board.querySelector('.pipeline__add-stage');
+      var col     = document.createElement('div');
+      col.className = 'pipeline__column';
+      col.dataset.stageId = data.id;
+      col.dataset.stageDefault = 'false';
+      col.setAttribute('ondragover', 'plDragOver(event)');
+      col.setAttribute('ondragleave', 'plDragLeave(event)');
+      col.setAttribute('ondrop', 'plDrop(event)');
+      col.innerHTML = '<div class="pipeline__column-header">'
+        + '<span class="pipeline__column-emoji">' + emoji + '</span>'
+        + '<span class="pipeline__column-name" contenteditable="true" data-stage-id="' + data.id + '" onblur="plRenameStage(this,' + data.id + ')">' + name + '</span>'
+        + '<span class="count-pill" data-count-for="' + data.id + '">0</span>'
+        + '<button class="pipeline__column-menu" onclick="plDeleteStage(' + data.id + ',this)" title="Delete stage">🗑</button>'
+        + '</div>'
+        + '<div class="pipeline__column-body"></div>';
+      board.insertBefore(col, addBtn);
+    })
+    .catch(function() { plToast('Failed to create stage', true); });
+  }
+
+  function plRenameStage(el, stageId) {
+    var newName = el.textContent.trim();
+    if (!newName) return;
+
+    fetch('/research/portfolio/stages/' + stageId, {
+      method: 'PATCH',
+      headers: plHeaders(),
+      body: JSON.stringify({ name: newName })
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('Rename failed');
+      plToast('Stage renamed ✓');
+    })
+    .catch(function() { plToast('Failed to rename stage', true); });
+  }
+
+  function plDeleteStage(stageId, btn) {
+    if (!confirm('Delete this stage? Properties inside will need to be reassigned.')) return;
+
+    fetch('/research/portfolio/stages/' + stageId, {
+      method: 'DELETE',
+      headers: plHeaders()
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('Delete failed');
+      var col = btn.closest('.pipeline__column');
+      col.style.transform = 'scale(0.95)';
+      col.style.opacity = '0';
+      setTimeout(function() { col.remove(); }, 300);
+      plToast('Stage deleted');
+    })
+    .catch(function() { plToast('Cannot delete default stage', true); });
+  }
+
+  // ── Remove Property ────────────────────────────────────────────────
+  function plRemoveProperty(propId, btn) {
+    if (!confirm('Remove this property from your pipeline?')) return;
+
+    fetch('/research/portfolio/properties/' + propId, {
+      method: 'DELETE',
+      headers: plHeaders()
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('Remove failed');
+      var card = btn.closest('.pipeline__card');
+      card.style.transform = 'scale(0.95)';
+      card.style.opacity = '0';
+      setTimeout(function() { card.remove(); plUpdateCounts(); }, 300);
+      plToast('Property removed');
+    })
+    .catch(function() { plToast('Failed to remove property', true); });
+  }
+
+  // ── Search / Filter ────────────────────────────────────────────────
+  function plFilter(query) {
+    var q = query.toLowerCase().trim();
+    document.querySelectorAll('.pipeline__card').forEach(function(card) {
+      var text = card.dataset.searchable || '';
+      card.style.display = (!q || text.indexOf(q) !== -1) ? '' : 'none';
+    });
+  }
+
+  // ── Drawer (mismo patrón Rama 2) ───────────────────────────────────
   function pfOpenDrawer(url) {
     var backdrop = document.getElementById('pf-backdrop');
     var drawer   = document.getElementById('pf-drawer');
@@ -347,13 +429,12 @@
     drawer.classList.add('is-open');
     window.history.pushState({ path: url }, '', url);
 
-    content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--color-text-muted,#6C757D);padding:4rem;"><div class="map-spinner"></div></div>';
+    content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--ink-3);padding:4rem;"><div class="map-spinner"></div></div>';
 
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function(r) { return r.text(); })
       .then(function(html) {
         content.innerHTML = html;
-        // innerHTML no ejecuta <script> — reemplazar cada tag manualmente
         content.querySelectorAll('script').forEach(function(old) {
           var s = document.createElement('script');
           s.textContent = old.textContent;
@@ -365,26 +446,22 @@
       });
   }
 
-  // ── Close Drawer ─────────────────────────────────────────────────────
   function pfCloseDrawer() {
     var backdrop = document.getElementById('pf-backdrop');
     var drawer   = document.getElementById('pf-drawer');
     if (backdrop) backdrop.classList.remove('is-open');
     if (drawer)   drawer.classList.remove('is-open');
-
-    // Limpiar URL: quitar el path de la parcela, volver al Portfolio
     window.history.pushState({}, '', PF_BASE_PATH);
   }
 
-  // ESC para cerrar — función nombrada para poder removerla en cleanup
-  function pfEscHandler(e) { if (e.key === 'Escape') pfCloseDrawer(); }
+  // ESC y popstate
+  function pfEscHandler(e) { if (e.key === 'Escape') { pfCloseDrawer(); plCloseModal(); } }
   function pfPopHandler()  { if (window.location.pathname === PF_BASE_PATH) pfCloseDrawer(); }
 
   document.addEventListener('keydown', pfEscHandler);
   window.addEventListener('popstate', pfPopHandler);
 
-  // Turbo lifecycle: limpiar antes de cachear la página
-  // Evita que el drawer quede en estado 'is-open' en la snapshot de Turbo
+  // Turbo lifecycle cleanup
   document.addEventListener('turbo:before-cache', function() {
     var backdrop = document.getElementById('pf-backdrop');
     var drawer   = document.getElementById('pf-drawer');

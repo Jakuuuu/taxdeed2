@@ -40,15 +40,18 @@
       <i data-lucide="filter-x" style="width:12px;height:12px;"></i> Reset
     </a>
 
-    <%# View toggle buttons %>
+    <%# View toggle buttons (compatible with Atlas + legacy) %>
     <div class="r1-view-btn-group">
-      <button class="r1-view-btn active" id="btn-map" onclick="r1SwitchView('map')" title="Map View">
+      <button class="r1-view-btn a-view-btn active" data-view="map" id="btn-map"
+              onclick="typeof atlasSwitchView==='function'?atlasSwitchView('map'):r1SwitchView('map')" title="Map View">
         <i data-lucide="map" style="width:14px;height:14px;"></i>
       </button>
-      <button class="r1-view-btn" id="btn-calendar" onclick="r1SwitchView('calendar')" title="Calendar">
+      <button class="r1-view-btn a-view-btn" data-view="calendar" id="btn-calendar"
+              onclick="typeof atlasSwitchView==='function'?atlasSwitchView('calendar'):r1SwitchView('calendar')" title="Calendar">
         <i data-lucide="calendar" style="width:14px;height:14px;"></i>
       </button>
-      <button class="r1-view-btn" id="btn-list" onclick="r1SwitchView('list')" title="List View">
+      <button class="r1-view-btn a-view-btn" data-view="list" id="btn-list"
+              onclick="typeof atlasSwitchView==='function'?atlasSwitchView('list'):r1SwitchView('list')" title="List View">
         <i data-lucide="list" style="width:14px;height:14px;"></i>
       </button>
     </div>

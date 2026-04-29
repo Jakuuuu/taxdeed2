@@ -17,6 +17,10 @@ class User < ApplicationRecord
   has_many :parcel_user_tags,   dependent: :destroy
   has_many :parcel_user_notes,  dependent: :destroy
 
+  # ── Pipeline CRM (Rama 5) ──────────────────────────────────────────
+  has_many :pipeline_stages,     dependent: :destroy
+  has_many :pipeline_properties, dependent: :destroy
+
   # ── Unlock / Viewed History ─────────────────────────────────────────
   has_many :viewed_parcels,     dependent: :destroy
 

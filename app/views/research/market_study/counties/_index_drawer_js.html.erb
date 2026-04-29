@@ -19,7 +19,7 @@ function openCountyDrawer(url) {
   window.history.pushState({ path: url }, '', url);
 
   // Spinner mientras carga
-  content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--color-text-muted);"><div class="map-spinner"></div></div>';
+  content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--ink-3);"><div class="map-spinner"></div></div>';
 
   fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
     .then(function(r) { return r.text(); })
@@ -38,7 +38,7 @@ function openCountyDrawer(url) {
       });
     })
     .catch(function(err) {
-      content.innerHTML = '<div style="padding:2rem;color:#E53E3E;text-align:center;">Failed to load county details. <br><button onclick="closeCountyDrawer()" style="margin-top:1rem;padding:0.5rem 1rem;border:1.5px solid #E2E8F0;border-radius:8px;background:#fff;cursor:pointer;">Close</button></div>';
+      content.innerHTML = '<div style="padding:2rem;color:var(--danger);text-align:center;">Failed to load county details. <br><button onclick="closeCountyDrawer()" style="margin-top:1rem;padding:0.5rem 1rem;border:1.5px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;">Close</button></div>';
     });
 }
 

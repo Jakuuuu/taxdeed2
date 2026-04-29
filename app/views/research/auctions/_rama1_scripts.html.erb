@@ -546,9 +546,15 @@ function r1Init() {
 
 // Ensure init runs on both fresh load and Turbo render
 r1Init();
-// If Turbo is used, state is cleared so we need to allow re-init on next visit
-document.addEventListener('turbo:render', function() {
+
+// Store handler on window so removeEventListener works across script re-executions
+if (window._r1TurboRender) {
+  document.removeEventListener('turbo:render', window._r1TurboRender);
+}
+window._r1TurboRender = function() {
   window.r1Initialized = false;
   r1Init();
-});
+};
+document.addEventListener('turbo:render', window._r1TurboRender);
 </script>
+
