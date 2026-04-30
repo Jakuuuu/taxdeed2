@@ -24,6 +24,10 @@ class User < ApplicationRecord
   # ── Unlock / Viewed History ─────────────────────────────────────────
   has_many :viewed_parcels,     dependent: :destroy
 
+  # ── Auction notifications (Rama 5 + Mini CRM) ───────────────────────
+  has_many :parcel_watches, dependent: :destroy
+  has_many :notifications,  dependent: :destroy
+
   # ── Audit trail (as target) ─────────────────────────────────────────
   has_many :admin_audit_logs, foreign_key: :target_user_id, dependent: :destroy
 

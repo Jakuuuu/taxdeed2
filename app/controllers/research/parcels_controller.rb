@@ -89,6 +89,7 @@ module Research
       @notes       = current_user.parcel_user_notes
                                  .where(parcel_id: @parcel.id)
                                  .order(created_at: :desc)
+      @watch       = current_user.parcel_watches.find_by(parcel_id: @parcel.id)
 
       # ── County Market Stat lookup (for "Conocer más sobre el condado" CTA) ─
       @county_market_stat = CountyMarketStat.find_by(

@@ -9,6 +9,7 @@ class Parcel < ApplicationRecord
   # ── Mini CRM (Rama 2 escribe, Rama 3 solo lee) ────────────────────
   has_many :parcel_user_tags,  dependent: :destroy
   has_many :parcel_user_notes, dependent: :destroy
+  has_many :parcel_watches,    dependent: :destroy
 
   # ── Identidad compuesta (blindaje: UNIQUE INDEX + NOT NULL + validación AR)
   # Alineado con idx_parcels_unique_state_county_pid en PostgreSQL.

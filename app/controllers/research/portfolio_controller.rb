@@ -38,6 +38,14 @@ module Research
       @kpi_total_bids = all_props.sum { |pp| pp.parcel.opening_bid.to_f }
       ready_stage = @stages.find { |s| s.crm_tag_map == "ready" }
       @kpi_ready = ready_stage ? ready_stage.pipeline_properties.size : 0
+
+      # Próximas subastas — parcelas con ParcelWatch activo y sale_date futura
+      @upcoming_watches = current_user.parcel_watches
+                                      .joins(parcel: :auction)
+                                      .where("auctions.sale_date >= ?", Date.current)
+                                      .includes(parcel: :auction)
+                                      .order("auctions.sale_date ASC")
+                                      .limit(20)
     end
   end
 end

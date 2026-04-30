@@ -451,6 +451,135 @@
     font-size: 0.7rem; color: var(--ink-3); font-weight: 600;
   }
 
+  /* ══════════════════════════════════════════════════════════
+     BULK ACTION BAR — sticky bottom when checkboxes selected
+     ══════════════════════════════════════════════════════════ */
+  .r2-bulk-bar {
+    display: none;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    background: oklch(1 0 0 / 0.88);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    border-top: 1.5px solid var(--border);
+    padding: 10px 20px;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 -4px 20px oklch(0 0 0 / 0.08);
+    animation: r2BulkSlideUp 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .r2-bulk-bar.is-visible { display: flex; }
+  .r2-bulk-bar__count {
+    font-weight: 700; font-size: 0.82rem; color: var(--ink-2);
+    margin-right: auto;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .r2-bulk-bar__count-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; padding: 0 6px;
+    border-radius: 12px;
+    background: var(--accent); color: #fff;
+    font-size: 0.72rem; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .r2-bulk-bar__btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.42rem 0.9rem;
+    border-radius: 8px; border: 1.5px solid var(--border);
+    background: #fff; color: var(--ink-1);
+    font-size: 0.78rem; font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .r2-bulk-bar__btn:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: oklch(0.96 0.03 280);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .r2-bulk-bar__btn:active { transform: translateY(0); }
+  .r2-bulk-bar__btn--cancel {
+    border-color: transparent; background: transparent;
+    color: var(--ink-3); font-weight: 500;
+  }
+  .r2-bulk-bar__btn--cancel:hover {
+    background: oklch(0.94 0 0); color: var(--ink-1);
+    border-color: transparent;
+  }
+  .r2-bulk-bar__btn:disabled {
+    opacity: 0.5; cursor: not-allowed;
+    transform: none; box-shadow: none;
+  }
+  @keyframes r2BulkSlideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  /* ── Bulk Tag Dropdown ── */
+  .r2-bulk-tag-wrap { position: relative; display: inline-block; }
+  .r2-bulk-tag-dropdown {
+    display: none;
+    position: absolute; bottom: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px oklch(0 0 0 / 0.12);
+    padding: 6px; min-width: 180px;
+    z-index: 30;
+    animation: r2DropUp 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .r2-bulk-tag-dropdown.is-open { display: block; }
+  .r2-bulk-tag-dropdown__item {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.55rem 0.75rem; border-radius: 7px;
+    border: none; background: transparent; width: 100%;
+    font-size: 0.8rem; font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer; transition: background 0.12s;
+    color: var(--ink-1); text-align: left;
+  }
+  .r2-bulk-tag-dropdown__item:hover {
+    background: oklch(0.96 0.03 280);
+  }
+  .r2-bulk-tag-dropdown__dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  @keyframes r2DropUp {
+    from { transform: translateX(-50%) translateY(8px); opacity: 0; }
+    to   { transform: translateX(-50%) translateY(0);   opacity: 1; }
+  }
+
+  /* ── Toast notification ── */
+  .r2-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 9999;
+    background: var(--ink-1); color: #fff;
+    padding: 0.65rem 1.3rem; border-radius: 10px;
+    font-size: 0.82rem; font-weight: 600;
+    font-family: var(--font-sans);
+    box-shadow: 0 8px 32px oklch(0 0 0 / 0.2);
+    animation: r2ToastIn 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
+  }
+  .r2-toast--out { animation: r2ToastOut 250ms ease forwards; }
+  @keyframes r2ToastIn {
+    from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+    to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+  }
+  @keyframes r2ToastOut {
+    from { transform: translateX(-50%) translateY(0);    opacity: 1; }
+    to   { transform: translateX(-50%) translateY(20px); opacity: 0; }
+  }
+
+  /* ── Checked-row highlight ── */
+  .r2-table tbody tr.r2-row--selected {
+    background: oklch(0.96 0.04 280) !important;
+    border-left: 3px solid var(--accent);
+  }
+
 </style>
 <% end %>
 
@@ -555,6 +684,50 @@
         </div>
         <div id="r2-list-content"></div>
         <div id="r2-list-pagination" class="r2-list-pagination" style="display:none;"></div>
+
+        <%# ── BULK ACTION BAR — appears when 1+ checkboxes are selected ── %>
+        <div id="r2-bulk-bar" class="r2-bulk-bar">
+          <span id="r2-bulk-count" class="r2-bulk-bar__count">
+            <span class="r2-bulk-bar__count-badge" id="r2-bulk-count-num">0</span>
+            <span>propiedades seleccionadas</span>
+          </span>
+
+          <%# ── Bulk Tag (dropdown) ── %>
+          <div class="r2-bulk-tag-wrap" id="r2-bulk-tag-wrap">
+            <button type="button" class="r2-bulk-bar__btn" onclick="toggleBulkTagDropdown()" id="r2-bulk-tag-btn">
+              🏷️ Tag
+            </button>
+            <div class="r2-bulk-tag-dropdown" id="r2-bulk-tag-dropdown">
+              <button type="button" class="r2-bulk-tag-dropdown__item" onclick="executeBulkTag('target')">
+                <span class="r2-bulk-tag-dropdown__dot" style="background:#2E86C1;"></span>
+                🎯 Target
+              </button>
+              <button type="button" class="r2-bulk-tag-dropdown__item" onclick="executeBulkTag('diligence')">
+                <span class="r2-bulk-tag-dropdown__dot" style="background:#E67E22;"></span>
+                🔍 Due Diligence
+              </button>
+              <button type="button" class="r2-bulk-tag-dropdown__item" onclick="executeBulkTag('ready')">
+                <span class="r2-bulk-tag-dropdown__dot" style="background:#27AE60;"></span>
+                ✅ Ready to Bid
+              </button>
+              <button type="button" class="r2-bulk-tag-dropdown__item" onclick="executeBulkTag('dismissed')">
+                <span class="r2-bulk-tag-dropdown__dot" style="background:#6C757D;"></span>
+                ❌ Dismissed
+              </button>
+            </div>
+          </div>
+
+          <%# ── Add to Pipeline ── %>
+          <button type="button" class="r2-bulk-bar__btn" onclick="bulkAddPipeline()" id="r2-bulk-pipeline-btn">
+            📋 Pipeline
+          </button>
+
+          <%# ── Cancel ── %>
+          <button type="button" class="r2-bulk-bar__btn r2-bulk-bar__btn--cancel" onclick="clearSelection()">
+            ✕ Cancelar
+          </button>
+        </div>
+
       </div>
 
     </div><!-- /.r2-split-container -->
@@ -1509,7 +1682,187 @@ function sortColumn(field) {
 
 function toggleSelectAll(master) {
   var checks = document.querySelectorAll('.r2-row-check');
-  checks.forEach(function(cb) { cb.checked = master.checked; });
+  checks.forEach(function(cb) {
+    cb.checked = master.checked;
+    highlightRow(cb);
+  });
+  updateBulkBar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// BULK ACTIONS — Tag + Pipeline operations on selected parcels
+// ══════════════════════════════════════════════════════════════
+
+// Get array of selected parcel IDs from checkboxes
+function getSelectedIds() {
+  var ids = [];
+  document.querySelectorAll('.r2-row-check:checked').forEach(function(cb) {
+    ids.push(cb.value);
+  });
+  return ids;
+}
+
+// Highlight or un-highlight row based on checkbox state
+function highlightRow(cb) {
+  var tr = cb.closest('tr');
+  if (tr) tr.classList.toggle('r2-row--selected', cb.checked);
+}
+
+// Show/hide the bulk action bar based on selection count
+function updateBulkBar() {
+  var ids = getSelectedIds();
+  var bar = document.getElementById('r2-bulk-bar');
+  var countEl = document.getElementById('r2-bulk-count-num');
+  if (!bar) return;
+
+  if (ids.length > 0) {
+    bar.classList.add('is-visible');
+    if (countEl) countEl.textContent = ids.length;
+  } else {
+    bar.classList.remove('is-visible');
+    closeBulkTagDropdown();
+  }
+}
+
+// Clear all selections and hide the bar
+function clearSelection() {
+  var master = document.getElementById('r2-select-all');
+  if (master) master.checked = false;
+  document.querySelectorAll('.r2-row-check').forEach(function(cb) {
+    cb.checked = false;
+    highlightRow(cb);
+  });
+  updateBulkBar();
+}
+
+// ── Event delegation for checkbox changes ──
+document.addEventListener('change', function(e) {
+  if (e.target.classList.contains('r2-row-check')) {
+    highlightRow(e.target);
+    updateBulkBar();
+  }
+});
+
+// ── Bulk Tag Dropdown ──
+function toggleBulkTagDropdown() {
+  var dd = document.getElementById('r2-bulk-tag-dropdown');
+  if (dd) dd.classList.toggle('is-open');
+}
+function closeBulkTagDropdown() {
+  var dd = document.getElementById('r2-bulk-tag-dropdown');
+  if (dd) dd.classList.remove('is-open');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  var wrap = document.getElementById('r2-bulk-tag-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    closeBulkTagDropdown();
+  }
+});
+
+// Execute bulk tag assignment via AJAX
+function executeBulkTag(tag) {
+  var ids = getSelectedIds();
+  if (!ids.length) return;
+
+  closeBulkTagDropdown();
+
+  // Disable buttons while processing
+  setBulkButtonsDisabled(true);
+
+  var tagLabels = {
+    target: '🎯 Target',
+    diligence: '🔍 Due Diligence',
+    ready: '✅ Ready to Bid',
+    dismissed: '❌ Dismissed'
+  };
+
+  fetch('<%= research_parcel_user_tags_path %>/bulk', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({ parcel_ids: ids, tag: tag })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    setBulkButtonsDisabled(false);
+    if (data.success) {
+      showBulkToast(tagLabels[tag] + ' asignado a ' + data.count + ' propiedades');
+      clearSelection();
+    } else {
+      showBulkToast('⚠️ Error al asignar tag', true);
+    }
+  })
+  .catch(function(err) {
+    console.error('Bulk tag failed:', err);
+    setBulkButtonsDisabled(false);
+    showBulkToast('⚠️ Error de conexión', true);
+  });
+}
+
+// Execute bulk add-to-pipeline via AJAX
+function bulkAddPipeline() {
+  var ids = getSelectedIds();
+  if (!ids.length) return;
+
+  setBulkButtonsDisabled(true);
+
+  fetch('<%= research_portfolio_properties_path %>/bulk', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({ parcel_ids: ids })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    setBulkButtonsDisabled(false);
+    if (data.success) {
+      var msg = data.added > 0
+        ? '📋 ' + data.added + ' propiedades agregadas al Pipeline'
+        : '📋 Todas ya estaban en el Pipeline';
+      showBulkToast(msg);
+      clearSelection();
+    } else {
+      showBulkToast('⚠️ Error al agregar al Pipeline', true);
+    }
+  })
+  .catch(function(err) {
+    console.error('Bulk pipeline failed:', err);
+    setBulkButtonsDisabled(false);
+    showBulkToast('⚠️ Error de conexión', true);
+  });
+}
+
+// ── Helpers ──
+function setBulkButtonsDisabled(state) {
+  var bar = document.getElementById('r2-bulk-bar');
+  if (!bar) return;
+  bar.querySelectorAll('.r2-bulk-bar__btn').forEach(function(btn) {
+    btn.disabled = state;
+  });
+}
+
+function showBulkToast(message, isError) {
+  // Remove existing toasts
+  document.querySelectorAll('.r2-toast').forEach(function(t) { t.remove(); });
+
+  var toast = document.createElement('div');
+  toast.className = 'r2-toast';
+  if (isError) toast.style.background = 'var(--danger)';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(function() {
+    toast.classList.add('r2-toast--out');
+    setTimeout(function() { toast.remove(); }, 250);
+  }, 2800);
 }
 
 // Smart page numbers: 1 2 3 ... 10 11 12 ... 56 57

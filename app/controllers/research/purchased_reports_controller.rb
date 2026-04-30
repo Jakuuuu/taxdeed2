@@ -30,6 +30,11 @@ module Research
                                     .page(params[:page]).per(25)
 
       @active_tab = params[:tab] || "reports"
+
+      # Prior Sale Results tab disabled per client decision — redirect if accessed directly
+      if @active_tab == "prior_sales"
+        redirect_to research_purchased_reports_path(tab: "reports") and return
+      end
     end
 
     def create

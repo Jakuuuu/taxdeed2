@@ -18,12 +18,13 @@ module Research
     # - Tab principal ("Tax Sale Auctions") → solo subastas con sale_date >= hoy
     # - Tab "Prior Sale Results" → solo subastas con sale_date < hoy
     def index
-      # ── Base scope: apply time-based filter FIRST, then user filters ────────
+      # Prior Sale Results tab disabled per client decision — redirect if accessed directly
       if params[:sub_tab] == "prior"
-        base_scope = apply_filters(Auction.past_visible)
-      else
-        base_scope = apply_filters(Auction.active_visible)
+        redirect_to research_auctions_path and return
       end
+
+      # ── Base scope: always active auctions (prior tab is redirected above) ──
+      base_scope = apply_filters(Auction.active_visible)
 
       # ── Group auctions by (county, state) → 1 row per county ─────────────
       all_auctions = base_scope.order(sale_date: :asc)
@@ -83,19 +84,14 @@ module Research
       @total_amount        = @auctions_scope.sum(:total_amount)
       @count_unique_dates  = @auctions_scope.where.not(sale_date: nil).distinct.count(:sale_date)
 
-      # ── Map: choropleth uses TIME-FILTERED auctions ─────────────────────────
-      # Main tab: only active_visible; Prior tab: past_visible
-      if params[:sub_tab] == "prior"
-        @choropleth_auctions = apply_filters(Auction.past_visible)
-      else
-        @choropleth_auctions = apply_filters(Auction.active_visible)
-      end
+      # ── Map: choropleth uses active auctions (prior tab disabled) ────────────
+      @choropleth_auctions = apply_filters(Auction.active_visible)
       @map_auctions = @choropleth_auctions
                         .where.not(latitude: nil)
                         .where.not(longitude: nil)
 
-      # ── State dropdown badges — count per state (time-filtered) ─────────────
-      state_scope = params[:sub_tab] == "prior" ? Auction.past_visible : Auction.active_visible
+      # ── State dropdown badges — count per state ─────────────────────────────
+      state_scope = Auction.active_visible
       @states_with_counts = state_scope
                                    .group(:state)
                                    .count

@@ -4,6 +4,35 @@ module Research
   class PipelinePropertiesController < BaseController
     before_action :set_pipeline_property, only: [:move, :update_note, :destroy]
 
+    # POST /research/portfolio/properties/bulk
+    # Adds multiple parcels to the pipeline at once (max 100).
+    def bulk_create
+      ids = Array(params[:parcel_ids]).map(&:to_i).uniq.first(100)
+      return render(json: { success: false, error: "invalid" }, status: :unprocessable_entity) if ids.blank?
+
+      stage = current_user.pipeline_stages.where(is_default: true).order(:position).first
+      unless stage
+        PipelineStage.seed_for!(current_user)
+        stage = current_user.pipeline_stages.where(is_default: true).order(:position).first
+      end
+
+      added = 0
+      skipped = 0
+      Parcel.where(id: ids).find_each do |parcel|
+        pp = current_user.pipeline_properties.find_or_initialize_by(parcel: parcel)
+        if pp.new_record?
+          pp.pipeline_stage = stage
+          pp.position = stage.pipeline_properties.count
+          pp.save!
+          added += 1
+        else
+          skipped += 1
+        end
+      end
+
+      render json: { success: true, added: added, skipped: skipped }
+    end
+
     # POST /research/portfolio/properties
     # Adds a parcel to the pipeline (first default stage = Target).
     def create

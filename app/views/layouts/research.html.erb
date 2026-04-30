@@ -238,6 +238,153 @@
         </a>
       </nav>
       <div class="header-right">
+        <%# ── Notifications bell (auction reminders inbox) ──────────── %>
+        <% if current_user %>
+          <% unread_count = current_user.notifications.unread.count %>
+          <div style="position:relative;" id="notif-bell-wrap">
+            <button type="button"
+                    class="icon-btn"
+                    id="notif-bell-btn"
+                    aria-label="Notifications"
+                    style="border:none; background:none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+              </svg>
+              <span id="notif-bell-badge"
+                    style="<%= 'display:none;' unless unread_count > 0 %>
+                           position:absolute; top:4px; right:4px;
+                           min-width:16px; height:16px; padding:0 4px;
+                           background:var(--danger); color:white;
+                           border-radius:8px; font:600 10px var(--font-mono);
+                           display:flex; align-items:center; justify-content:center;
+                           border:2px solid var(--surface-1);">
+                <%= unread_count > 9 ? "9+" : unread_count %>
+              </span>
+            </button>
+            <div id="notif-bell-panel"
+                 style="display:none; position:absolute; right:0; top:100%; margin-top:6px;
+                        width:340px; max-height:420px; overflow-y:auto;
+                        background:var(--surface-1); border:1px solid var(--border);
+                        border-radius:12px; box-shadow:var(--shadow-lg); z-index:60;">
+              <div style="display:flex; align-items:center; justify-content:space-between;
+                          padding:10px 14px; border-bottom:1px solid var(--border);">
+                <strong style="font:600 13px var(--font-sans); color:var(--ink-1);">Notifications</strong>
+                <button type="button"
+                        id="notif-mark-all"
+                        style="font:500 11px var(--font-sans); color:var(--accent); background:none; border:none; cursor:pointer;">
+                  Mark all read
+                </button>
+              </div>
+              <div id="notif-bell-list" style="padding:4px;">
+                <div style="padding:20px; text-align:center; color:var(--ink-3); font:500 12px var(--font-sans);">
+                  Cargando…
+                </div>
+              </div>
+            </div>
+          </div>
+          <script>
+          (function() {
+            var wrap = document.getElementById('notif-bell-wrap');
+            if (!wrap || wrap.dataset.bound === '1') return;
+            wrap.dataset.bound = '1';
+
+            var btn   = document.getElementById('notif-bell-btn');
+            var panel = document.getElementById('notif-bell-panel');
+            var list  = document.getElementById('notif-bell-list');
+            var badge = document.getElementById('notif-bell-badge');
+            var markAllBtn = document.getElementById('notif-mark-all');
+            var csrf  = document.querySelector('meta[name="csrf-token"]')?.content || '';
+            var loaded = false;
+
+            function fmtAgo(iso) {
+              var d = new Date(iso); var diff = (Date.now() - d.getTime()) / 1000;
+              if (diff < 60) return 'now';
+              if (diff < 3600) return Math.floor(diff/60) + 'm';
+              if (diff < 86400) return Math.floor(diff/3600) + 'h';
+              return Math.floor(diff/86400) + 'd';
+            }
+
+            function render(items) {
+              if (!items.length) {
+                list.innerHTML = '<div style="padding:24px; text-align:center; color:var(--ink-3); font:500 12px var(--font-sans);">No tienes notificaciones</div>';
+                return;
+              }
+              list.innerHTML = items.map(function(n) {
+                var p = n.payload || {};
+                var title = p.title || (n.kind === 'auction_upcoming' ? 'Subasta próxima' : n.kind);
+                var sub   = p.subtitle || '';
+                var bg = n.read ? 'transparent' : 'var(--surface-2)';
+                var href = n.parcel_url || '#';
+                return '<a href="' + href + '" data-id="' + n.id + '" class="notif-item" '
+                  + 'style="display:block; padding:10px 12px; border-radius:8px; text-decoration:none; '
+                  + 'color:var(--ink-1); background:' + bg + '; margin-bottom:2px;">'
+                  + '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">'
+                  +   '<strong style="font:600 12px var(--font-sans);">' + title + '</strong>'
+                  +   '<span style="font:500 10px var(--font-mono); color:var(--ink-3);">' + fmtAgo(n.created_at) + '</span>'
+                  + '</div>'
+                  + (sub ? '<div style="margin-top:4px; font:500 11px var(--font-sans); color:var(--ink-2);">' + sub + '</div>' : '')
+                  + '</a>';
+              }).join('');
+
+              list.querySelectorAll('.notif-item').forEach(function(a) {
+                a.addEventListener('click', function() {
+                  fetch('/research/notifications/' + a.dataset.id + '/read', {
+                    method: 'PATCH',
+                    headers: { 'X-CSRF-Token': csrf, 'X-Requested-With': 'XMLHttpRequest' }
+                  });
+                });
+              });
+            }
+
+            function load() {
+              fetch('/research/notifications.json', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+              })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                  loaded = true;
+                  render(data.items || []);
+                  updateBadge(data.unread_count || 0);
+                });
+            }
+
+            function updateBadge(n) {
+              if (n > 0) {
+                badge.textContent = n > 9 ? '9+' : n;
+                badge.style.display = 'flex';
+              } else {
+                badge.style.display = 'none';
+              }
+            }
+
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              var open = panel.style.display === 'block';
+              panel.style.display = open ? 'none' : 'block';
+              if (!open && !loaded) load();
+            });
+
+            document.addEventListener('click', function(e) {
+              if (!wrap.contains(e.target)) panel.style.display = 'none';
+            });
+
+            markAllBtn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              fetch('/research/notifications/mark_all_read', {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': csrf, 'X-Requested-With': 'XMLHttpRequest' }
+              }).then(function() {
+                updateBadge(0);
+                list.querySelectorAll('.notif-item').forEach(function(a) {
+                  a.style.background = 'transparent';
+                });
+              });
+            });
+          })();
+          </script>
+        <% end %>
+
         <% if current_user&.subscription %>
           <div class="plan-pill"><%= current_user.subscription.plan_name&.upcase %></div>
         <% end %>

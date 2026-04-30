@@ -37,16 +37,12 @@
   <%# ── Tabs Row ── %>
   <div class="tabs-row">
     <div class="tabs">
-      <button class="tab <%= 'tab--active' unless params[:sub_tab] == 'prior' %>" data-atlas-tab="auctions" onclick="atlasTab(this, 'auctions')">
+      <button class="tab tab--active" data-atlas-tab="auctions">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-7 8-13a8 8 0 1 0-16 0c0 6 8 13 8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
         <span>Tax Sale Auctions</span>
       </button>
-      <button class="tab <%= 'tab--active' if params[:sub_tab] == 'prior' %>" data-atlas-tab="prior" onclick="atlasTab(this, 'prior')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 16h18M9 4v16M15 4v16"/></svg>
-        <span>Prior Sale Results</span>
-      </button>
+      <%# Prior Sale Results tab — HIDDEN per client decision (not selling this data for now) %>
     </div>
-    <% unless params[:sub_tab] == 'prior' %>
     <div class="view-controls">
       <div class="view-toggle">
         <button class="view-btn view-btn--active" data-view="map" title="Map view" onclick="atlasView(this, 'map')">
@@ -64,17 +60,14 @@
         <span>Filters</span>
       </button>
     </div>
-    <% end %>
   </div>
 
-  <% if params[:sub_tab] == 'prior' %>
-    <%# ═══════════════════════════════════════
-         PRIOR SALE RESULTS — dedicated table view
-         ═══════════════════════════════════════ %>
+  <%# Prior Sale Results panel — HIDDEN per client decision %>
+  <% if false # Prior Sale Results disabled %>
     <div class="atlas__prior" id="atlasPriorPanel">
       <%= render "research/auctions/list_view" %>
     </div>
-  <% else %>
+  <% end %>
   <%# ═══════════════════════════════════════
        MAP STAGE — fullbleed map with floating glass panels
        ═══════════════════════════════════════ %>
@@ -314,7 +307,6 @@
     <%= render "research/auctions/list_view" %>
   </div>
 
-  <% end %>
 </div>
 
 <%# ── Atlas scripts (map rendering + interactions) ── %>
@@ -323,15 +315,10 @@
 <%= render "research/auctions/rama1_scripts" %>
 
 <script>
-  // Tab switching (Tax Sale Auctions / Prior Sale Results)
+  // Tab switching — Prior Sale Results tab disabled per client decision
   function atlasTab(btn, tab) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
-    btn.classList.add('tab--active');
-    if (tab === 'prior') {
-      window.location.href = '<%= research_auctions_path(sub_tab: "prior") %>';
-    } else {
-      window.location.href = '<%= research_auctions_path %>';
-    }
+    // Prior Sale Results disabled — always stay on auctions
+    window.location.href = '<%= research_auctions_path %>';
   }
 
   // View toggle — Map / Calendar / Table

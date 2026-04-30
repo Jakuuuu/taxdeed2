@@ -7,7 +7,7 @@
 # Si la fila no tiene state, county ni parcel_id, se ignora silenciosamente.
 # Los errores de fila individual son rescatados en SyncSheetJob (no paran el batch).
 #
-# ⛔ CRM IMMUNITY:  NUNCA toca parcel_user_tags ni parcel_user_notes.
+# ⛔ CRM IMMUNITY:  NUNCA toca parcel_user_tags, parcel_user_notes ni parcel_watches.
 # 🪞 ESPEJO:        Celda vacía en Sheet → nil en PostgreSQL (obligatorio).
 # 🛡️ BLINDAJE:     Lookup por clave compuesta (state, county, parcel_id).
 # 🧹 SANITIZACIÓN: Todos los campos pasan por el módulo Sanitize antes de assign_attributes.
@@ -23,6 +23,7 @@ class SheetRowProcessor
   CRM_IMMUNE_COLUMNS = %w[
     parcel_user_tags
     parcel_user_notes
+    parcel_watches
     user_tags
     user_notes
   ].freeze

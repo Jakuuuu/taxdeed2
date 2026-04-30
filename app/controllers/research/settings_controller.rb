@@ -20,6 +20,20 @@ module Research
       end
     end
 
+    # PATCH /research/settings/notifications
+    # Default lead time aplicado a watches NUEVOS (no retroactivo).
+    # Email global queda persistido aunque la entrega real sea Fase 2.
+    def notifications
+      days = params[:default_notify_days_before].to_i
+      days = 7 unless ParcelWatch::ALLOWED_DAYS.include?(days)
+      current_user.update!(
+        default_notify_days_before:  days,
+        email_notifications_enabled: ActiveModel::Type::Boolean.new.cast(params[:email_notifications_enabled])
+      )
+      redirect_to research_settings_path(tab: "notifications"),
+        notice: "Preferencias de notificación guardadas."
+    end
+
     def cancel_subscription
       subscription = current_user.subscription
       if subscription.nil? || subscription.status == "canceled"

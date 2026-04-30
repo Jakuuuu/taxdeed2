@@ -25,6 +25,19 @@ Rails.application.routes.draw do
         get :county_overview    # GET /research/parcels/county_overview.json — Phase 1 county pins
         get :parcels_list       # GET /research/parcels/parcels_list.json — Phase 2 async parcel list
       end
+
+      # Auction reminder toggle (Mini CRM — inmune a paywall, no consume créditos)
+      resource :watch, only: [:create, :update, :destroy], controller: "parcel_watches"
+    end
+
+    # Inbox de notificaciones in-app (header bell + panel desplegable)
+    resources :notifications, only: [:index] do
+      member do
+        patch :read
+      end
+      collection do
+        post :mark_all_read
+      end
     end
 
     # ── Legal Agreements (Gated Disclaimer) ────────────────────────────────
@@ -35,7 +48,11 @@ Rails.application.routes.draw do
     end
 
     # Mini CRM — Rama 2 escribe exclusivamente (nested under parcel context)
-    resources :parcel_user_tags,  only: [:create],                   path: "parcel_user_tags"
+    resources :parcel_user_tags,  only: [:create],                   path: "parcel_user_tags" do
+      collection do
+        post :bulk   # POST /research/parcel_user_tags/bulk
+      end
+    end
     resources :parcel_user_notes, only: [:create, :destroy],         path: "parcel_user_notes"
     resources :auctions,          only: [:index, :show] do
       collection do
@@ -58,6 +75,9 @@ Rails.application.routes.draw do
 
       # Pipeline Properties (add, move, note, remove)
       resources :properties, controller: "pipeline_properties", only: [:create, :destroy] do
+        collection do
+          post :bulk, action: :bulk_create  # POST /research/portfolio/properties/bulk
+        end
         member do
           patch :move         # PATCH /research/portfolio/properties/:id/move
           patch :update_note  # PATCH /research/portfolio/properties/:id/update_note
@@ -67,6 +87,7 @@ Rails.application.routes.draw do
 
     resource  :settings,          only: [:show] do
       patch  :profile
+      patch  :notifications
       delete :subscription, action: :cancel_subscription
     end
   end

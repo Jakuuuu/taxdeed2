@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_28_170000) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_29_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -132,6 +132,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_28_170000) do
     t.index ["user_id"], name: "index_export_logs_on_user_id"
   end
 
+  create_table "notifications", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "notifiable_type", null: false
+    t.bigint "notifiable_id", null: false
+    t.string "kind", null: false
+    t.string "delivery_channel", default: "in_app", null: false
+    t.datetime "read_at"
+    t.jsonb "payload", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["notifiable_type", "notifiable_id"], name: "index_notifications_on_notifiable_type_and_notifiable_id"
+    t.index ["user_id", "read_at"], name: "index_notifications_on_user_id_and_read_at"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
   create_table "parcel_liens", force: :cascade do |t|
     t.bigint "parcel_id", null: false
     t.string "lender_name", limit: 200
@@ -167,6 +182,20 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_28_170000) do
     t.index ["user_id", "parcel_id"], name: "index_parcel_user_tags_on_user_id_and_parcel_id", unique: true
     t.index ["user_id"], name: "idx_put_user_id_rls"
     t.index ["user_id"], name: "index_parcel_user_tags_on_user_id"
+  end
+
+  create_table "parcel_watches", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "parcel_id", null: false
+    t.integer "notify_days_before", default: 7, null: false
+    t.boolean "in_app_enabled", default: true, null: false
+    t.boolean "email_enabled", default: false, null: false
+    t.datetime "last_notified_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["parcel_id"], name: "index_parcel_watches_on_parcel_id"
+    t.index ["user_id", "parcel_id"], name: "index_parcel_watches_on_user_id_and_parcel_id", unique: true
+    t.index ["user_id"], name: "index_parcel_watches_on_user_id"
   end
 
   create_table "parcels", force: :cascade do |t|
@@ -370,6 +399,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_28_170000) do
     t.datetime "updated_at", null: false
     t.datetime "disabled_at"
     t.datetime "premium_disclaimer_accepted_at"
+    t.integer "default_notify_days_before", default: 7, null: false
+    t.boolean "email_notifications_enabled", default: false, null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
@@ -396,11 +427,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_28_170000) do
   add_foreign_key "credit_transactions", "parcels"
   add_foreign_key "credit_transactions", "users"
   add_foreign_key "export_logs", "users"
+  add_foreign_key "notifications", "users"
   add_foreign_key "parcel_liens", "parcels"
   add_foreign_key "parcel_user_notes", "parcels"
   add_foreign_key "parcel_user_notes", "users"
   add_foreign_key "parcel_user_tags", "parcels"
   add_foreign_key "parcel_user_tags", "users"
+  add_foreign_key "parcel_watches", "parcels"
+  add_foreign_key "parcel_watches", "users"
   add_foreign_key "parcels", "auctions"
   add_foreign_key "pipeline_properties", "parcels", on_delete: :cascade
   add_foreign_key "pipeline_properties", "pipeline_stages", on_delete: :cascade

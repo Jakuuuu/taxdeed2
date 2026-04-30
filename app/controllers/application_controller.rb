@@ -4,9 +4,10 @@ class ApplicationController < ActionController::Base
   before_action :authenticate_user!
   before_action :set_rls_user_context
 
-  # Redirige usuarios autenticados al dashboard, no al root
+  # Redirige usuarios autenticados al Atlas Stage (Rama 1 — US Overview),
+  # que es siempre la primera pantalla visible tras el login.
   def after_sign_in_path_for(resource)
-    research_parcels_path
+    research_auctions_path
   end
 
   private

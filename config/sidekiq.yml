@@ -39,3 +39,9 @@
     class: ResetMonthlyUsageJob
     queue: default
     description: "Resetear used_parcels/avm/scope/title_search para suscripciones cuyo current_period_end ya venció"
+
+  upcoming_auction_alerts:
+    cron: "0 11 * * *"  # Diario a las 11:00 UTC = 7:00 AM ET
+    class: UpcomingAuctionAlertsJob
+    queue: default
+    description: "Generar notificaciones in-app para parcelas observadas (ParcelWatch) cuya sale_date entra en la ventana notify_days_before"

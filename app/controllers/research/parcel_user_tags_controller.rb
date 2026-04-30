@@ -4,6 +4,37 @@ module Research
   class ParcelUserTagsController < BaseController
     before_action :require_active_subscription!
 
+    # POST /research/parcel_user_tags/bulk
+    # Assigns the given tag to multiple parcels at once (max 100).
+    def bulk
+      ids = Array(params[:parcel_ids]).map(&:to_i).uniq.first(100)
+      tag = params[:tag]
+
+      return render(json: { success: false, error: "invalid" }, status: :unprocessable_entity) if ids.blank? || tag.blank?
+
+      count = 0
+      Parcel.where(id: ids).find_each do |parcel|
+        existing = current_user.parcel_user_tags.find_by(parcel_id: parcel.id)
+        if existing
+          existing.update!(tag: tag)
+        else
+          current_user.parcel_user_tags.create!(parcel_id: parcel.id, tag: tag)
+        end
+        count += 1
+
+        # ── Bidirectional Sync: bulk tag → Pipeline stage ──
+        stage = current_user.pipeline_stages.find_by(crm_tag_map: tag)
+        if stage
+          pp = PipelineProperty.find_or_initialize_by(user: current_user, parcel: parcel)
+          pp.pipeline_stage = stage
+          pp.position = stage.pipeline_properties.count unless pp.persisted?
+          pp.save!
+        end
+      end
+
+      render json: { success: true, count: count, tag: tag }
+    end
+
     # POST /research/parcel_user_tags?parcel_id=:id&tag=:tag
     # Toggles a tag on a parcel for the current user.
     # If the user already has this tag on the parcel → removes it (toggle off).

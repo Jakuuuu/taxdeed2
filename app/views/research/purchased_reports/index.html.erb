@@ -324,11 +324,7 @@
         <span class="badge-count"><%= @reports.total_count %></span>
       <% end %>
     <% end %>
-    <%= link_to research_purchased_reports_path(tab: "prior_sales"),
-        class: "tab-nav__btn #{'active' if @active_tab == 'prior_sales'}",
-        id: "tab-prior" do %>
-      🏛 Prior Sale Results
-    <% end %>
+    <%# Prior Sale Results tab — HIDDEN per client decision (not selling this data for now) %>
     <%= link_to research_purchased_reports_path(tab: "viewed"),
         class: "tab-nav__btn #{'active' if @active_tab == 'viewed'}",
         id: "tab-viewed" do %>
