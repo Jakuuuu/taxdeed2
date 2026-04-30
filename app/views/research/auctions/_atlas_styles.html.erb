@@ -152,9 +152,9 @@
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 30% 20%, oklch(0.48 0.11 158 / 0.06), transparent 50%),
-    radial-gradient(ellipse at 80% 70%, oklch(0.58 0.10 170 / 0.05), transparent 55%),
-    var(--surface-0);
+    radial-gradient(ellipse at 30% 20%, oklch(0.28 0.06 158 / 0.15), transparent 50%),
+    radial-gradient(ellipse at 80% 70%, oklch(0.32 0.05 170 / 0.10), transparent 55%),
+    oklch(0.18 0.01 158);
 }
 
 .atlas__map-bg {
@@ -169,11 +169,11 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    linear-gradient(oklch(1 0 0 / 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(1 0 0 / 0.08) 1px, transparent 1px);
   background-size: 56px 56px;
   background-position: 0 0;
-  opacity: 0.35;
+  opacity: 0.5;
   mask-image: radial-gradient(ellipse 70% 60% at center, black 40%, transparent 90%);
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at center, black 40%, transparent 90%);
 }
@@ -190,7 +190,7 @@
   position: absolute;
   top: 110px; right: 80px;
   width: 56px; height: 56px;
-  color: var(--ink-3);
+  color: oklch(0.75 0.01 158);
   opacity: 0.6;
 }
 .atlas__compass svg { width: 100%; height: 100%; }
@@ -209,7 +209,7 @@
   bottom: 160px; right: 80px;
   font-family: var(--font-mono);
   font-size: 10.5px;
-  color: var(--ink-3);
+  color: oklch(0.65 0.01 158);
   letter-spacing: 0.06em;
   opacity: 0.7;
 }
@@ -410,8 +410,8 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
-  background: var(--border);
-  border-top: 1px solid var(--border);
+  background: oklch(0.30 0.01 158);
+  border-top: 1px solid oklch(0.35 0.01 158);
   z-index: 5;
 }
 .atlas__kpis .kpi-tile {
