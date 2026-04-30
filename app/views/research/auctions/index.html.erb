@@ -190,10 +190,10 @@
             # heat color based on parcel_count
             heat_fill = case props_count
                         when 0 then "var(--surface-2)"
-                        when 1..5 then "oklch(0.92 0.04 280)"
-                        when 6..20 then "oklch(0.82 0.10 280)"
-                        when 21..50 then "oklch(0.65 0.16 280)"
-                        else "oklch(0.48 0.20 280)"
+                        when 1..5 then "oklch(0.92 0.04 155)"
+                        when 6..20 then "oklch(0.82 0.10 155)"
+                        when 21..50 then "oklch(0.65 0.16 155)"
+                        else "oklch(0.48 0.20 155)"
                         end
           %>
           <a href="<%= research_parcels_path(county: county[:county], state: county[:state]) %>"
@@ -224,10 +224,10 @@
       <div class="heat-legend">
         <span class="heat-legend__title">Properties up for bid</span>
         <span class="heat-legend__item"><i style="background: var(--surface-2)"></i>0</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.92 0.04 280)"></i>1–5</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.82 0.10 280)"></i>6–20</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.65 0.16 280)"></i>21–50</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.48 0.20 280)"></i>51+</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.92 0.04 155)"></i>1–5</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.82 0.10 155)"></i>6–20</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.65 0.16 155)"></i>21–50</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.48 0.20 155)"></i>51+</span>
       </div>
     </div>
 
