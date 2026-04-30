@@ -449,7 +449,7 @@ body.admin-layout {
 .badge-ordered   { background: #DBEAFE; color: #1E40AF; }
 .badge-generated { background: #D1FAE5; color: #065F46; }
 .badge-failed    { background: #FEE2E2; color: #991B1B; }
-.badge-running   { background: #EDE9FE; color: #5B21B6; }
+.badge-running   { background: #E8F0EB; color: #3D6B52; }
 .badge-success   { background: #D1FAE5; color: #065F46; }
 .badge-pending   { background: #FEF3C7; color: #92400E; }
 

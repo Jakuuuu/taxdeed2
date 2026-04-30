@@ -1195,7 +1195,7 @@ a:hover { color: var(--color-gold); }
   letter-spacing: 0.03em;
 }
 .report-type-avm            { background: #DBEAFE; color: #1E40AF; }
-.report-type-property_scope { background: #F3E8FF; color: #6D28D9; }
+.report-type-property_scope { background: #E8F0EB; color: #3D6B52; }
 .report-type-title_search   { background: #FEF3C7; color: #92400E; }
 
 /* ── REPORT STATUS BADGES ────────────────────────────────────── */
@@ -1252,7 +1252,7 @@ a:hover { color: var(--color-gold); }
 .badge-canceled  { background: #FEE2E2; color: #991B1B; }
 .badge-inactive  { background: #F3F4F6; color: #6C757D; }
 .badge-past_due  { background: #FEF3C7; color: #92400E; }
-.badge-trial     { background: #EDE9FE; color: #5B21B6; }
+.badge-trial     { background: #E8F0EB; color: #3D6B52; }
 
 /* ═══════════════════════════════════════════════════════════════
    REPORTS MODULE
@@ -1277,7 +1277,7 @@ a:hover { color: var(--color-gold); }
   text-transform: uppercase;
 }
 .report-type-avm            { background: #EBF5FB; color: #1A5276; }
-.report-type-property_scope { background: #EDE9FE; color: #5B21B6; }
+.report-type-property_scope { background: #E8F0EB; color: #3D6B52; }
 .report-type-title_search   { background: #FEF3C7; color: #92400E; }
 
 /* ── Prior Sale Badges ───────────────────────────────────────── */
@@ -1340,7 +1340,7 @@ a:hover { color: var(--color-gold); }
   transition: width 0.4s ease;
 }
 .credit-fill--avm   { background: #1A5276; }
-.credit-fill--scope { background: #5B21B6; }
+.credit-fill--scope { background: #3D6B52; }
 .credit-fill--title { background: #92400E; }
 .credit-count {
   font-size: 0.75rem;
@@ -1772,11 +1772,17 @@ a:hover { color: var(--color-gold); }
 .r1-legend-item { display: flex; align-items: center; gap: 5px; }
 .r1-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
 
-.r1-map-svg-wrap { display: flex; justify-content: center; }
+.r1-map-svg-wrap {
+  display: flex;
+  justify-content: center;
+  background: #1B2A3D;
+  border-radius: 6px;
+  padding: 16px 8px;
+}
 
 /* SVG state paths */
 .r1-state-path {
-  stroke: #fff;
+  stroke: #2C3E54;
   stroke-width: 1;
   cursor: pointer;
   transition: fill 0.2s ease, filter 0.2s ease;
@@ -2092,7 +2098,7 @@ a:hover { color: var(--color-gold); }
 .r1-badge-deed { background: #D1FAE5; color: #15803D; }
 .r1-badge-online { background: #DBEAFE; color: #1E40AF; }
 .r1-badge-inperson { background: #FEF3C7; color: #92400E; }
-.r1-badge-hybrid { background: #EDE9FE; color: #5B21B6; }
+.r1-badge-hybrid { background: #E8F0EB; color: #3D6B52; }
 
 .r1-parcels-count {
   font-family: var(--r1-font-numeric);

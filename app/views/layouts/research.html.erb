@@ -224,10 +224,6 @@
            class="nav-item <%= 'nav-item--active' if controller_name == 'parcels' %>">
           Search
         </a>
-        <a href="<%= research_purchased_reports_path %>"
-           class="nav-item <%= 'nav-item--active' if controller_name == 'purchased_reports' %>">
-          Reports
-        </a>
         <a href="<%= research_market_study_counties_path %>"
            class="nav-item <%= 'nav-item--active' if controller_path.include?('market_study') %>">
           Market Study
@@ -235,6 +231,10 @@
         <a href="<%= research_portfolio_path %>"
            class="nav-item <%= 'nav-item--active' if controller_name == 'portfolio' %>">
           My Pipeline
+        </a>
+        <a href="<%= research_purchased_reports_path %>"
+           class="nav-item <%= 'nav-item--active' if controller_name == 'purchased_reports' %>">
+          Reports
         </a>
       </nav>
       <div class="header-right">
