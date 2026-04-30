@@ -17,7 +17,7 @@
   flex: 1;
   overflow: auto;
   background:
-    radial-gradient(ellipse at 20% 10%, oklch(0.55 0.18 155 / 0.04), transparent 50%),
+    radial-gradient(ellipse at 20% 10%, oklch(0.48 0.11 158 / 0.04), transparent 50%),
     var(--surface-0);
   animation: atlasFadeUp 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -26,14 +26,14 @@
   background: oklch(1 0 0 / 0.7);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid oklch(0.91 0.01 155 / 0.6);
+  border: 1px solid oklch(0.91 0.008 158 / 0.6);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 .atlas__prior .r1-table-toolbar {
   padding: 14px 22px;
-  background: oklch(0.97 0.005 155 / 0.6);
+  background: oklch(0.97 0.004 158 / 0.6);
   border-bottom: 1px solid var(--border);
   font-family: var(--font-sans);
   font-size: 13px;
@@ -49,7 +49,7 @@
   font-size: 13.5px;
 }
 .atlas__prior #r1-auction-table thead {
-  background: oklch(0.96 0.01 155 / 0.5);
+  background: oklch(0.97 0.008 158 / 0.5);
   border-bottom: 1px solid var(--border);
 }
 .atlas__prior #r1-auction-table thead th {
@@ -73,11 +73,11 @@
 }
 .atlas__prior #r1-auction-table thead th .r1-th-inner:hover { color: var(--accent); }
 .atlas__prior #r1-auction-table tbody tr {
-  border-bottom: 1px solid oklch(0.93 0.005 155 / 0.5);
+  border-bottom: 1px solid oklch(0.93 0.004 158 / 0.5);
   transition: background 160ms ease;
 }
 .atlas__prior #r1-auction-table tbody tr:hover {
-  background: oklch(0.55 0.18 155 / 0.04);
+  background: oklch(0.48 0.11 158 / 0.04);
 }
 .atlas__prior #r1-auction-table tbody td {
   padding: 12px 16px;
@@ -90,7 +90,7 @@
 .atlas__prior .r1-td-state { color: var(--ink-2) !important; }
 .atlas__prior .r1-td-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
 .atlas__prior .r1-badge-deed {
-  background: oklch(0.55 0.18 155 / 0.1);
+  background: oklch(0.48 0.11 158 / 0.1);
   color: var(--accent);
 }
 /* Buy now button — Atlas */
@@ -117,7 +117,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 22px;
-  background: oklch(0.97 0.005 155 / 0.6);
+  background: oklch(0.97 0.004 158 / 0.6);
   border-top: 1px solid var(--border);
   font-family: var(--font-sans);
   font-size: 12.5px;
@@ -139,7 +139,7 @@
   text-decoration: none;
   transition: all 160ms ease;
 }
-.atlas__prior .r1-page-btn:hover { background: oklch(0.55 0.18 155 / 0.08); color: var(--accent); }
+.atlas__prior .r1-page-btn:hover { background: oklch(0.48 0.11 158 / 0.08); color: var(--accent); }
 .atlas__prior .r1-page-btn.active {
   background: var(--accent);
   color: #fff;
@@ -152,8 +152,8 @@
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 30% 20%, oklch(0.55 0.18 155 / 0.06), transparent 50%),
-    radial-gradient(ellipse at 80% 70%, oklch(0.65 0.16 175 / 0.05), transparent 55%),
+    radial-gradient(ellipse at 30% 20%, oklch(0.48 0.11 158 / 0.06), transparent 50%),
+    radial-gradient(ellipse at 80% 70%, oklch(0.58 0.10 170 / 0.05), transparent 55%),
     var(--surface-0);
 }
 
@@ -225,7 +225,7 @@
   background: oklch(1 0 0 / 0.8);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid oklch(0.91 0.01 155 / 0.6);
+  border: 1px solid oklch(0.91 0.008 158 / 0.6);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   overflow: hidden;
@@ -241,15 +241,15 @@
   transition: background 150ms ease, color 150ms ease;
 }
 .atlas__zoom-btn:hover {
-  background: oklch(0.94 0.02 155 / 0.6);
+  background: oklch(0.95 0.015 158 / 0.6);
   color: var(--accent-strong);
 }
 .atlas__zoom-btn:active {
-  background: oklch(0.88 0.04 155 / 0.5);
+  background: oklch(0.90 0.03 158 / 0.5);
 }
 .atlas__zoom-btn svg { width: 16px; height: 16px; }
 .atlas__zoom-btn + .atlas__zoom-btn {
-  border-top: 1px solid oklch(0.91 0.01 155 / 0.4);
+  border-top: 1px solid oklch(0.91 0.008 158 / 0.4);
 }
 
 /* Floating panels — glass */
@@ -269,7 +269,7 @@
   background: oklch(1 0 0 / 0.85);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid oklch(0.91 0.01 155 / 0.7);
+  border: 1px solid oklch(0.91 0.008 158 / 0.7);
   border-radius: 999px;
   box-shadow: var(--shadow-md);
   width: fit-content;
@@ -311,7 +311,7 @@
   background: oklch(1 0 0 / 0.7);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid oklch(0.91 0.01 155 / 0.6);
+  border: 1px solid oklch(0.91 0.008 158 / 0.6);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   max-width: 320px;
@@ -358,7 +358,7 @@
   background: oklch(1 0 0 / 0.7);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid oklch(0.91 0.01 155 / 0.6);
+  border: 1px solid oklch(0.91 0.008 158 / 0.6);
   border-radius: var(--radius-lg);
   padding: 12px;
   box-shadow: var(--shadow-md);
@@ -375,7 +375,7 @@
   background: oklch(1 0 0 / 0.7);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid oklch(0.91 0.01 155 / 0.6);
+  border: 1px solid oklch(0.91 0.008 158 / 0.6);
   border-radius: var(--radius-lg);
   padding: 8px;
   box-shadow: var(--shadow-md);

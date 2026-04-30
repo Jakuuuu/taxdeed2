@@ -1195,7 +1195,7 @@ a:hover { color: var(--color-gold); }
   letter-spacing: 0.03em;
 }
 .report-type-avm            { background: #DBEAFE; color: #1E40AF; }
-.report-type-property_scope { background: #E8F0EB; color: #3D6B52; }
+.report-type-property_scope { background: #EDF1EE; color: #3B5C4F; }
 .report-type-title_search   { background: #FEF3C7; color: #92400E; }
 
 /* ── REPORT STATUS BADGES ────────────────────────────────────── */
@@ -1252,7 +1252,7 @@ a:hover { color: var(--color-gold); }
 .badge-canceled  { background: #FEE2E2; color: #991B1B; }
 .badge-inactive  { background: #F3F4F6; color: #6C757D; }
 .badge-past_due  { background: #FEF3C7; color: #92400E; }
-.badge-trial     { background: #E8F0EB; color: #3D6B52; }
+.badge-trial     { background: #EDF1EE; color: #3B5C4F; }
 
 /* ═══════════════════════════════════════════════════════════════
    REPORTS MODULE
@@ -1277,7 +1277,7 @@ a:hover { color: var(--color-gold); }
   text-transform: uppercase;
 }
 .report-type-avm            { background: #EBF5FB; color: #1A5276; }
-.report-type-property_scope { background: #E8F0EB; color: #3D6B52; }
+.report-type-property_scope { background: #EDF1EE; color: #3B5C4F; }
 .report-type-title_search   { background: #FEF3C7; color: #92400E; }
 
 /* ── Prior Sale Badges ───────────────────────────────────────── */
@@ -1340,7 +1340,7 @@ a:hover { color: var(--color-gold); }
   transition: width 0.4s ease;
 }
 .credit-fill--avm   { background: #1A5276; }
-.credit-fill--scope { background: #3D6B52; }
+.credit-fill--scope { background: #3B5C4F; }
 .credit-fill--title { background: #92400E; }
 .credit-count {
   font-size: 0.75rem;
@@ -2098,7 +2098,7 @@ a:hover { color: var(--color-gold); }
 .r1-badge-deed { background: #D1FAE5; color: #15803D; }
 .r1-badge-online { background: #DBEAFE; color: #1E40AF; }
 .r1-badge-inperson { background: #FEF3C7; color: #92400E; }
-.r1-badge-hybrid { background: #E8F0EB; color: #3D6B52; }
+.r1-badge-hybrid { background: #EDF1EE; color: #3B5C4F; }
 
 .r1-parcels-count {
   font-family: var(--r1-font-numeric);

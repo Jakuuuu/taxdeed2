@@ -13,7 +13,7 @@
 }
 .pipeline__toolbar-title {
   font-size: 20px; font-weight: 700;
-  background: linear-gradient(135deg, var(--accent), oklch(0.65 0.16 175));
+  background: linear-gradient(135deg, var(--accent), oklch(0.58 0.10 170));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   margin-right: auto;
 }
@@ -25,7 +25,7 @@
 }
 .pipeline__search:focus {
   outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 4px oklch(0.55 0.18 155 / 0.10);
+  box-shadow: 0 0 0 4px oklch(0.48 0.11 158 / 0.10);
 }
 
 /* ── KPI Strip ── */
@@ -85,7 +85,7 @@
 .pipeline__column-name[contenteditable]:focus {
   outline: none; background: var(--surface-1);
   border-radius: 6px; padding: 2px 6px;
-  box-shadow: 0 0 0 4px oklch(0.55 0.18 155 / 0.10);
+  box-shadow: 0 0 0 4px oklch(0.48 0.11 158 / 0.10);
 }
 .count-pill {
   background: var(--ink-1); color: #fff; font: 600 11px var(--font-mono);
@@ -157,7 +157,7 @@
 /* Card Note */
 .pipeline__card-note {
   margin-top: 12px; padding: 8px 12px;
-  background: oklch(0.97 0.02 155 / 0.6); border-radius: 6px;
+  background: oklch(0.97 0.015 158 / 0.6); border-radius: 6px;
   border-left: 3px solid var(--accent-soft);
 }
 .pipeline__card-note p {
@@ -174,7 +174,7 @@
 }
 .pipeline__card-note textarea:focus {
   outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 4px oklch(0.55 0.18 155 / 0.10);
+  box-shadow: 0 0 0 4px oklch(0.48 0.11 158 / 0.10);
 }
 .pipeline__card-note--editing p { display: none; }
 .pipeline__card-note--editing textarea { display: block; }
@@ -234,7 +234,7 @@
 
 /* ── Add Stage Modal ── */
 .pl-modal-backdrop {
-  position: fixed; inset: 0; background: oklch(0.18 0.02 155 / 0.4);
+  position: fixed; inset: 0; background: oklch(0.18 0.015 158 / 0.4);
   backdrop-filter: blur(8px); z-index: 200;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none; transition: opacity 200ms;
@@ -259,7 +259,7 @@
 }
 .pl-modal input:focus {
   outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 4px oklch(0.55 0.18 155 / 0.10);
+  box-shadow: 0 0 0 4px oklch(0.48 0.11 158 / 0.10);
 }
 .pl-modal__actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
 
@@ -296,7 +296,7 @@
 /* ── Drawer (identical to Rama 2 pattern) ── */
 .pf-backdrop {
   position: fixed; inset: 0;
-  background: oklch(0.18 0.02 155 / 0.45);
+  background: oklch(0.18 0.015 158 / 0.45);
   backdrop-filter: blur(4px);
   opacity: 0; pointer-events: none;
   transition: opacity 0.3s; z-index: 900;
