@@ -37,11 +37,11 @@ url:"<%= research_parcels_path(county: cr[:county], state: cr[:state]) %>"};
 <% end %>
 
 function hc(n){
- if(n===0)return{f:"var(--surface-2)",s:"var(--border)"};
- if(n<=5)return{f:"oklch(0.92 0.04 155)",s:"oklch(0.78 0.08 155)"};
- if(n<=20)return{f:"oklch(0.82 0.10 155)",s:"oklch(0.65 0.14 155)"};
- if(n<=50)return{f:"oklch(0.65 0.16 155)",s:"oklch(0.44 0.11 158)"};
- return{f:"oklch(0.42 0.12 158)",s:"oklch(0.35 0.22 155)"};
+ if(n===0)return{f:"oklch(0.93 0.03 158)",s:"oklch(0.85 0.04 158)"};
+ if(n<=5)return{f:"oklch(0.84 0.08 155)",s:"oklch(0.72 0.10 155)"};
+ if(n<=20)return{f:"oklch(0.70 0.14 155)",s:"oklch(0.58 0.16 155)"};
+ if(n<=50)return{f:"oklch(0.52 0.17 155)",s:"oklch(0.42 0.14 158)"};
+ return{f:"oklch(0.36 0.14 158)",s:"oklch(0.28 0.12 155)"};
 }
 
 // ═══════════════════════════════════════

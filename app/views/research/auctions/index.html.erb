@@ -189,11 +189,11 @@
             urgent = diff_days_c <= 2
             # heat color based on parcel_count
             heat_fill = case props_count
-                        when 0 then "var(--surface-2)"
-                        when 1..5 then "oklch(0.92 0.04 155)"
-                        when 6..20 then "oklch(0.82 0.10 155)"
-                        when 21..50 then "oklch(0.65 0.16 155)"
-                        else "oklch(0.42 0.12 158)"
+                        when 0 then "oklch(0.93 0.03 158)"
+                        when 1..5 then "oklch(0.84 0.08 155)"
+                        when 6..20 then "oklch(0.70 0.14 155)"
+                        when 21..50 then "oklch(0.52 0.17 155)"
+                        else "oklch(0.36 0.14 158)"
                         end
           %>
           <a href="<%= research_parcels_path(county: county[:county], state: county[:state]) %>"
@@ -223,11 +223,11 @@
     <div class="atlas__legend">
       <div class="heat-legend">
         <span class="heat-legend__title">Properties up for bid</span>
-        <span class="heat-legend__item"><i style="background: var(--surface-2)"></i>0</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.92 0.04 155)"></i>1–5</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.82 0.10 155)"></i>6–20</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.65 0.16 155)"></i>21–50</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.42 0.12 158)"></i>51+</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.93 0.03 158)"></i>0</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.84 0.08 155)"></i>1–5</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.70 0.14 155)"></i>6–20</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.52 0.17 155)"></i>21–50</span>
+        <span class="heat-legend__item"><i style="background: oklch(0.36 0.14 158)"></i>51+</span>
       </div>
     </div>
 
