@@ -1,15 +1,19 @@
 # seeds.rb — TaxDeed Lion
 # Idempotent: uses find_or_create_by! on stable unique keys.
+#
+# Cobertura GIS: los 6 condados sembrados aqui DEBEN existir en
+# Api::LocalGisController::COUNTY_GIS_REGISTRY para que la Ficha de Propiedad
+# muestre el poligono. Si agregas un condado nuevo, registralo tambien alli.
 
 puts "=== Seeding Auctions (Tax Deed) ==="
 
 today = Date.today
 
 auctions_data = [
-  # ── Florida — Hillsborough ────────────────────────────────────────
+  # ── Florida — Palm Beach ──────────────────────────────────────────
   {
     state:                 "FL",
-    county:                "Hillsborough",
+    county:                "Palm Beach",
     auction_type:          "tax_deed",
     status:                "upcoming",
     sale_date:             today + 18,
@@ -17,18 +21,18 @@ auctions_data = [
     registration_opens:    today - 14,
     registration_deadline: today + 10,
     bidding_start:         today + 17,
-    latitude:              27.9477,
-    longitude:             -82.4584,
-    bidding_url:           "https://hillsborough.realforeclose.com",
-    source_url:            "https://www.hillsclerk.com/tax-deeds",
+    latitude:              26.7153,
+    longitude:             -80.0534,
+    bidding_url:           "https://palmbeach.realtaxdeed.com",
+    source_url:            "https://www.mypalmbeachclerk.com/tax-deeds",
     parcel_count:          132,
     total_amount:          2_850_000.00,
-    notes:                 "Online bidding via RealForeclose. Deposits required 5 days before sale."
+    notes:                 "Online bidding via RealTaxDeed. Deposits required 5 days before sale."
   },
-  # ── Florida — Orange ──────────────────────────────────────────────
+  # ── Florida — Brevard ─────────────────────────────────────────────
   {
     state:                 "FL",
-    county:                "Orange",
+    county:                "Brevard",
     auction_type:          "tax_deed",
     status:                "active",
     sale_date:             today + 3,
@@ -36,18 +40,18 @@ auctions_data = [
     registration_opens:    today - 20,
     registration_deadline: today - 2,
     bidding_start:         today + 2,
-    latitude:              28.5383,
-    longitude:             -81.3792,
-    bidding_url:           "https://orange.realforeclose.com",
-    source_url:            "https://www.orangeclerk.com/tax-deeds",
+    latitude:              28.0836,
+    longitude:             -80.6081,
+    bidding_url:           "https://brevard.realtaxdeed.com",
+    source_url:            "https://www.brevardclerk.us/tax-deeds",
     parcel_count:          87,
     total_amount:          1_940_500.00,
     notes:                 nil
   },
-  # ── Florida — Miami-Dade ──────────────────────────────────────────
+  # ── Florida — Hillsborough ────────────────────────────────────────
   {
     state:                 "FL",
-    county:                "Miami-Dade",
+    county:                "Hillsborough",
     auction_type:          "tax_deed",
     status:                "upcoming",
     sale_date:             today + 45,
@@ -55,18 +59,18 @@ auctions_data = [
     registration_opens:    today + 5,
     registration_deadline: today + 37,
     bidding_start:         today + 44,
-    latitude:              25.7617,
-    longitude:             -80.1918,
-    bidding_url:           "https://miamidade.realforeclose.com",
-    source_url:            "https://www.miamidadeclerk.gov/tax-deeds",
+    latitude:              27.9477,
+    longitude:             -82.4584,
+    bidding_url:           "https://hillsborough.realforeclose.com",
+    source_url:            "https://www.hillsclerk.com/tax-deeds",
     parcel_count:          214,
     total_amount:          5_620_000.00,
     notes:                 "Large auction — expect high competition. Min deposit $5,000."
   },
-  # ── Florida — Polk ────────────────────────────────────────────────
+  # ── Florida — Marion ──────────────────────────────────────────────
   {
     state:                 "FL",
-    county:                "Polk",
+    county:                "Marion",
     auction_type:          "tax_deed",
     status:                "completed",
     sale_date:             today - 30,
@@ -74,18 +78,18 @@ auctions_data = [
     registration_opens:    today - 60,
     registration_deadline: today - 38,
     bidding_start:         today - 31,
-    latitude:              27.9937,
-    longitude:             -81.6848,
+    latitude:              29.1872,
+    longitude:             -82.1401,
     bidding_url:           nil,
-    source_url:            "https://www.polkcountyclerk.net/tax-deeds",
+    source_url:            "https://www.marioncountyclerk.org/tax-deeds",
     parcel_count:          58,
     total_amount:          780_000.00,
     notes:                 nil
   },
-  # ── Georgia — DeKalb ─────────────────────────────────────────────
+  # ── Florida — Putnam ──────────────────────────────────────────────
   {
-    state:                 "GA",
-    county:                "DeKalb",
+    state:                 "FL",
+    county:                "Putnam",
     auction_type:          "tax_deed",
     status:                "upcoming",
     sale_date:             today + 62,
@@ -93,18 +97,18 @@ auctions_data = [
     registration_opens:    today + 10,
     registration_deadline: today + 54,
     bidding_start:         today + 61,
-    latitude:              33.7748,
-    longitude:             -84.2963,
-    bidding_url:           "https://www.govease.com/ga/dekalb",
-    source_url:            nil,
+    latitude:              29.6594,
+    longitude:             -81.6628,
+    bidding_url:           "https://putnam.realtaxdeed.com",
+    source_url:            "https://www.putnam-fl.com/coc/tax-deeds",
     parcel_count:          43,
     total_amount:          920_000.00,
-    notes:                 "Courthouse steps auction. Certified funds only."
+    notes:                 "Courthouse auction. Certified funds only."
   },
-  # ── Texas — Travis ────────────────────────────────────────────────
+  # ── Florida — Washington ──────────────────────────────────────────
   {
-    state:                 "TX",
-    county:                "Travis",
+    state:                 "FL",
+    county:                "Washington",
     auction_type:          "tax_deed",
     status:                "upcoming",
     sale_date:             today + 7,
@@ -112,10 +116,10 @@ auctions_data = [
     registration_opens:    today - 7,
     registration_deadline: today + 4,
     bidding_start:         today + 6,
-    latitude:              30.2672,
-    longitude:             -97.7431,
-    bidding_url:           "https://www.civicsource.com/travis-county",
-    source_url:            "https://www.traviscountytx.gov/tax-deeds",
+    latitude:              30.6121,
+    longitude:             -85.6608,
+    bidding_url:           "https://washington.realtaxdeed.com",
+    source_url:            "https://www.washingtonclerk.com/tax-deeds",
     parcel_count:          31,
     total_amount:          610_000.00,
     notes:                 nil
@@ -139,9 +143,7 @@ Parcel.destroy_all if Rails.env.development? && Parcel.count.zero?
 
 # Helper to generate realistic parcels for an auction
 def seed_parcels_for(auction, count)
-  street_names = %w[Oak Main Palm Elm Pine Cedar Maple Lake River Hill Sunset Sunrise]
-  street_types = %w[St Ave Blvd Dr Ln Way Ct Rd]
-  cities       = ["Tampa", "Orlando", "Miami", "Atlanta", "Austin", "Jacksonville"]
+  cities = ["West Palm Beach", "Titusville", "Tampa", "Ocala", "Palatka", "Chipley"]
 
   count.times do |i|
     opening_bid    = rand(2_000..45_000).to_f

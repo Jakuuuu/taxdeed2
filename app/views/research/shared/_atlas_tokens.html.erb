@@ -238,6 +238,33 @@
 .auction-card__when--today { color: var(--danger); font-weight: 700; }
 .auction-card__when--tomorrow { color: var(--accent); font-weight: 600; }
 
+/* ── Clickable auction cards (a.auction-card) ── */
+a.auction-card {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+a.auction-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px oklch(0.18 0.015 158 / 0.12);
+}
+
+/* ── Clickable county chips inside cards ── */
+a.auction-card__chip {
+  text-decoration: none;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all 140ms ease;
+  position: relative;
+  z-index: 2;
+}
+a.auction-card__chip:hover {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  transform: scale(1.06);
+  box-shadow: 0 1px 4px oklch(0.18 0.015 158 / 0.08);
+}
+
 /* === Tooltip === */
 .county-tooltip {
   position: fixed;

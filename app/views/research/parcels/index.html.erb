@@ -834,7 +834,7 @@ var PARCELS_BASE_PATH   = '<%= research_parcels_path %>';
 
 
 
-var INITIAL_AUCTION_ID  = '<%= @auction&.id %>';
+var INITIAL_AUCTION_ID  = '<%= @auction&.id %>' || null;
 var INITIAL_STATE       = '<%= @selected_state %>';
 var INITIAL_COUNTY      = '<%= @selected_county %>';
 var HAS_CONTEXT         = <%= @has_context ? 'true' : 'false' %>;
@@ -946,32 +946,46 @@ function createMapAndEnterPhase() {
 }
 
 // ── Turbo lifecycle events ──────────────────────────────────
-document.addEventListener('turbo:load', function() {
-  r2Initialized = false;
-  r2Map = null;
-  r2InfoWindow = null;
-  phase1Markers = [];
-  phase1Circles = [];
-  phase2Markers = [];
-  phase2Cluster = null;
-  phase2MapLoaded = false;
-  countyData = {};
-  p2Context = { auctionId: null, county: null, state: null, page: 1 };
-  r2Init();
-});
+// GUARD: Prevent multiple turbo:load listeners from stacking up
+// across Turbo navigations (body scripts re-execute each time).
+if (!window._r2TurboRegistered) {
+  window._r2TurboRegistered = true;
 
-document.addEventListener('turbo:before-cache', function() {
-  clearAllOverlays();
-  var mapDiv = document.getElementById('r2-map');
-  if (mapDiv) mapDiv.innerHTML = '';
-  r2Map = null;
-  r2InfoWindow = null;
-  r2Initialized = false;
-});
+  document.addEventListener('turbo:load', function() {
+    // Only run if we're on the parcels page
+    if (!document.getElementById('r2-events-count')) return;
 
+    r2Initialized = false;
+    r2Map = null;
+    r2InfoWindow = null;
+    phase1Markers = [];
+    phase1Circles = [];
+    phase2Markers = [];
+    phase2Cluster = null;
+    phase2MapLoaded = false;
+    countyData = {};
+    p2Context = { auctionId: null, county: null, state: null, page: 1 };
+    r2Init();
+  });
+
+  document.addEventListener('turbo:before-cache', function() {
+    if (typeof clearAllOverlays === 'function') clearAllOverlays();
+    var mapDiv = document.getElementById('r2-map');
+    if (mapDiv) mapDiv.innerHTML = '';
+    r2Map = null;
+    r2InfoWindow = null;
+    r2Initialized = false;
+  });
+}
+
+// ── Initial boot (non-Turbo or first page load) ──────────
+// Use a microtask to ensure turbo:load has a chance to fire first.
+// On Turbo navigations, turbo:load handles init. On hard refreshes,
+// DOMContentLoaded/immediate call handles it.
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', r2Init);
-} else {
+} else if (!window.Turbo) {
+  // No Turbo — hard page load, init immediately
   r2Init();
 }
 

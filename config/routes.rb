@@ -155,6 +155,10 @@ Rails.application.routes.draw do
     # Proxy server-side para Regrid parcel GeoJSON (oculta API token del frontend)
     # Consumido por show.html.erb — NUNCA interpolado en JS del cliente
     get "regrid/geojson", to: "regrid_tiles#geojson", as: :regrid_geojson
+
+    # Proxy server-side para ArcGIS REST de condados — reemplaza Regrid para geometrías
+    # Spatial query: envía lat/lng → devuelve polígono GeoJSON del parcel intersectado
+    get "local_gis/parcel_geometry", to: "local_gis#parcel_geometry", as: :local_gis_parcel_geometry
   end
 
   # Webhooks de Stripe (endpoint publico, verificado por firma)

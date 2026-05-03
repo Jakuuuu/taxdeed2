@@ -27,6 +27,7 @@
       {
         date: date,
         county_names: counties.map { |c| c[:county] }.compact,
+        counties_with_state: counties.map { |c| { name: c[:county], state: c[:state] } },
         parcel_count: counties.sum { |c| c[:parcel_count].to_i }
       }
     end
@@ -144,7 +145,9 @@
             when_label = diff_days == 0 ? "Today" : diff_days == 1 ? "Tomorrow" : diff_days < 7 ? "In #{diff_days}d" : diff_days < 30 ? "In #{(diff_days / 7.0).round}w" : "In #{(diff_days / 30.0).round}mo"
             counties_list = entry[:county_names]
           %>
-          <div class="auction-card auction-card--<%= tone %>">
+          <a href="<%= research_auctions_path(from_date: auction_date.strftime('%Y-%m-%d'), to_date: auction_date.strftime('%Y-%m-%d'), view: 'table') %>"
+             class="auction-card auction-card--<%= tone %>"
+             title="View auctions on <%= auction_date.strftime('%B %d, %Y') %>">
             <div class="auction-card__date">
               <span class="auction-card__month"><%= month_str %></span>
               <span class="auction-card__day"><%= day_str %></span>
@@ -152,8 +155,11 @@
             <div class="auction-card__body">
               <div class="auction-card__weekday"><%= weekday_str %></div>
               <div class="auction-card__counties">
-                <% counties_list.first(3).each do |county_name| %>
-                  <span class="auction-card__chip"><%= county_name %></span>
+                <% (entry[:counties_with_state] || []).first(3).each do |cs| %>
+                  <a href="<%= research_parcels_path(county: cs[:name], state: cs[:state]) %>"
+                     class="auction-card__chip"
+                     title="View properties in <%= cs[:name] %>"
+                     onclick="event.stopPropagation()"><%= cs[:name] %></a>
                 <% end %>
                 <% if counties_list.size > 3 %>
                   <span class="auction-card__chip auction-card__chip--more">+<%= counties_list.size - 3 %></span>
@@ -161,7 +167,7 @@
               </div>
               <div class="auction-card__when auction-card__when--<%= tone %>"><%= when_label %></div>
             </div>
-          </div>
+          </a>
         <% end %>
       </div>
     </div>
@@ -173,7 +179,7 @@
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
           Top opportunities
         </div>
-        <a href="#" class="atlas__see-all">
+        <a href="javascript:void(0)" class="atlas__see-all" onclick="atlasView(document.querySelector('[data-view=table]'), 'table')">
           All
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </a>
@@ -368,4 +374,19 @@
       }
     });
   }
+
+  // ── Auto-switch view from URL param ──────────────────────────
+  // When arriving via a date link (?view=table&from_date=X),
+  // auto-switch to the requested view.
+  (function() {
+    var params = new URLSearchParams(window.location.search);
+    var requestedView = params.get('view');
+    if (requestedView && ['table', 'calendar', 'map'].indexOf(requestedView) !== -1) {
+      var btn = document.querySelector('[data-view="' + requestedView + '"]');
+      if (btn) {
+        // Delay slightly to let the DOM settle after Turbo navigation
+        setTimeout(function() { atlasView(btn, requestedView); }, 50);
+      }
+    }
+  })();
 </script>

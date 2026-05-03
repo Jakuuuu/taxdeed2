@@ -1,6 +1,7 @@
 <%# ─ PARTIAL: _ficha_javascript.html.erb ────────────────────────────────────
     Scripts inline de la Ficha: CRM Optimistic UI, Unlock flow,
-    Google Maps GIS init, Regrid boundary layer.
+    Google Maps GIS init, Local GIS boundary layer (ArcGIS REST proxy)
+    + Lot Area hidratación.
     GOTCHA: innerHTML no ejecuta <script> — el drawer JS recrea los tags.
 ─────────────────────────────────────────────────────────────────────────── %>
 <script>
@@ -11,6 +12,9 @@
       this.classList.add('active');
     });
   });
+
+  // ─── Estado mutable de unlock (consultado por initFichaMap y reveal) ───
+  window.__fichaUnlocked = <%= @unlocked ? 'true' : 'false' %>;
 
   // ─── Unlock action ─────────────────────────────────────────────────────
   function fichaUnlock(parcelId) {
@@ -64,6 +68,134 @@
         setTimeout(function() { s.classList.remove('fp-animating'); }, 600);
       }, i * 120);
     });
+
+    // Nota: fichaLoadParcelGeometry ya se carga en init (siempre visible).
+    // No se requiere re-carga post-unlock.
+    window.__fichaUnlocked = true;
+  }
+
+  // ─── Carga del polígono local GIS + cálculo de área ─────────────────
+  //     Reemplaza Regrid: consulta ArcGIS REST vía nuestro proxy backend.
+  //     Usa map.data (singleton) para evitar capas huérfanas en AJAX reloads.
+  function fichaLoadParcelGeometry(map) {
+    var coords = window.__fichaParcelCoords;
+    if (!coords || !map) return;
+
+    // Leer county/state de los data-attributes del contenedor del mapa
+    var mapEl  = document.getElementById('ficha-map');
+    var county      = mapEl ? mapEl.getAttribute('data-county') : null;
+    var state       = mapEl ? mapEl.getAttribute('data-state')  : null;
+    var auctionDate = mapEl ? mapEl.getAttribute('data-auction-date') : null;
+
+    if (!county || !state) {
+      console.warn('[Ficha GIS] Missing county/state data attributes — skipping polygon');
+      return;
+    }
+
+    // Limpiar features previos del Data Layer (previene leaks en AJAX reload)
+    fichaCleanupGisLayer(map);
+
+    var url = '/api/local_gis/parcel_geometry'
+      + '?lat=' + coords.lat
+      + '&lng=' + coords.lng
+      + '&county=' + encodeURIComponent(county)
+      + '&state='  + encodeURIComponent(state);
+    if (auctionDate) url += '&auction_date=' + encodeURIComponent(auctionDate);
+
+    fetch(url, {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function(r) {
+        if (!r.ok) {
+          console.error('[Ficha GIS] HTTP', r.status, r.statusText, 'for', url);
+          return null;
+        }
+        return r.json();
+      })
+      .then(function(geojson) {
+        var card  = document.querySelector('[data-fp-lot-card]');
+        var empty = document.querySelector('[data-fp-lot-empty]');
+
+        function showEmpty() {
+          if (empty) empty.hidden = false;
+          if (card)  card.classList.add('fp-lot-empty-state');
+        }
+
+        if (!geojson || !geojson.features || geojson.features.length === 0) {
+          showEmpty();
+          return;
+        }
+
+        // Agregar features al Data Layer singleton del mapa
+        map.data.addGeoJson(geojson);
+        map.data.setStyle({
+          strokeColor:   '#1E3A5F',
+          strokeWeight:  2,
+          strokeOpacity: 0.9,
+          fillColor:     '#1E3A5F',
+          fillOpacity:   0.15
+        });
+
+        // Auto-fit del mapa al extent del polígono (crítico para lotes pequeños)
+        var bounds = new google.maps.LatLngBounds();
+        map.data.forEach(function(feature) {
+          var geom = feature.getGeometry();
+          if (geom) {
+            geom.forEachLatLng(function(latlng) {
+              bounds.extend(latlng);
+            });
+          }
+        });
+        if (!bounds.isEmpty()) {
+          map.fitBounds(bounds, { top: 30, right: 30, bottom: 30, left: 30 });
+          // Prevenir zoom excesivo en lotes muy pequeños (regla: maxZoom 19)
+          var listener = google.maps.event.addListenerOnce(map, 'idle', function() {
+            if (map.getZoom() > 19) map.setZoom(19);
+          });
+        }
+
+        if (!google.maps.geometry || !google.maps.geometry.spherical) return;
+
+        // Suma rings exteriores, resta holes (convención GeoJSON RFC 7946)
+        var totalAreaM2 = 0;
+        map.data.forEach(function(feature) {
+          var geom = feature.getGeometry();
+          if (!geom) return;
+          var type  = geom.getType();
+          var polys = (type === 'MultiPolygon') ? geom.getArray() : [geom];
+          polys.forEach(function(poly) {
+            var rings = poly.getArray();
+            rings.forEach(function(ring, idx) {
+              var path = ring.getArray();
+              var area = google.maps.geometry.spherical.computeArea(path);
+              totalAreaM2 += (idx === 0 ? area : -area);
+            });
+          });
+        });
+
+        if (totalAreaM2 > 0) {
+          var sqft  = Math.round(totalAreaM2 * 10.7639);
+          var acres = (totalAreaM2 / 4046.86).toFixed(2);
+          var sqftEl = document.querySelector('[data-fp-lot-area-sqft]');
+          var acEl   = document.querySelector('[data-fp-lot-area-acres]');
+          if (sqftEl) sqftEl.textContent = sqft.toLocaleString('en-US');
+          if (acEl)   acEl.textContent   = acres;
+        } else {
+          showEmpty();
+        }
+      })
+      .catch(function(err) {
+        console.warn('[Ficha GIS] Polygon fetch error:', err);
+      });
+  }
+
+  // ─── Limpieza de capa GIS (previene memory leaks en AJAX drawer) ────
+  //     Debe llamarse antes de cada carga Y al cerrar el drawer.
+  function fichaCleanupGisLayer(map) {
+    if (!map || !map.data) return;
+    map.data.forEach(function(feature) {
+      map.data.remove(feature);
+    });
   }
 
   <% if @parcel.has_coords? %>
@@ -77,6 +209,7 @@
 
       var lat = <%= @parcel.latitude %>;
       var lng = <%= @parcel.longitude %>;
+      window.__fichaParcelCoords = { lat: lat, lng: lng };
 
       var mapOptions = {
         center: { lat: lat, lng: lng },
@@ -97,6 +230,7 @@
       }
 
       var map = new google.maps.Map(document.getElementById('ficha-map'), mapOptions);
+      window.__fichaMap = map;
 
       // Advanced Marker with classic fallback
       var useAdvanced = google.maps.marker && google.maps.marker.AdvancedMarkerElement;
@@ -135,20 +269,9 @@
       infoWin.open({ anchor: marker, map: map });
       marker.addListener('click', function() { infoWin.open({ anchor: marker, map: map }); });
 
-      <% if ENV['REGRID_API_KEY'].present? %>
-      // Regrid parcel boundary layer (proxied — API key never on client)
-      fetch('/api/regrid/geojson?lat=' + lat + '&lng=' + lng, {
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-      })
-        .then(function(r) { return r.ok ? r.json() : null; })
-        .then(function(geojson) {
-          if (!geojson) return;
-          var layer = new google.maps.Data({ map: map });
-          layer.addGeoJson(geojson);
-          layer.setStyle({ strokeColor: '#2E86C1', strokeWeight: 2, fillColor: '#2E86C1', fillOpacity: 0.1 });
-        })
-        .catch(function() {});
-      <% end %>
+      // Polígono del lote: siempre visible (no requiere unlock).
+      // Geometría no contiene datos personales sensibles.
+      fichaLoadParcelGeometry(map);
     }
 
     if (typeof google !== 'undefined' && google.maps) {

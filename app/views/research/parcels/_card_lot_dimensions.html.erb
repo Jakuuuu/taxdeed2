@@ -1,0 +1,84 @@
+<%# ─ PARTIAL: _card_lot_dimensions.html.erb ─────────────────────────────────
+    Card "Lot Dimensions" — premium gated. Muestra Área del lote (sqft + acres)
+    calculada client-side desde el polígono de Regrid.
+    Pre-unlock: valores mock con blur (patrón fp-locked .fp-card__body).
+    Post-unlock: hidratado por fichaLoadParcelGeometry() en _ficha_javascript.
+    Empty state: si Regrid no devuelve geometría, JS muestra [data-fp-lot-empty].
+    CSS inline obligatorio (drawer AJAX, sin content_for :head).
+─────────────────────────────────────────────────────────────────────────── %>
+<style>
+  .fp-card--lot { grid-column: 1 / -1; }
+  .fp-lot-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .fp-lot-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    background: var(--fp-gold-dim);
+    border-radius: var(--fp-radius-sm);
+    border: 1px solid oklch(0.91 0.01 280 / 0.6);
+  }
+  .fp-lot-metric__label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--fp-text-dim);
+  }
+  .fp-lot-metric__value {
+    font-family: var(--fp-font-money);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--fp-navy);
+    line-height: 1.2;
+  }
+  .fp-lot-metric__unit {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fp-text-dim);
+    margin-left: 4px;
+  }
+  .fp-lot-empty {
+    padding: 14px 16px;
+    background: var(--fp-surface-2);
+    border-radius: var(--fp-radius-sm);
+    color: var(--fp-text-dim);
+    font-size: 13px;
+    text-align: center;
+  }
+  .fp-card--lot.fp-lot-empty-state .fp-lot-grid { display: none; }
+  @media (max-width: 600px) {
+    .fp-lot-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<section class="fp-card fp-card--lot fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>"
+         data-fp-lot-card>
+  <header class="fp-card__hdr fp-card__hdr--accent">
+    <span class="fp-card__hdr-icon">📐</span>
+    <h3 class="fp-card__hdr-title">Lot Dimensions</h3>
+  </header>
+  <div class="fp-card__body">
+    <div class="fp-lot-grid">
+      <div class="fp-lot-metric">
+        <span class="fp-lot-metric__label">Área (sqft)</span>
+        <span class="fp-lot-metric__value">
+          <span data-fp-lot-area-sqft>8,712</span><span class="fp-lot-metric__unit">sqft</span>
+        </span>
+      </div>
+      <div class="fp-lot-metric">
+        <span class="fp-lot-metric__label">Área (acres)</span>
+        <span class="fp-lot-metric__value">
+          <span data-fp-lot-area-acres>0.20</span><span class="fp-lot-metric__unit">ac</span>
+        </span>
+      </div>
+    </div>
+    <div class="fp-lot-empty" data-fp-lot-empty hidden>
+      No disponible para este condado
+    </div>
+  </div>
+</section>

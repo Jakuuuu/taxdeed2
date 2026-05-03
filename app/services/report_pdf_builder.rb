@@ -264,12 +264,12 @@ class ReportPdfBuilder
 
   def fmt_currency(value)
     return "—" if value.nil? || value.zero?
-    "$#{format('%,.2f', value)}"
+    "$#{ActiveSupport::NumberHelper.number_to_delimited(format('%.2f', value))}"
   end
 
   def fmt_decimal(value)
     return "—" if value.nil? || value.zero?
-    format('%,.2f', value)
+    ActiveSupport::NumberHelper.number_to_delimited(format('%.2f', value))
   end
 
   def yn(value)

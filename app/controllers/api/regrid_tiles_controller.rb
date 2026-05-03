@@ -91,14 +91,16 @@ module Api
         return
       end
 
-      geojson_url = "https://app.regrid.com/api/v1/parcel/query.geojson?lat=#{lat}&lon=#{lng}&token=#{token}"
+      # Regrid API v1 — search.json returns parcels as GeoJSON Features
+      # Docs: GET /api/v1/search.json?lat=<y>&lon=<x>&token=<token>
+      geojson_url = "https://app.regrid.com/api/v1/search.json?lat=#{lat}&lon=#{lng}&token=#{token}&return_geometry=true"
 
       begin
         uri = URI.parse(geojson_url)
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = true
-        http.open_timeout = 5
-        http.read_timeout = 10
+        http.open_timeout = 10
+        http.read_timeout = 15
 
         request = Net::HTTP::Get.new(uri)
         request["User-Agent"] = "TaxSaleResources/1.0"
@@ -107,11 +109,23 @@ module Api
         response = http.request(request)
 
         if response.is_a?(Net::HTTPSuccess)
-          send_data response.body,
-                    type: "application/json",
-                    disposition: "inline"
+          # Regrid wraps results in { "results": [Feature, ...] }
+          # Normalize to a standard GeoJSON FeatureCollection for the frontend
+          raw = JSON.parse(response.body)
+          features = raw["results"] || []
+
+          feature_collection = {
+            type: "FeatureCollection",
+            features: features
+          }
+
+          Rails.logger.info "[RegridGeojson] OK — #{features.size} feature(s) for lat=#{lat} lng=#{lng}"
+
+          expires_in 1.day, public: false
+          render json: feature_collection, status: :ok
         else
           Rails.logger.warn "[RegridGeojson] Fetch failed: #{response.code} for lat=#{lat} lng=#{lng}"
+          Rails.logger.warn "[RegridGeojson] Response body: #{response.body.to_s.truncate(500)}"
           head :bad_gateway
         end
       rescue Net::OpenTimeout, Net::ReadTimeout => e

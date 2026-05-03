@@ -40,7 +40,7 @@ module GoogleMapsHelper
     # Only load the 'marker' library if a Map ID is configured
     # (Advanced Markers REQUIRE a Map ID or they throw errors)
     has_map_id = ENV['GOOGLE_MAPS_MAP_ID'].present?
-    libraries = has_map_id ? '&libraries=marker' : ''
+    libraries = has_map_id ? '&libraries=marker,geometry' : '&libraries=geometry'
     api_url = "https://maps.googleapis.com/maps/api/js?key=#{ENV['GOOGLE_MAPS_API_KEY']}#{libraries}&v=weekly&loading=async"
 
     # Robust loader: handles Turbo Drive layout transitions, login redirects,
