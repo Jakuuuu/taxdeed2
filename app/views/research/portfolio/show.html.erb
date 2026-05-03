@@ -55,21 +55,22 @@
   </div>
 </div>
 
-<%# ── Próximas subastas (parcelas con ParcelWatch activo) ─────────────── %>
-<% if @upcoming_watches.any? %>
+<%# ── Próximas subastas (TODAS las cards del pipeline con sale_date futura) ── %>
+<% if @upcoming_pipeline.any? %>
 <section class="upcoming-auctions" style="margin: 16px 24px; padding: 16px 18px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;">
   <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
     <h3 style="font:600 14px var(--font-sans); color:var(--ink-1); margin:0;">
       📅 Próximas subastas
       <span style="font:500 11px var(--font-mono); color:var(--ink-3); margin-left:6px;">
-        (<%= @upcoming_watches.size %> watched)
+        (<%= @upcoming_pipeline.size %>)
       </span>
     </h3>
   </div>
   <div style="display:flex; flex-direction:column; gap:6px;">
-    <% @upcoming_watches.each do |w| %>
-      <% p = w.parcel; a = p.auction; days = (a.sale_date - Date.current).to_i %>
-      <% urgent = days <= w.notify_days_before %>
+    <% @upcoming_pipeline.each do |pp| %>
+      <% p = pp.parcel; a = p.auction; days = (a.sale_date - Date.current).to_i %>
+      <% watch = @watch_by_parcel[p.id] %>
+      <% urgent = days == 0 || (watch && days <= watch.notify_days_before) %>
       <a href="<%= research_parcel_path(p) %>"
          style="display:grid; grid-template-columns: 90px 1fr auto auto; align-items:center; gap:12px;
                 padding:10px 12px; border-radius:8px; text-decoration:none; color:var(--ink-1);
@@ -82,7 +83,7 @@
           <%= p.county %>, <%= p.state %> · <%= a.sale_date.strftime("%b %d, %Y") %>
         </span>
         <span style="font:500 11px var(--font-mono); color:var(--ink-3);">
-          🔔 <%= w.notify_days_before %>d
+          <%= watch ? "🔔 #{watch.notify_days_before}d" : "" %>
         </span>
         <span style="font:500 11px var(--font-sans); color:var(--accent);">Ver Ficha →</span>
       </a>
@@ -174,6 +175,12 @@
               <span class="pipeline__card-date">
                 <% if parcel.auction&.sale_date %>
                   🗓 <%= parcel.auction.sale_date.strftime("%b %d, %Y") %>
+                  <% sale_diff = (parcel.auction.sale_date - Date.current).to_i %>
+                  <% if sale_diff == 0 %>
+                    <span style="display:inline-block; margin-left:6px; padding:1px 6px; border-radius:4px; background:#E67E22; color:#fff; font:600 10px var(--font-mono); letter-spacing:0.5px;">🔴 HOY</span>
+                  <% elsif sale_diff < 0 && sale_diff > -ArchivePostAuctionPipelineJob::ARCHIVE_AFTER_DAYS %>
+                    <span style="display:inline-block; margin-left:6px; padding:1px 6px; border-radius:4px; background:var(--ink-3); color:#fff; font:600 10px var(--font-mono); letter-spacing:0.5px;">⏳ <%= sale_diff %>d</span>
+                  <% end %>
                 <% end %>
               </span>
               <div style="display:flex;gap:6px;">

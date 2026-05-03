@@ -2,10 +2,13 @@
 
 # Notification — inbox in-app polimórfico.
 #
-# Se emite desde UpcomingAuctionAlertsJob y se lee desde el badge campanita
-# (header) y desde la sección "Próximas subastas" del Portfolio (Rama 5).
+# Se emite desde UpcomingAuctionAlertsJob (kind: auction_upcoming) y desde
+# AuctionTodayPipelineAlertsJob (kind: auction_today). Se lee desde el badge
+# campanita (header) y desde la sección "Próximas subastas" del Portfolio
+# (Rama 5).
 class Notification < ApplicationRecord
   KIND_AUCTION_UPCOMING = "auction_upcoming"
+  KIND_AUCTION_TODAY    = "auction_today"
   CHANNEL_IN_APP = "in_app"
   CHANNEL_EMAIL  = "email"
 

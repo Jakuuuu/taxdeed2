@@ -39,13 +39,22 @@ module Research
       ready_stage = @stages.find { |s| s.crm_tag_map == "ready" }
       @kpi_ready = ready_stage ? ready_stage.pipeline_properties.size : 0
 
-      # Próximas subastas — parcelas con ParcelWatch activo y sale_date futura
-      @upcoming_watches = current_user.parcel_watches
-                                      .joins(parcel: :auction)
-                                      .where("auctions.sale_date >= ?", Date.current)
-                                      .includes(parcel: :auction)
-                                      .order("auctions.sale_date ASC")
-                                      .limit(20)
+      # Próximas subastas — TODAS las cards del Pipeline con sale_date >= hoy.
+      # Se cambió de parcel_watches a pipeline_properties (2026-05-03) para
+      # cubrir al usuario que armó pipeline pero no activó el toggle 🔔.
+      # Se incluye watch (LEFT JOIN) para mostrar el lead time si lo hay.
+      @upcoming_pipeline = current_user.pipeline_properties
+                                       .joins(parcel: :auction)
+                                       .where("auctions.sale_date >= ?", Date.current)
+                                       .includes(parcel: :auction)
+                                       .order("auctions.sale_date ASC")
+                                       .limit(20)
+
+      # Lookup de watches por parcel_id para mostrar el lead time si existe.
+      parcel_ids = @upcoming_pipeline.map(&:parcel_id)
+      @watch_by_parcel = current_user.parcel_watches
+                                     .where(parcel_id: parcel_ids)
+                                     .index_by(&:parcel_id)
     end
   end
 end

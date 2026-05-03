@@ -45,3 +45,15 @@
     class: UpcomingAuctionAlertsJob
     queue: default
     description: "Generar notificaciones in-app para parcelas observadas (ParcelWatch) cuya sale_date entra en la ventana notify_days_before"
+
+  auction_today_pipeline_alerts:
+    cron: "5 11 * * *"  # Diario a las 11:05 UTC = 7:05 AM ET (5 min después de upcoming, evita race)
+    class: AuctionTodayPipelineAlertsJob
+    queue: default
+    description: "Aviso del día de subasta para TODAS las cards del Pipeline (no requiere ParcelWatch)"
+
+  archive_post_auction_pipeline:
+    cron: "30 6 * * *"  # Diario a las 06:30 UTC = 02:30 AM ET (después de expire_auctions a las 06:00)
+    class: ArchivePostAuctionPipelineJob
+    queue: default
+    description: "Mover al stage 'Archived' las cards cuya sale_date pasó hace más de 7 días (preserva 'Won')"

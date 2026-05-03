@@ -305,6 +305,30 @@
               return Math.floor(diff/86400) + 'd';
             }
 
+            // CTA chip para auction_today según payload.report_cta.
+            // 'download' → naranja sólido; 'generate' → naranja outline; null → no chip.
+            function ctaChip(reportCta) {
+              if (reportCta === 'download') {
+                return '<span style="display:inline-block; margin-top:6px; padding:3px 8px; border-radius:6px; '
+                     + 'background:#E67E22; color:#fff; font:600 10px var(--font-sans); letter-spacing:0.3px;">'
+                     + '⬇ Descargar Title Report</span>';
+              }
+              if (reportCta === 'generate') {
+                return '<span style="display:inline-block; margin-top:6px; padding:3px 8px; border-radius:6px; '
+                     + 'background:transparent; color:#E67E22; border:1px solid #E67E22; '
+                     + 'font:600 10px var(--font-sans); letter-spacing:0.3px;">'
+                     + '✚ Generar Title Report</span>';
+              }
+              return '';
+            }
+
+            // Fallback de título por kind cuando el payload viene sin title.
+            function fallbackTitle(kind) {
+              if (kind === 'auction_upcoming') return 'Subasta próxima';
+              if (kind === 'auction_today')    return 'Hoy se subasta tu propiedad';
+              return kind;
+            }
+
             function render(items) {
               if (!items.length) {
                 list.innerHTML = '<div style="padding:24px; text-align:center; color:var(--ink-3); font:500 12px var(--font-sans);">No tienes notificaciones</div>';
@@ -312,18 +336,23 @@
               }
               list.innerHTML = items.map(function(n) {
                 var p = n.payload || {};
-                var title = p.title || (n.kind === 'auction_upcoming' ? 'Subasta próxima' : n.kind);
+                var title = p.title || fallbackTitle(n.kind);
                 var sub   = p.subtitle || '';
                 var bg = n.read ? 'transparent' : 'var(--surface-2)';
                 var href = n.parcel_url || '#';
+                var todayBadge = n.kind === 'auction_today'
+                  ? '<span style="display:inline-block; margin-right:6px; padding:1px 5px; border-radius:4px; background:#E67E22; color:#fff; font:700 9px var(--font-mono); vertical-align:middle;">HOY</span>'
+                  : '';
+                var cta = n.kind === 'auction_today' ? ctaChip(p.report_cta) : '';
                 return '<a href="' + href + '" data-id="' + n.id + '" class="notif-item" '
                   + 'style="display:block; padding:10px 12px; border-radius:8px; text-decoration:none; '
                   + 'color:var(--ink-1); background:' + bg + '; margin-bottom:2px;">'
                   + '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">'
-                  +   '<strong style="font:600 12px var(--font-sans);">' + title + '</strong>'
+                  +   '<strong style="font:600 12px var(--font-sans);">' + todayBadge + title + '</strong>'
                   +   '<span style="font:500 10px var(--font-mono); color:var(--ink-3);">' + fmtAgo(n.created_at) + '</span>'
                   + '</div>'
                   + (sub ? '<div style="margin-top:4px; font:500 11px var(--font-sans); color:var(--ink-2);">' + sub + '</div>' : '')
+                  + cta
                   + '</a>';
               }).join('');
 
