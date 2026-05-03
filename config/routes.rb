@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
+  # Silenciar el 404 ruidoso de /favicon.ico que el navegador pide solo.
+  get "/favicon.ico", to: ->(_) { [204, { "Content-Type" => "image/x-icon" }, []] }
+
   devise_for :users,
     controllers: { registrations: "registrations" }
 
