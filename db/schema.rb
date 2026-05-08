@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_07_120100) do
+ActiveRecord::Schema[7.2].define(version: 2026_05_08_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -264,11 +264,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_07_120100) do
     t.string "clear_to_bid_grade"
     t.text "polygon_encoded"
     t.boolean "clear_to_bid_grade_locked", default: false, null: false
+    t.text "polygon_geojson"
+    t.datetime "polygon_fetched_at"
     t.index ["auction_id"], name: "index_parcels_on_auction_id"
     t.index ["clear_to_bid_grade"], name: "index_parcels_on_clear_to_bid_grade_not_null", where: "(clear_to_bid_grade IS NOT NULL)"
     t.index ["latitude", "longitude"], name: "idx_parcels_lat_lng"
     t.index ["parcel_id"], name: "index_parcels_on_parcel_id"
     t.index ["polygon_encoded"], name: "index_parcels_on_polygon_encoded_not_null", where: "(polygon_encoded IS NOT NULL)"
+    t.index ["polygon_fetched_at"], name: "index_parcels_on_polygon_fetched_at_not_null", where: "(polygon_fetched_at IS NOT NULL)"
     t.index ["state", "county", "parcel_id"], name: "idx_parcels_unique_state_county_pid", unique: true
     t.index ["state", "county"], name: "idx_parcels_state_county"
   end

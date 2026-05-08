@@ -98,6 +98,12 @@ module Research
         @parcel.county.to_s.upcase
       )
 
+      # ── Rama 2: Organic Polygon Hydration ─────────────────────────────
+      # Disparar job en background si la parcela aún no tiene GeoJSON.
+      # Fire-and-forget: no bloquea el render de la ficha.
+      # El polígono estará disponible para Rama 2 en la PRÓXIMA visita al mapa.
+      hydrate_polygon_if_needed(@parcel)
+
       render layout: false if request.xhr?
     end
 
@@ -255,9 +261,9 @@ module Research
       parcels = apply_parcel_filters(parcels)
 
       parcels = parcels.select(
-        :id, :address, :city, :county, :state, :zip_code,
+        :id, :address, :city, :county, :state, :zip,
         :parcel_id, :opening_bid, :latitude, :longitude,
-        :property_type, :land_use, :zoning
+        :property_type, :land_use, :zoning, :polygon_geojson
       )
 
       # Group by exact rounded coords (~1cm precision). Multiple parcels can
@@ -274,15 +280,18 @@ module Research
           count: at_point.size,
           parcels: at_point.map { |p|
             {
-              id:            p.id,
-              address:       p.address,
-              city:          p.city,
-              county:        p.county,
-              state:         p.state,
-              zip:           p.zip_code,
-              parcel_id:     p.parcel_id,
-              opening_bid:   p.opening_bid&.to_f,
-              property_type: p.property_type.presence || p.land_use.presence || p.zoning.presence
+              id:              p.id,
+              address:         p.address,
+              city:            p.city,
+              county:          p.county,
+              state:           p.state,
+              zip:             p.zip,
+              parcel_id:       p.parcel_id,
+              opening_bid:     p.opening_bid&.to_f,
+              property_type:   p.property_type.presence || p.land_use.presence || p.zoning.presence,
+              # Rama 2 polygon hydration — solo incluido si está disponible en BD.
+              # nil parcelas muestran marker-pin tradicional (degradación elegante).
+              polygon_geojson: p.polygon_geojson.presence
             }
           }
         }
@@ -385,6 +394,21 @@ module Research
         scope = scope.where("land_use ILIKE :pt OR property_type ILIKE :pt", pt: "%#{pt}%")
       end
       scope
+    end
+
+    # ── Rama 2: Organic Polygon Hydration ───────────────────────────────
+    # Dispara HydrateParcelGeoJsonJob en background solo si:
+    #   1. La parcela no tiene GeoJSON almacenado todavía
+    #   2. La parcela tiene coordenadas (necesarias para la spatial query)
+    # Fire-and-forget: no bloquea la respuesta HTML de la ficha.
+    def hydrate_polygon_if_needed(parcel)
+      return if parcel.polygon_geojson.present?
+      return unless parcel.latitude.present? && parcel.longitude.present?
+
+      HydrateParcelGeoJsonJob.perform_later(parcel.id)
+    rescue => e
+      # Nunca bloquear el render por un error de enqueue
+      Rails.logger.warn("[Parcels#show] hydrate_polygon_if_needed failed: #{e.class}: #{e.message}")
     end
   end
 end

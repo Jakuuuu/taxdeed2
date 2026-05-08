@@ -862,6 +862,12 @@ var phase2Cluster = null;
 var phase2FetchController = null;
 var phase2FetchSeq = 0;
 
+// ── Rama 2 Polygon Hydration tracking ──────────────────────────
+// Stores google.maps.Data.Feature objects added to r2Map.data layer.
+// Cleared on phase transition and filter change.
+var phase2PolygonFeatures = [];  // Array of Feature objects for cleanup
+var r2PolygonZoomListener = null; // zoom_changed listener handle
+
 // ── County centroids cache (populated from county_overview) ──
 var countyData = {};
 
@@ -963,6 +969,8 @@ if (!window._r2TurboRegistered) {
     phase2Markers = [];
     phase2Cluster = null;
     phase2MapLoaded = false;
+    phase2PolygonFeatures = [];
+    r2PolygonZoomListener = null;
     countyData = {};
     p2Context = { auctionId: null, county: null, state: null, page: 1 };
     r2Init();
@@ -1036,6 +1044,33 @@ function initSingleMap(callback) {
   r2Map = new google.maps.Map(mapDiv, mapOptions);
   r2InfoWindow = new google.maps.InfoWindow();
 
+  // ── Rama 2: Data Layer Styling for parcel polygons ────────────────────
+  // El Data Layer (r2Map.data) renderiza los GeoJSON de parcelas hidratadas.
+  // Usamos un fill semi-transparente morado para diferenciar del pin azul.
+  // setStyle se aplica globalmente a todos los features del Data Layer.
+  r2Map.data.setStyle({
+    fillColor:   '#6C63FF',   // Morado / indigo — diferenciador visual respecto al pin
+    fillOpacity: 0.18,        // Sutilmente translúcido: se ven los labels del mapa base
+    strokeColor: '#4B44E0',
+    strokeOpacity: 0.85,
+    strokeWeight: 1.5
+  });
+
+  // Zoom threshold: ocultar polígonos debajo de zoom 14 para no saturar vista county.
+  // El Data Layer soporta setStyle dinámico — no hay removeFeature necesario.
+  r2PolygonZoomListener = r2Map.addListener('zoom_changed', function() {
+    var z = r2Map.getZoom();
+    var showPoly = z >= 14;
+    r2Map.data.setStyle({
+      fillColor:    '#6C63FF',
+      fillOpacity:  showPoly ? 0.18 : 0,
+      strokeColor:  '#4B44E0',
+      strokeOpacity: showPoly ? 0.85 : 0,
+      strokeWeight: 1.5,
+      visible:      showPoly
+    });
+  });
+
   callback();
 }
 
@@ -1080,6 +1115,19 @@ function clearPhase2Overlays() {
   });
   phase2Markers = [];
   phase2MapLoaded = false;
+
+  // ── Polygon cleanup ─────────────────────────────────────────
+  if (r2Map && r2Map.data && phase2PolygonFeatures.length) {
+    phase2PolygonFeatures.forEach(function(f) {
+      try { r2Map.data.remove(f); } catch(e) { /* ignore stale features */ }
+    });
+  }
+  phase2PolygonFeatures = [];
+  // Remove zoom listener to avoid memory leaks
+  if (r2PolygonZoomListener) {
+    google.maps.event.removeListener(r2PolygonZoomListener);
+    r2PolygonZoomListener = null;
+  }
 }
 
 function clearAllOverlays() {
@@ -1575,6 +1623,25 @@ function loadPhase2Markers(auctionId, county, state) {
         });
 
         phase2Markers.push(marker);
+
+        // ── Rama 2: Polygon Hydration ────────────────────────────────
+        // Si la parcela tiene polygon_geojson en BD, cargar en el Data Layer.
+        // Solo aplica a parcelas individuales (isStack=false) para claridad visual.
+        // Stack-pins agrupan parcelas en el mismo punto exacto — dibujamos el
+        // polígono del primero solo si el stack tiene 1 parcela (count==1).
+        if (!isStack && primary.polygon_geojson) {
+          try {
+            var geoObj = typeof primary.polygon_geojson === 'string'
+              ? JSON.parse(primary.polygon_geojson)
+              : primary.polygon_geojson;
+            var addedFeatures = r2Map.data.addGeoJson(geoObj);
+            addedFeatures.forEach(function(f) {
+              phase2PolygonFeatures.push(f);
+            });
+          } catch(polyErr) {
+            console.warn('[R2] polygon_geojson parse error for parcel', primary.id, polyErr);
+          }
+        }
       });
 
       // ── MarkerClusterer with custom renderer ───────────────────
