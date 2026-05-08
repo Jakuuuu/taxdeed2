@@ -1,13 +1,14 @@
 <%#
   Rama 1: US Choropleth SVG Map (Partial)
   ────────────────────────────────────────────────────────────────────
-  Renders the US state map with dynamic heatmap coloring based on
+  Renders the US state map with binary coloring based on
   @auctions_by_state from the controller. Each state path gets a
-  CSS class reflecting its auction density:
-    - no-auction (0)
-    - auction-low (1-5)
-    - auction-med (6-20)
-    - auction-high (21+)
+  CSS class reflecting whether it has auctions:
+    - no-auction  (white — 0 auctions)
+    - has-auction (green — 1+ auctions)
+
+  Florida gets a reinforced dark stroke to stand out from the
+  background when the map is displayed.
 
   ARCHITECTURE (Rule 16):
   Clicking a state calls r1StateClick() which shows a popup linking

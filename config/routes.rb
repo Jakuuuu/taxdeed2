@@ -88,6 +88,12 @@ Rails.application.routes.draw do
       end
     end
 
+    # ── Rama 6: Clear-to-Bid Catalog (Premier-only payload) ─────────────
+    # GET /research/clear_to_bid
+    # Single-resource, sin member endpoints (anti-bypass por parcela).
+    # Reglas: software/rules/21-clear-to-bid.md, monetization/guards_and_reset.md
+    resource :clear_to_bid, only: [:show], controller: "clear_to_bid"
+
     resource  :settings,          only: [:show] do
       patch  :profile
       patch  :notifications
@@ -144,6 +150,11 @@ Rails.application.routes.draw do
       post :run_now
       post :run_markets
     end
+
+    # ── Rama 6: Override manual de clear_to_bid_grade ─────────────────────
+    # Listado paginado + edición inline. Whitelist estricta: solo grade.
+    # Reglas: software/rules/clear_to_bid/admin_override.md
+    resources :parcels, only: [:index, :update]
   end
 
   # ── API interna (requiere autenticación) ──────────────────────────────────

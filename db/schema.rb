@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_29_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_05_07_120100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -200,17 +200,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_29_120000) do
 
   create_table "parcels", force: :cascade do |t|
     t.bigint "auction_id"
-    t.text "parcel_id", null: false
-    t.text "address"
-    t.text "property_address"
-    t.text "city"
-    t.text "state", null: false
-    t.text "county", null: false
-    t.text "zip"
+    t.string "parcel_id", limit: 50, null: false
+    t.string "address", limit: 300
+    t.string "property_address", limit: 300
+    t.string "city", limit: 100
+    t.string "state", limit: 100, null: false
+    t.string "county", limit: 100, null: false
+    t.string "zip", limit: 10
     t.decimal "latitude", precision: 10, scale: 8
     t.decimal "longitude", precision: 11, scale: 8
-    t.text "owner_name"
-    t.text "owner_mail_address"
+    t.string "owner_name", limit: 200
+    t.string "owner_mail_address", limit: 300
     t.text "legal_description"
     t.decimal "delinquent_amount", precision: 12, scale: 2
     t.decimal "opening_bid", precision: 12, scale: 2
@@ -224,22 +224,22 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_29_120000) do
     t.decimal "sqft_living", precision: 10, scale: 2
     t.decimal "sqft_lot", precision: 12, scale: 2
     t.decimal "lot_area_acres", precision: 10, scale: 4
-    t.text "minimum_lot_size"
-    t.text "zoning"
-    t.text "jurisdiction"
-    t.text "land_use"
-    t.text "property_type"
+    t.string "minimum_lot_size", limit: 150
+    t.string "zoning", limit: 150
+    t.string "jurisdiction", limit: 300
+    t.string "land_use", limit: 200
+    t.string "property_type", limit: 50
     t.integer "bedrooms"
     t.decimal "bathrooms", precision: 3, scale: 1
-    t.text "lot_shape"
-    t.string "homestead_flag", limit: 20
-    t.string "crime_level", limit: 20
-    t.string "electric", limit: 100
-    t.string "water", limit: 100
-    t.string "sewer", limit: 100
-    t.string "hoa", limit: 100
+    t.string "lot_shape", limit: 50
+    t.string "homestead_flag", limit: 100
+    t.string "crime_level", limit: 50
+    t.string "electric", limit: 10
+    t.string "water", limit: 10
+    t.string "sewer", limit: 10
+    t.string "hoa", limit: 10
     t.boolean "wetlands"
-    t.text "fema_risk_level"
+    t.string "fema_risk_level", limit: 300
     t.text "fema_notes"
     t.string "fema_url", limit: 2048
     t.string "regrid_url", limit: 2048
@@ -261,9 +261,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_29_120000) do
     t.decimal "max_bid_35", precision: 12, scale: 2
     t.text "technical_analysis"
     t.string "property_appraiser_url", limit: 500
+    t.string "clear_to_bid_grade"
+    t.text "polygon_encoded"
+    t.boolean "clear_to_bid_grade_locked", default: false, null: false
     t.index ["auction_id"], name: "index_parcels_on_auction_id"
+    t.index ["clear_to_bid_grade"], name: "index_parcels_on_clear_to_bid_grade_not_null", where: "(clear_to_bid_grade IS NOT NULL)"
     t.index ["latitude", "longitude"], name: "idx_parcels_lat_lng"
     t.index ["parcel_id"], name: "index_parcels_on_parcel_id"
+    t.index ["polygon_encoded"], name: "index_parcels_on_polygon_encoded_not_null", where: "(polygon_encoded IS NOT NULL)"
     t.index ["state", "county", "parcel_id"], name: "idx_parcels_unique_state_county_pid", unique: true
     t.index ["state", "county"], name: "idx_parcels_state_county"
   end
@@ -294,7 +299,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_29_120000) do
     t.string "crm_tag_map", limit: 50
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "system_key", limit: 30
     t.index ["user_id", "position"], name: "idx_pipeline_stages_user"
+    t.index ["user_id", "system_key"], name: "idx_pipeline_stages_user_system_key", where: "(system_key IS NOT NULL)"
     t.index ["user_id"], name: "index_pipeline_stages_on_user_id"
   end
 

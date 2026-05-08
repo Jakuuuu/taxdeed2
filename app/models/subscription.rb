@@ -21,6 +21,15 @@ class Subscription < ApplicationRecord
   def past_due? = status == "past_due"
   def canceled? = status == "canceled"
 
+  # 🆕 RAMA 6 (Clear-to-Bid) — predicate canónico para el gate Premier-paid.
+  # Trial NO califica (el catálogo Clear-to-Bid es de pago exclusivamente).
+  # Single source of truth: cualquier controller/helper que necesite saber
+  # si el usuario tiene acceso completo a Clear-to-Bid debe llamar a este
+  # método y NUNCA replicar la lógica inline.
+  def premier_active?
+    plan_name == "premier" && status == "active"
+  end
+
   # ── Usage checks ───────────────────────────────────────────────
   def can_use?(type)
     return false unless active_or_trial?

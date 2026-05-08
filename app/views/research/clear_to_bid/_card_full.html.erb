@@ -1,0 +1,73 @@
+<%# ─ PARTIAL: _card_full.html.erb ─────────────────────────────────────────
+    Premier card. Static-map photo (with polygon when available),
+    full address/parcel_id/opening_bid, semantic grade badge,
+    click-through to Rama 2 (/research/parcels/:id).
+
+    Locals: parcel — Hash construido por ClearToBidPayload#clear_to_bid_full
+            con keys: :id, :parcel_id, :state, :county, :address,
+                      :latitude, :longitude, :opening_bid,
+                      :clear_to_bid_grade, :auction (Hash o nil)
+─────────────────────────────────────────────────────────────────────────── %>
+
+<%# El helper static_map_url usa polygon_encoded si está presente
+    (pre-computado por EncodeParcelPolygonJob desde ArcGIS REST del condado);
+    fallback automático a marker si el condado no está en el registry. %>
+<% map_struct = OpenStruct.new(
+     latitude:        parcel[:latitude],
+     longitude:       parcel[:longitude],
+     polygon_encoded: parcel[:polygon_encoded]
+   ) %>
+
+<%= link_to research_parcel_path(parcel[:id]),
+            class: "group block bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition overflow-hidden",
+            data: { grade: parcel[:clear_to_bid_grade].to_s,
+                    grade_filter_target: "card" } do %>
+
+  <%# ── Static map photo (sharp) ───────────────────────────────────── %>
+  <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+    <% if (map_url = static_map_url(map_struct)) %>
+      <%= image_tag map_url,
+            alt: "Aerial view of parcel #{parcel[:parcel_id]}",
+            loading: "lazy",
+            class: "w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300",
+            onerror: "this.style.display='none'" %>
+    <% else %>
+      <div class="w-full h-full grid place-items-center text-gray-400 text-xs">
+        Map unavailable
+      </div>
+    <% end %>
+
+    <%# Grade badge — top-right %>
+    <span class="absolute top-3 right-3 inline-flex items-center gap-1.5 <%= grade_badge_classes(parcel[:clear_to_bid_grade]) %> px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm">
+      <span class="w-1.5 h-1.5 rounded-full <%= grade_dot_class(parcel[:clear_to_bid_grade]) %>"></span>
+      <%= grade_label(parcel[:clear_to_bid_grade]) %>
+    </span>
+  </div>
+
+  <%# ── Body ───────────────────────────────────────────────────────── %>
+  <div class="p-4 space-y-2">
+    <h3 class="font-semibold text-gray-900 text-base leading-tight line-clamp-2">
+      <%= parcel[:address].presence || "Address pending" %>
+    </h3>
+
+    <div class="flex items-center justify-between text-xs">
+      <span class="font-mono text-gray-500">
+        <%= parcel[:parcel_id] %>
+      </span>
+      <span class="text-gray-400">
+        <%= [parcel[:county], parcel[:state]].compact.join(", ") %>
+      </span>
+    </div>
+
+    <div class="pt-2 border-t border-gray-100 flex items-baseline justify-between">
+      <span class="text-xs uppercase tracking-wide text-gray-500">Opening bid</span>
+      <span class="text-lg font-semibold text-gray-900">
+        <% if parcel[:opening_bid].present? %>
+          <%= number_to_currency(parcel[:opening_bid], precision: 0) %>
+        <% else %>
+          <span class="text-gray-400 text-sm font-normal">TBD</span>
+        <% end %>
+      </span>
+    </div>
+  </div>
+<% end %>

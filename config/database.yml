@@ -5,14 +5,14 @@ default: &default
 
 development:
   <<: *default
-  url: <%= ENV.fetch("DATABASE_URL", "postgres://localhost/tax_sale_resources_development") %>
+  url: <%= ENV.fetch("DATABASE_URL", "postgres://postgres:postgres@localhost/tax_sale_resources_development") %>
 
 test:
   <<: *default
   database: tax_sale_resources_test
   host: localhost
   username: postgres
-  password: ""
+  password: "postgres"
 
 production:
   <<: *default

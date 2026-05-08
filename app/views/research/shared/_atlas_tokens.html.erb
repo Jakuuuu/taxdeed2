@@ -265,6 +265,116 @@ a.auction-card__chip:hover {
   box-shadow: 0 1px 4px oklch(0.18 0.015 158 / 0.08);
 }
 
+/* === Agenda cards (Next Auctions panel — screenshot design) === */
+.agenda-card {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch;
+  gap: 14px;
+  padding: 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: all 200ms ease;
+  text-decoration: none !important;
+  color: inherit;
+  cursor: pointer;
+}
+.agenda-card:hover {
+  border-color: oklch(0.68 0.12 280);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.agenda-card--today {
+  border-color: oklch(0.68 0.12 280);
+  background: linear-gradient(135deg, oklch(0.68 0.12 280 / 0.06), oklch(0.68 0.12 280 / 0.02));
+}
+.agenda-card__date {
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  background: oklch(0.92 0.06 280);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  gap: 1px;
+}
+.agenda-card--today .agenda-card__date {
+  background: oklch(0.68 0.12 280);
+}
+.agenda-card--today .agenda-card__date * { color: white !important; }
+.agenda-card__month {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: oklch(0.50 0.14 280);
+  font-weight: 700;
+}
+.agenda-card__day {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1;
+  color: oklch(0.45 0.14 280);
+  font-weight: 500;
+}
+.agenda-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.agenda-card__weekday {
+  font-size: 12.5px;
+  color: var(--ink-1);
+  font-weight: 600;
+}
+.agenda-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.agenda-card__tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-radius: 5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 140ms ease;
+  position: relative;
+  z-index: 2;
+  white-space: nowrap;
+}
+.agenda-card__tag:hover {
+  background: oklch(0.92 0.06 280);
+  color: oklch(0.45 0.14 280);
+  transform: scale(1.04);
+}
+.agenda-card__extra {
+  font-size: 10.5px;
+  padding: 2px 7px;
+  background: oklch(0.92 0.06 280);
+  color: oklch(0.50 0.14 280);
+  border-radius: 5px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+.agenda-card__when {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
 /* === Tooltip === */
 .county-tooltip {
   position: fixed;
@@ -371,6 +481,152 @@ a.auction-card__chip:hover {
   padding: 2px 8px;
   border-radius: 999px;
   font-weight: 600;
+}
+.count-pill--circle {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+/* === Next Auctions flat list (glass card matching Top Opportunities) === */
+.agenda-list {
+  display: flex;
+  flex-direction: column;
+  background: oklch(1 0 0);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid oklch(0.91 0.008 158 / 0.6);
+  border-radius: var(--radius-lg);
+  padding: 4px 14px;
+  box-shadow: var(--shadow-md);
+}
+.agenda-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px dashed var(--border);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+.agenda-row:hover { opacity: 0.75; }
+.agenda-row:focus-visible {
+  outline: 2px solid oklch(0.55 0.18 260);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.agenda-row--last { border-bottom: none; }
+
+.agenda-row__date {
+  width: 48px;
+  min-width: 48px;
+  flex-shrink: 0;
+  background: oklch(0.92 0.06 145);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 4px;
+  gap: 1px;
+}
+.agenda-row__date--today {
+  background: oklch(0.35 0.12 145);
+}
+.agenda-row__month {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: oklch(0.38 0.10 145);
+  font-weight: 700;
+}
+.agenda-row__date--today .agenda-row__month {
+  color: oklch(0.88 0.06 145);
+}
+.agenda-row__day {
+  font-size: 24px;
+  line-height: 1;
+  color: oklch(0.32 0.12 145);
+  font-weight: 500;
+}
+.agenda-row__date--today .agenda-row__day {
+  color: #fff;
+}
+
+.agenda-row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.agenda-row__heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.agenda-row__when {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.agenda-row__when--today {
+  color: oklch(0.62 0.18 25);
+  font-weight: 600;
+}
+
+.agenda-row__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.agenda-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1.5px solid oklch(0.82 0.01 280);
+  color: var(--ink-2);
+  border-radius: 999px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+.agenda-chip:hover {
+  border-color: oklch(0.55 0.14 280);
+  color: oklch(0.40 0.14 280);
+}
+.agenda-chip--featured {
+  background: oklch(0.55 0.18 260);
+  border-color: oklch(0.55 0.18 260);
+  color: #fff;
+  font-weight: 600;
+}
+.agenda-chip--featured:hover {
+  background: oklch(0.48 0.18 260);
+  border-color: oklch(0.48 0.18 260);
+  color: #fff;
+}
+.agenda-chip--extra {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  border-style: dashed;
+  color: var(--ink-3);
 }
 
 /* === Scroll utility === */

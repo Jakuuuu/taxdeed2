@@ -1,0 +1,70 @@
+<%# ─ PARTIAL: _card_teaser.html.erb ───────────────────────────────────────
+    Non-premier card. HTML "limpio" — el server NO emite address, parcel_id
+    externo, coords, opening_bid. Visualmente: foto regional difuminada,
+    teaser blob tachado, badge de grade visible (es el hook de upsell),
+    CTA naranja "Unlock with Premier".
+
+    Locals: teaser — Hash construido por ClearToBidPayload#clear_to_bid_skeleton
+            con keys: :id, :state, :county, :clear_to_bid_grade, :teaser
+─────────────────────────────────────────────────────────────────────────── %>
+
+<article class="relative bg-white rounded-xl border border-gray-200 overflow-hidden"
+         data-grade="<%= teaser[:clear_to_bid_grade] %>"
+         data-grade-filter-target="card">
+
+  <%# ── Blurred regional placeholder (NO leak de coords reales) ────── %>
+  <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+    <% if (placeholder = teaser_placeholder_map_url(teaser)) %>
+      <%= image_tag placeholder,
+            alt: "Locked parcel preview",
+            loading: "lazy",
+            class: "w-full h-full object-cover blur-sm grayscale opacity-60" %>
+    <% else %>
+      <div class="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 blur-sm"></div>
+    <% end %>
+
+    <%# Premier corner badge %>
+    <span class="absolute top-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 shadow-sm">
+      Premier
+    </span>
+
+    <%# Grade badge stays visible — it's the upsell hook %>
+    <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 <%= grade_badge_classes(teaser[:clear_to_bid_grade]) %> px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm">
+      <span class="w-1.5 h-1.5 rounded-full <%= grade_dot_class(teaser[:clear_to_bid_grade]) %>"></span>
+      <%= grade_label(teaser[:clear_to_bid_grade]) %>
+    </span>
+
+    <%# Centered overlay CTA — REGLA NARANJA #E67E22 (CTA transaccional) %>
+    <div class="absolute inset-0 grid place-items-center bg-black/10">
+      <%= link_to research_settings_path(anchor: "billing"),
+            class: "inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold text-white bg-[#E67E22] hover:bg-[#D86E0E] shadow-md transition" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 11V7a4 4 0 118 0m-9 4h10a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6a2 2 0 012-2z"/>
+        </svg>
+        Unlock with Premier
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── Body — struck-through teaser blob ──────────────────────────── %>
+  <div class="p-4 space-y-2">
+    <h3 class="font-semibold leading-tight">
+      <span class="line-through text-gray-400">
+        <%= [teaser[:county], teaser[:state]].compact.join(", ").presence || "Address withheld" %>
+      </span>
+    </h3>
+
+    <div class="flex items-center justify-between text-xs">
+      <span class="font-mono line-through text-gray-400">PARCEL-XXXXXX</span>
+      <span class="text-gray-300 line-through">$XXX,XXX</span>
+    </div>
+
+    <div class="pt-2 border-t border-gray-100">
+      <p class="text-xs text-gray-500">
+        Analyst-graded <strong><%= grade_label(teaser[:clear_to_bid_grade]) %></strong>
+        opportunity. Upgrade to reveal address, polygon &amp; opening bid.
+      </p>
+    </div>
+  </div>
+</article>

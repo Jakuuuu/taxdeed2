@@ -1788,10 +1788,14 @@ a:hover { color: var(--color-gold); }
   transition: fill 0.2s ease, filter 0.2s ease;
 }
 .r1-state-path:hover { filter: brightness(0.85); stroke-width: 1.5; }
-.r1-state-path.no-auction    { fill: #CBD5E0; }
-.r1-state-path.auction-low   { fill: #90BEE8; }
-.r1-state-path.auction-med   { fill: #3A82C3; }
-.r1-state-path.auction-high  { fill: #1E4E8C; }
+.r1-state-path.no-auction    { fill: #FFFFFF; }
+.r1-state-path.has-auction   { fill: #27AE60; }
+
+/* Florida: dark border to distinguish from background */
+.r1-state-path[data-state="FL"] {
+  stroke: #1A252F;
+  stroke-width: 2;
+}
 
 
 

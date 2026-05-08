@@ -2,17 +2,12 @@
 
 module Research
   module AuctionsHelper
-    # Returns CSS class for SVG choropleth heatmap coloring based on auction count.
+    # Returns CSS class for SVG choropleth coloring (binary: auction/no-auction).
     def state_heat_class(state_name, auctions_by_state)
       data = auctions_by_state[state_name]
       return "no-auction" unless data
       count = data[:count] || 0
-      case count
-      when 0       then "no-auction"
-      when 1..5    then "auction-low"
-      when 6..20   then "auction-med"
-      else              "auction-high"
-      end
+      count > 0 ? "has-auction" : "no-auction"
     end
 
     # Preserves current filter params across pagination links.

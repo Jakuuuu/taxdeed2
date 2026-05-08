@@ -24,10 +24,11 @@
     .sort_by { |date, _| date }
     .first(5)
     .map do |date, counties|
+      sorted_counties = counties.sort_by { |c| -c[:parcel_count].to_i }
       {
         date: date,
-        county_names: counties.map { |c| c[:county] }.compact,
-        counties_with_state: counties.map { |c| { name: c[:county], state: c[:state] } },
+        county_names: sorted_counties.map { |c| c[:county] }.compact,
+        counties_with_state: sorted_counties.map { |c| { name: c[:county], state: c[:state], parcel_count: c[:parcel_count].to_i } },
         parcel_count: counties.sum { |c| c[:parcel_count].to_i }
       }
     end
@@ -131,43 +132,54 @@
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
           Next auctions
         </div>
-        <span class="count-pill"><%= upcoming_grouped.size %></span>
+        <span class="count-pill count-pill--circle"><%= upcoming_grouped.size %></span>
       </div>
-      <div class="atlas__agenda">
-        <% upcoming_grouped.each do |entry| %>
+      <div class="agenda-list">
+        <% upcoming_grouped.each_with_index do |entry, idx| %>
           <%
             auction_date = entry[:date]
-            diff_days = (auction_date.to_date - Date.today).to_i
-            month_str = auction_date.strftime("%b")
-            day_str = auction_date.strftime("%d")
-            weekday_str = auction_date.strftime("%A")
-            tone = diff_days == 0 ? "today" : diff_days == 1 ? "tomorrow" : diff_days < 7 ? "soon" : "later"
-            when_label = diff_days == 0 ? "Today" : diff_days == 1 ? "Tomorrow" : diff_days < 7 ? "In #{diff_days}d" : diff_days < 30 ? "In #{(diff_days / 7.0).round}w" : "In #{(diff_days / 30.0).round}mo"
-            counties_list = entry[:county_names]
+            diff_days    = (auction_date.to_date - Date.today).to_i
+            month_str    = auction_date.strftime("%b").upcase
+            day_str      = auction_date.strftime("%d")
+            weekday_str  = auction_date.strftime("%A")
+            when_label   = diff_days == 0 ? "today" : diff_days == 1 ? "tomorrow" : "in #{diff_days < 7 ? "#{diff_days}d" : diff_days < 30 ? "#{(diff_days / 7.0).round}w" : "#{(diff_days / 30.0).round}mo"}"
+            counties_all = entry[:counties_with_state] || []
+            visible      = counties_all.first(5)
+            extra        = counties_all.size - visible.size
+            is_today     = diff_days == 0
+            is_last      = idx == upcoming_grouped.size - 1
           %>
-          <a href="<%= research_auctions_path(from_date: auction_date.strftime('%Y-%m-%d'), to_date: auction_date.strftime('%Y-%m-%d'), view: 'table') %>"
-             class="auction-card auction-card--<%= tone %>"
-             title="View auctions on <%= auction_date.strftime('%B %d, %Y') %>">
-            <div class="auction-card__date">
-              <span class="auction-card__month"><%= month_str %></span>
-              <span class="auction-card__day"><%= day_str %></span>
+          <div class="agenda-row<%= is_last ? ' agenda-row--last' : '' %>"
+               role="link"
+               tabindex="0"
+               data-href="<%= research_auctions_path(from_date: auction_date.strftime('%Y-%m-%d'), to_date: auction_date.strftime('%Y-%m-%d'), view: 'table') %>"
+               onclick="if(typeof Turbo!=='undefined'){Turbo.visit(this.dataset.href)}else{window.location.href=this.dataset.href}"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();if(typeof Turbo!=='undefined'){Turbo.visit(this.dataset.href)}else{window.location.href=this.dataset.href}}"
+               title="View auctions on <%= auction_date.strftime('%B %d, %Y') %>">
+            <%# ── Date block ── %>
+            <div class="agenda-row__date<%= is_today ? ' agenda-row__date--today' : '' %>">
+              <span class="agenda-row__month"><%= month_str %></span>
+              <span class="agenda-row__day"><%= day_str %></span>
             </div>
-            <div class="auction-card__body">
-              <div class="auction-card__weekday"><%= weekday_str %></div>
-              <div class="auction-card__counties">
-                <% (entry[:counties_with_state] || []).first(3).each do |cs| %>
+            <%# ── Body ── %>
+            <div class="agenda-row__body">
+              <div class="agenda-row__heading">
+                <%= weekday_str %>
+                <span class="agenda-row__when<%= is_today ? ' agenda-row__when--today' : '' %>">· <%= when_label %></span>
+              </div>
+              <div class="agenda-row__chips">
+                <% visible.each_with_index do |cs, ci| %>
                   <a href="<%= research_parcels_path(county: cs[:name], state: cs[:state]) %>"
-                     class="auction-card__chip"
-                     title="View properties in <%= cs[:name] %>"
-                     onclick="event.stopPropagation()"><%= cs[:name] %></a>
+                     onclick="event.stopPropagation()"
+                     title="View properties in <%= cs[:name] %><%= cs[:parcel_count] && cs[:parcel_count] > 0 ? " · #{cs[:parcel_count]} parcels" : '' %>"
+                     class="agenda-chip<%= ci == 0 && visible.size > 1 ? ' agenda-chip--featured' : '' %>"><%= cs[:name] %></a>
                 <% end %>
-                <% if counties_list.size > 3 %>
-                  <span class="auction-card__chip auction-card__chip--more">+<%= counties_list.size - 3 %></span>
+                <% if extra > 0 %>
+                  <span class="agenda-chip agenda-chip--extra">+<%= extra %></span>
                 <% end %>
               </div>
-              <div class="auction-card__when auction-card__when--<%= tone %>"><%= when_label %></div>
             </div>
-          </a>
+          </div>
         <% end %>
       </div>
     </div>
@@ -194,13 +206,7 @@
             diff_days_c = next_date.is_a?(Date) ? (next_date - Date.today).to_i : 99
             urgent = diff_days_c <= 2
             # heat color based on parcel_count
-            heat_fill = case props_count
-                        when 0 then "oklch(0.93 0.03 158)"
-                        when 1..5 then "oklch(0.84 0.08 155)"
-                        when 6..20 then "oklch(0.70 0.14 155)"
-                        when 21..50 then "oklch(0.52 0.17 155)"
-                        else "oklch(0.36 0.14 158)"
-                        end
+            heat_fill = props_count > 0 ? "oklch(0.62 0.17 155)" : "#FFFFFF"
           %>
           <a href="<%= research_parcels_path(county: county[:county], state: county[:state]) %>"
              class="county-row"
@@ -225,17 +231,6 @@
       </div>
     </div>
 
-    <%# ── Heat legend (bottom-center) ── %>
-    <div class="atlas__legend">
-      <div class="heat-legend">
-        <span class="heat-legend__title">Properties up for bid</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.93 0.03 158)"></i>0</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.84 0.08 155)"></i>1–5</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.70 0.14 155)"></i>6–20</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.52 0.17 155)"></i>21–50</span>
-        <span class="heat-legend__item"><i style="background: oklch(0.36 0.14 158)"></i>51+</span>
-      </div>
-    </div>
 
     <%# ── KPI strip (bottom) ── %>
     <div class="atlas__kpis">

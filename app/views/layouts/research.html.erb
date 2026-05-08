@@ -232,6 +232,15 @@
            class="nav-item <%= 'nav-item--active' if controller_name == 'portfolio' %>">
           My Pipeline
         </a>
+        <%# ── Rama 6: Clear-to-Bid (Premier-only payload, teaser + upsell para resto) ── %>
+        <a href="<%= research_clear_to_bid_path %>"
+           class="nav-item <%= 'nav-item--active' if controller_name == 'clear_to_bid' %>"
+           style="gap:6px;">
+          Clear-to-Bid
+          <span style="font:600 9px var(--font-mono); padding:2px 6px; border-radius:4px;
+                       background:oklch(0.92 0.06 70); color:oklch(0.42 0.13 70);
+                       letter-spacing:0.05em;">PREMIER</span>
+        </a>
         <a href="<%= research_purchased_reports_path %>"
            class="nav-item <%= 'nav-item--active' if controller_name == 'purchased_reports' %>">
           Reports

@@ -55,27 +55,37 @@
   </div>
 </div>
 
-<%# ── Próximas subastas (TODAS las cards del pipeline con sale_date futura) ── %>
+<%# ── Próximas subastas (colapsable, muestra 5 por defecto) ── %>
 <% if @upcoming_pipeline.any? %>
+<% upcoming_limit = 5 %>
 <section class="upcoming-auctions" style="margin: 16px 24px; padding: 16px 18px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;">
-  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; cursor:pointer; user-select:none;"
+       onclick="plToggleUpcoming()" id="upcoming-header">
     <h3 style="font:600 14px var(--font-sans); color:var(--ink-1); margin:0;">
       📅 Próximas subastas
       <span style="font:500 11px var(--font-mono); color:var(--ink-3); margin-left:6px;">
         (<%= @upcoming_pipeline.size %>)
       </span>
     </h3>
+    <span id="upcoming-toggle-icon"
+          style="font-size:18px; color:var(--ink-3); transition:transform 0.3s ease; transform:rotate(0deg);">
+      ▾
+    </span>
   </div>
-  <div style="display:flex; flex-direction:column; gap:6px;">
-    <% @upcoming_pipeline.each do |pp| %>
+  <div id="upcoming-list" style="display:flex; flex-direction:column; gap:6px; overflow:hidden; transition: max-height 0.4s ease, opacity 0.3s ease;">
+    <% @upcoming_pipeline.each_with_index do |pp, idx| %>
       <% p = pp.parcel; a = p.auction; days = (a.sale_date - Date.current).to_i %>
       <% watch = @watch_by_parcel[p.id] %>
       <% urgent = days == 0 || (watch && days <= watch.notify_days_before) %>
       <a href="<%= research_parcel_path(p) %>"
+         class="upcoming-auction-row"
+         data-upcoming-idx="<%= idx %>"
          style="display:grid; grid-template-columns: 90px 1fr auto auto; align-items:center; gap:12px;
                 padding:10px 12px; border-radius:8px; text-decoration:none; color:var(--ink-1);
                 background: <%= urgent ? 'oklch(0.95 0.05 60)' : 'var(--surface-2)' %>;
-                border-left: 3px solid <%= urgent ? '#E67E22' : 'var(--border)' %>;">
+                border-left: 3px solid <%= urgent ? '#E67E22' : 'var(--border)' %>;
+                transition: opacity 0.25s ease, max-height 0.3s ease;
+                <%= idx >= upcoming_limit ? 'display:none;' : '' %>">
         <span style="font:600 12px var(--font-mono); color: <%= urgent ? '#E67E22' : 'var(--ink-2)' %>;">
           <%= days == 0 ? "HOY" : (days == 1 ? "Mañana" : "en #{days}d") %>
         </span>
@@ -89,6 +99,17 @@
       </a>
     <% end %>
   </div>
+  <% if @upcoming_pipeline.size > upcoming_limit %>
+    <button id="upcoming-show-more"
+            onclick="event.stopPropagation(); plToggleUpcomingAll()"
+            style="display:flex; align-items:center; justify-content:center; gap:6px;
+                   width:100%; margin-top:10px; padding:8px 0; border:1px dashed var(--border);
+                   border-radius:8px; background:transparent; color:var(--ink-2);
+                   font:500 12px var(--font-sans); cursor:pointer; transition:all 0.2s ease;">
+      <span id="upcoming-btn-text">Mostrar todas (<%= @upcoming_pipeline.size - upcoming_limit %> más)</span>
+      <span id="upcoming-btn-icon" style="font-size:14px; transition:transform 0.3s ease;">▼</span>
+    </button>
+  <% end %>
 </section>
 <% end %>
 
@@ -216,6 +237,60 @@
 
   var PF_BASE_PATH = '<%= request.path %>';
   var CSRF_TOKEN   = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+  // ── Upcoming Auctions — Collapse / Expand ───────────────────────────
+  var _upcomingCollapsed = false;
+  var _upcomingExpanded  = false;
+  var UPCOMING_LIMIT     = 5;
+
+  function plToggleUpcoming() {
+    var list  = document.getElementById('upcoming-list');
+    var icon  = document.getElementById('upcoming-toggle-icon');
+    var btn   = document.getElementById('upcoming-show-more');
+
+    _upcomingCollapsed = !_upcomingCollapsed;
+
+    if (_upcomingCollapsed) {
+      list.style.maxHeight  = '0';
+      list.style.opacity    = '0';
+      list.style.marginTop  = '0';
+      icon.style.transform  = 'rotate(-90deg)';
+      if (btn) btn.style.display = 'none';
+    } else {
+      list.style.maxHeight  = list.scrollHeight + 'px';
+      list.style.opacity    = '1';
+      list.style.marginTop  = '';
+      icon.style.transform  = 'rotate(0deg)';
+      if (btn) btn.style.display = 'flex';
+      // Reset max-height after transition so dynamically added content works
+      setTimeout(function() { list.style.maxHeight = 'none'; }, 450);
+    }
+  }
+
+  function plToggleUpcomingAll() {
+    _upcomingExpanded = !_upcomingExpanded;
+    var rows    = document.querySelectorAll('.upcoming-auction-row');
+    var btnText = document.getElementById('upcoming-btn-text');
+    var btnIcon = document.getElementById('upcoming-btn-icon');
+
+    rows.forEach(function(row) {
+      var idx = parseInt(row.dataset.upcomingIdx, 10);
+      if (idx >= UPCOMING_LIMIT) {
+        row.style.display = _upcomingExpanded ? 'grid' : 'none';
+      }
+    });
+
+    if (_upcomingExpanded) {
+      btnText.textContent = 'Mostrar menos';
+      btnIcon.textContent = '▲';
+      btnIcon.style.transform = 'rotate(180deg)';
+    } else {
+      var hiddenCount = rows.length - UPCOMING_LIMIT;
+      btnText.textContent = 'Mostrar todas (' + hiddenCount + ' más)';
+      btnIcon.textContent = '▼';
+      btnIcon.style.transform = 'rotate(0deg)';
+    }
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────────
   function plHeaders() {

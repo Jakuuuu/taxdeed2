@@ -16,6 +16,10 @@
 #   - Acepta auction_cache opcional para evitar N+1 find_or_create_by!
 #   - No retiene referencias a objetos Parcel después de save!
 #
+# 🆕 RAMA 6 (2026-05-07):
+#   - Mapea col F "Notas" → clear_to_bid_grade vía derive_clear_to_bid_grade.
+#   - Vocabulario controlado: deficiente | viable | optimo (lowercase, ASCII).
+#
 class SheetRowProcessor
   include SheetColumnMap
 
@@ -34,10 +38,16 @@ class SheetRowProcessor
     google_maps_url:        GOOGLE_MAPS_URL,        # 30 (AE)
     fema_url:               FEMA_URL,               # 42 (AQ)
     property_image_url:     PROPERTY_IMAGE_URL,     # 44 (AS)
-    property_appraiser_url: PROPERTY_APPRAISER_URL,  # 77 (BZ)
+    property_appraiser_url: PROPERTY_APPRAISER_URL, # 77 (BZ)
     clerk_url:              CLERK_URL,              # 78 (CA)
     tax_collector_url:      TAX_COLLECTOR_URL,      # 79 (CB)
   }.freeze
+
+  # ── CLEAR-TO-BID — vocabulario controlado (Rama 6) ──────────────────────────
+  CTB_GRADE_DEFICIENTE = "deficiente"
+  CTB_GRADE_VIABLE     = "viable"
+  CTB_GRADE_OPTIMO     = "optimo"
+  CTB_GRADES_ALLOWED   = [CTB_GRADE_DEFICIENTE, CTB_GRADE_VIABLE, CTB_GRADE_OPTIMO].freeze
 
   # ── API PÚBLICA ────────────────────────────────────────────────────────────
   # auction_cache: Hash opcional { "state|county|date" => Auction }
@@ -191,11 +201,29 @@ class SheetRowProcessor
       last_synced_at:       Time.current
     }
 
+    # ── 🆕 RAMA 6 — CLEAR-TO-BID GRADE (col F "Notas") ────────────────────
+    # Espejo Infalible: celda vacía → nil. Cualquier raw fuera del vocabulario
+    # controlado → nil + log de warning (no raise).
+    # LOCK POLICY: si el parcel persistido tiene `clear_to_bid_grade_locked = true`,
+    # el sync NO sobrescribe el grade (preserva el override admin). En caso
+    # contrario, gana el Sheet (Espejo Infalible).
+    locked = parcel.persisted? && parcel.respond_to?(:clear_to_bid_grade_locked?) && parcel.clear_to_bid_grade_locked?
+    attrs[:clear_to_bid_grade] = derive_clear_to_bid_grade(col(NOTAS)) unless locked
+
     # ── GUARD: CRM IMMUNITY CHECK ────────────────────────────────────────────
     enforce_crm_immunity!(attrs)
 
     parcel.assign_attributes(attrs)
     parcel.save!
+
+    # ── 🆕 RAMA 6 — Polygon pre-compute (asíncrono) ──────────────────────
+    # Solo enqueue si la parcela es Clear-to-Bid eligible y no tiene polygon_encoded.
+    # El job es idempotente y skipea silenciosamente si el condado no está
+    # en COUNTY_GIS_REGISTRY. No bloquea el sync.
+    if parcel.respond_to?(:clear_to_bid?) && parcel.clear_to_bid? &&
+       parcel.respond_to?(:polygon_encoded) && parcel.polygon_encoded.blank?
+      EncodeParcelPolygonJob.perform_later(parcel.id)
+    end
 
     result
   end
@@ -229,6 +257,36 @@ class SheetRowProcessor
     { latitude: lat, longitude: lng }
   rescue ArgumentError
     { latitude: nil, longitude: nil }
+  end
+
+  # ── CLEAR-TO-BID — Normalización de la columna 'Notas' (Rama 6) ────────────
+  # Reglas:
+  #   - "deficiente" / "deficient" / "no viable" / "not viable" → "deficiente"
+  #   - "optimo" / "óptimo" / "optimal" / "premium"             → "optimo"
+  #   - "viable" / "ok" / "aceptable" / "acceptable"            → "viable"
+  #   - cualquier otro string o vacío                            → nil (Espejo Infalible)
+  #
+  # Match exacto post-normalización (transliterate + strip + downcase + collapse spaces).
+  # Texto extra ("optimo - revisar") → nil — no usamos include? para evitar falsos positivos.
+  def derive_clear_to_bid_grade(raw)
+    return nil if raw.blank?
+
+    needle = I18n.transliterate(raw.to_s).downcase.strip.gsub(/\s+/, " ")
+    return nil if needle.empty?
+
+    case needle
+    when "deficiente", "deficient", "no viable", "not viable"
+      CTB_GRADE_DEFICIENTE
+    when "optimo", "optimal", "premium"
+      CTB_GRADE_OPTIMO
+    when "viable", "ok", "aceptable", "acceptable"
+      CTB_GRADE_VIABLE
+    else
+      Rails.logger.tagged("Sheet:CTB") do
+        Rails.logger.info("[derive_clear_to_bid_grade] Unmapped value=#{raw.inspect} → nil")
+      end
+      nil
+    end
   end
 
   # ── HELPERS ───────────────────────────────────────────────────────────────────

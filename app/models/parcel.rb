@@ -16,6 +16,12 @@ class Parcel < ApplicationRecord
   # Triple capa: constraint BD (NOT NULL + UNIQUE) + validación modelo.
   validates :state, :county, :parcel_id, presence: true
 
+  # ── 🆕 RAMA 6 — Clear-to-Bid (vocabulario controlado) ────────────────
+  CLEAR_TO_BID_GRADES = %w[deficiente viable optimo].freeze
+
+  validates :clear_to_bid_grade,
+            inclusion: { in: CLEAR_TO_BID_GRADES, allow_nil: true }
+
   # ── Alias: nombres usados en vistas → columnas reales en BD ─────
   alias_attribute :zip_code,         :zip           # vista usa zip_code, BD tiene zip
   alias_attribute :living_area_sqft, :sqft_living   # vista usa living_area_sqft, BD tiene sqft_living
@@ -36,6 +42,14 @@ class Parcel < ApplicationRecord
   scope :min_bid,      ->(n)      { where("opening_bid >= ?", n) }
   scope :max_bid,      ->(n)      { where("opening_bid <= ?", n) }
   scope :has_coords,              -> { where.not(latitude: nil).where.not(longitude: nil) }
+
+  # 🆕 Rama 6 — Clear-to-Bid scopes
+  # `clear_to_bid` retorna SOLO parcels recomendables (viable u optimo).
+  # 'deficiente' se descarta del catálogo Premier — no es recomendación.
+  scope :clear_to_bid, -> { where(clear_to_bid_grade: %w[viable optimo]) }
+  scope :by_clear_to_bid_grade, ->(grade) {
+    where(clear_to_bid_grade: grade) if CLEAR_TO_BID_GRADES.include?(grade.to_s)
+  }
 
   # ── Time-based scopes (Motor de Tiempo) ──────────────────────────
   # Parcelas cuya subasta tiene sale_date >= hoy → activas
@@ -77,6 +91,23 @@ class Parcel < ApplicationRecord
     else
       stored
     end
+  end
+
+  # ── 🆕 RAMA 6 — Clear-to-Bid predicates ──────────────────────────
+  def clear_to_bid?
+    %w[viable optimo].include?(clear_to_bid_grade)
+  end
+
+  def optimo?
+    clear_to_bid_grade == "optimo"
+  end
+
+  def viable?
+    clear_to_bid_grade == "viable"
+  end
+
+  def deficiente?
+    clear_to_bid_grade == "deficiente"
   end
 
   # ── Helpers ───────────────────────────────────────────────────

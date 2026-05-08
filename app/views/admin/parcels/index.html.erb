@@ -1,0 +1,87 @@
+<%# ══════════════════════════════════════════════════════════════════════
+     ADMIN — Parcels Index (Override Clear-to-Bid grade)
+     Layout 'admin'. Permite filtrar por state/county/grade y editar
+     clear_to_bid_grade inline. NUNCA edita otros campos (Espejo Infalible).
+     ══════════════════════════════════════════════════════════════════════ %>
+
+<% content_for :title, "Admin — Parcels" %>
+
+<div class="admin-page">
+  <header class="admin-header">
+    <h1>Parcels — Clear-to-Bid Override</h1>
+    <p class="admin-subtitle">Edita manualmente el grade. Otros campos vienen del Sheet (Espejo Infalible).</p>
+  </header>
+
+  <%# Filter form %>
+  <form action="<%= admin_parcels_path %>" method="get" class="admin-filters" style="display:flex;gap:12px;align-items:end;margin-bottom:16px;flex-wrap:wrap;">
+    <label>State
+      <input type="text" name="state" value="<%= params[:state] %>" placeholder="FL" />
+    </label>
+    <label>County
+      <input type="text" name="county" value="<%= params[:county] %>" placeholder="Lee" />
+    </label>
+    <label>Grade
+      <select name="grade">
+        <option value="">Cualquiera</option>
+        <% @grades.each do |g| %>
+          <option value="<%= g %>" <%= "selected" if params[:grade] == g %>><%= g.capitalize %></option>
+        <% end %>
+      </select>
+    </label>
+    <label>Buscar
+      <input type="text" name="q" value="<%= params[:q] %>" placeholder="address / parcel_id" />
+    </label>
+    <button type="submit">Aplicar</button>
+    <%= link_to "Limpiar", admin_parcels_path %>
+  </form>
+
+  <%# Results table %>
+  <table class="admin-table" style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th>State</th>
+        <th>County</th>
+        <th>Parcel ID</th>
+        <th>Address</th>
+        <th>Grade actual</th>
+        <th>Override</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @parcels.each do |p| %>
+        <tr style="border-top:1px solid #eee;">
+          <td><%= p.state %></td>
+          <td><%= p.county %></td>
+          <td><code><%= p.parcel_id %></code></td>
+          <td><%= p.address %></td>
+          <td>
+            <% if p.clear_to_bid_grade.present? %>
+              <span class="badge badge-<%= p.clear_to_bid_grade %>"><%= p.clear_to_bid_grade %></span>
+            <% else %>
+              <em>Sin clasificar</em>
+            <% end %>
+          </td>
+          <td>
+            <%= form_with url: admin_parcel_path(p), method: :patch, local: true, html: { style: "display:flex;gap:8px;align-items:center;" } do |f| %>
+              <%= f.fields_for :parcel, p, include_id: false do |pf| %>
+                <%= pf.select :clear_to_bid_grade,
+                              [["—", ""]] + Parcel::CLEAR_TO_BID_GRADES.map { |g| [g.capitalize, g] },
+                              { selected: p.clear_to_bid_grade } %>
+                <label style="font-size:11px;color:#666;display:inline-flex;align-items:center;gap:4px;" title="Si está activo, el sync del Sheet NO sobrescribe este grade">
+                  <%= pf.hidden_field :clear_to_bid_grade_locked, value: "0" %>
+                  <%= pf.check_box :clear_to_bid_grade_locked, { checked: p.clear_to_bid_grade_locked? }, "1", "0" %>
+                  Lock
+                </label>
+              <% end %>
+              <button type="submit">Guardar</button>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <% if @parcels.empty? %>
+    <p style="margin-top:24px;color:#666;">Sin resultados con esos filtros.</p>
+  <% end %>
+</div>

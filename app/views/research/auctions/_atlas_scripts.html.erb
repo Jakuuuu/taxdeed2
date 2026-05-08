@@ -37,11 +37,8 @@ url:"<%= research_parcels_path(county: cr[:county], state: cr[:state]) %>"};
 <% end %>
 
 function hc(n){
- if(n===0)return{f:"oklch(0.93 0.03 158)",s:"oklch(0.85 0.04 158)"};
- if(n<=5)return{f:"oklch(0.84 0.08 155)",s:"oklch(0.72 0.10 155)"};
- if(n<=20)return{f:"oklch(0.70 0.14 155)",s:"oklch(0.58 0.16 155)"};
- if(n<=50)return{f:"oklch(0.52 0.17 155)",s:"oklch(0.42 0.14 158)"};
- return{f:"oklch(0.36 0.14 158)",s:"oklch(0.28 0.12 155)"};
+ if(n===0)return{f:"#FFFFFF",s:"#E0E0E0"};
+ return{f:"oklch(0.62 0.17 155)",s:"oklch(0.48 0.14 155)"};
 }
 
 // ═══════════════════════════════════════
@@ -117,8 +114,8 @@ function renderMap(){
  function resetCounty(item){
   if(!item)return;
   item.g.style.transform="translate(0,0) scale(1)";item.g.style.filter="none";
-  item.p.setAttribute("fill",item.origFill);item.p.setAttribute("stroke","var(--surface-1)");
-  item.p.setAttribute("stroke-width","0.6");if(item.lg)item.lg.style.opacity="0";
+  item.p.setAttribute("fill",item.origFill);item.p.setAttribute("stroke","#2C3E50");
+  item.p.setAttribute("stroke-width","1.2");if(item.lg)item.lg.style.opacity="0";
  }
  for(var id in P){(function(id){
   var c=CD[id]||{id:id,name:(L[id]||{}).name||id,state:"Florida",props:0,next:"—",url:""};
@@ -130,7 +127,7 @@ function renderMap(){
   var p=document.createElementNS(ns,"path");
   p.setAttribute("d",P[id]);p.setAttribute("fill",co.f);
   p.dataset.origFill=co.f;
-  p.setAttribute("stroke","var(--surface-1)");p.setAttribute("stroke-width","0.6");
+  p.setAttribute("stroke","#2C3E50");p.setAttribute("stroke-width","1.2");
   p.setAttribute("stroke-linejoin","round");p.setAttribute("vector-effect","non-scaling-stroke");
   p.style.transition="fill 200ms ease,stroke 200ms ease";
   g.appendChild(p);
@@ -332,8 +329,8 @@ function boot(){
           var path = g.querySelector("path");
           if(path && path.dataset.origFill){
             path.setAttribute("fill", path.dataset.origFill);
-            path.setAttribute("stroke", "var(--surface-1)");
-            path.setAttribute("stroke-width", "0.6");
+            path.setAttribute("stroke", "#2C3E50");
+            path.setAttribute("stroke-width", "1.2");
           }
           // Hide hover label
           var label = g.querySelector("g[style*='pointer-events']");
