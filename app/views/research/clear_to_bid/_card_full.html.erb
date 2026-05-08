@@ -1,73 +1,160 @@
 <%# ─ PARTIAL: _card_full.html.erb ─────────────────────────────────────────
-    Premier card. Static-map photo (with polygon when available),
-    full address/parcel_id/opening_bid, semantic grade badge,
-    click-through to Rama 2 (/research/parcels/:id).
+    Premier card. Static-map photo (con polígono naranja servido por Google
+    Maps Static API cuando hay polygon_encoded), badges flotantes (grade,
+    lot id, lat/long), data table con 4 métricas, footer "View dossier"
+    enlazado a Rama 2 (research_parcel_path).
 
     Locals: parcel — Hash construido por ClearToBidPayload#clear_to_bid_full
             con keys: :id, :parcel_id, :state, :county, :address,
-                      :latitude, :longitude, :opening_bid,
-                      :clear_to_bid_grade, :auction (Hash o nil)
+                      :latitude, :longitude, :polygon_encoded, :opening_bid,
+                      :market_value, :year_built, :lot_area_acres,
+                      :property_type, :clear_to_bid_grade, :auction
 ─────────────────────────────────────────────────────────────────────────── %>
 
-<%# El helper static_map_url usa polygon_encoded si está presente
-    (pre-computado por EncodeParcelPolygonJob desde ArcGIS REST del condado);
-    fallback automático a marker si el condado no está en el registry. %>
 <% map_struct = OpenStruct.new(
      latitude:        parcel[:latitude],
      longitude:       parcel[:longitude],
      polygon_encoded: parcel[:polygon_encoded]
    ) %>
+<% coords_label   = format_coords(parcel[:latitude], parcel[:longitude]) %>
+<% lot_label      = lot_short_id(parcel[:parcel_id]) %>
+<% subtitle       = property_type_label(parcel) %>
+<% sale_date      = parcel.dig(:auction, :sale_date) %>
+<% has_polygon    = parcel[:polygon_encoded].present? %>
 
-<%= link_to research_parcel_path(parcel[:id]),
-            class: "group block bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition overflow-hidden",
-            data: { grade: parcel[:clear_to_bid_grade].to_s,
-                    grade_filter_target: "card" } do %>
+<article class="card-lift group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg flex flex-col"
+         data-grade="<%= parcel[:clear_to_bid_grade].to_s %>"
+         data-grade-filter-target="card">
 
-  <%# ── Static map photo (sharp) ───────────────────────────────────── %>
-  <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+  <%# ── Map preview (4:3) ──────────────────────────────────────────── %>
+  <div class="relative aspect-[4/3] overflow-hidden bg-slate-100">
     <% if (map_url = static_map_url(map_struct)) %>
       <%= image_tag map_url,
             alt: "Aerial view of parcel #{parcel[:parcel_id]}",
             loading: "lazy",
-            class: "w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300",
+            class: "absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300",
             onerror: "this.style.display='none'" %>
     <% else %>
-      <div class="w-full h-full grid place-items-center text-gray-400 text-xs">
+      <div class="absolute inset-0 grid place-items-center text-slate-400 text-xs">
         Map unavailable
       </div>
     <% end %>
 
-    <%# Grade badge — top-right %>
-    <span class="absolute top-3 right-3 inline-flex items-center gap-1.5 <%= grade_badge_classes(parcel[:clear_to_bid_grade]) %> px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm">
-      <span class="w-1.5 h-1.5 rounded-full <%= grade_dot_class(parcel[:clear_to_bid_grade]) %>"></span>
-      <%= grade_label(parcel[:clear_to_bid_grade]) %>
-    </span>
+    <%# Decorative SVG polygon — solo cuando NO hay polígono real en la
+        foto satélite (evita doble polígono superpuesto). %>
+    <% unless has_polygon %>
+      <svg viewBox="0 0 400 300" preserveAspectRatio="none" class="absolute inset-0 w-full h-full pointer-events-none">
+        <polygon points="148,108 252,98 268,182 156,196 138,148"
+                 fill="rgba(255,235,160,0.18)" stroke="#fff8d8"
+                 stroke-width="2.5" stroke-linejoin="round"/>
+        <polygon points="148,108 252,98 268,182 156,196 138,148"
+                 fill="none" stroke="#f5cf4d" stroke-width="1.5"
+                 stroke-linejoin="round"/>
+      </svg>
+    <% end %>
+
+    <%# Top row: grade badge (left) + lot id (right) %>
+    <div class="absolute top-3 left-3 right-3 flex items-start justify-between">
+      <span class="inline-flex items-center gap-1.5 <%= grade_badge_classes(parcel[:clear_to_bid_grade]) %> px-2 py-1 rounded-md font-mono uppercase tracking-[0.1em] text-[10.5px] font-bold shadow-sm backdrop-blur-sm">
+        <span class="w-1.5 h-1.5 rounded-full <%= grade_dot_class(parcel[:clear_to_bid_grade]) %>"></span>
+        <%= grade_label(parcel[:clear_to_bid_grade]) %>
+      </span>
+      <% if lot_label.present? %>
+        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm text-white text-[10px] font-mono">
+          <svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true">
+            <path d="M12 2 9 9l-7 .5 5.5 4.5L6 22l6-3.8L18 22l-1.5-8 5.5-4.5L15 9z"/>
+          </svg>
+          <%= lot_label %>
+        </span>
+      <% end %>
+    </div>
+
+    <%# Bottom row: lat/long (left) + Satellite indicator (right) %>
+    <div class="absolute bottom-3 left-3 right-3 flex items-end justify-between text-white">
+      <% if coords_label %>
+        <div class="font-mono text-[10px] tracking-wider opacity-90 leading-tight px-1.5 py-0.5 rounded bg-black/35 backdrop-blur-sm">
+          <%= coords_label %>
+        </div>
+      <% else %>
+        <span></span>
+      <% end %>
+      <div class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/90 text-slate-700 text-[10px] font-mono">
+        <span class="w-1 h-1 rounded-full bg-emerald-500"></span> Satellite
+      </div>
+    </div>
   </div>
 
   <%# ── Body ───────────────────────────────────────────────────────── %>
-  <div class="p-4 space-y-2">
-    <h3 class="font-semibold text-gray-900 text-base leading-tight line-clamp-2">
-      <%= parcel[:address].presence || "Address pending" %>
-    </h3>
-
-    <div class="flex items-center justify-between text-xs">
-      <span class="font-mono text-gray-500">
-        <%= parcel[:parcel_id] %>
-      </span>
-      <span class="text-gray-400">
-        <%= [parcel[:county], parcel[:state]].compact.join(", ") %>
-      </span>
+  <div class="p-5 flex flex-col gap-4 flex-1">
+    <div>
+      <div class="flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold mb-1.5">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M12 22s8-7 8-13a8 8 0 1 0-16 0c0 6 8 13 8 13z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
+        <%= [parcel[:county], parcel[:state]].compact.reject(&:blank?).join(" · ") %>
+      </div>
+      <h3 class="text-[16px] font-semibold leading-snug text-slate-900 line-clamp-2">
+        <%= parcel[:address].presence || "Address pending" %>
+      </h3>
+      <% if subtitle %>
+        <div class="text-[12.5px] text-slate-500 mt-0.5"><%= subtitle %></div>
+      <% end %>
     </div>
 
-    <div class="pt-2 border-t border-gray-100 flex items-baseline justify-between">
-      <span class="text-xs uppercase tracking-wide text-gray-500">Opening bid</span>
-      <span class="text-lg font-semibold text-gray-900">
-        <% if parcel[:opening_bid].present? %>
-          <%= number_to_currency(parcel[:opening_bid], precision: 0) %>
-        <% else %>
-          <span class="text-gray-400 text-sm font-normal">TBD</span>
-        <% end %>
-      </span>
+    <%# Data table — 2x2 grid con métricas verificables %>
+    <dl class="grid grid-cols-2 gap-x-4 gap-y-3 pt-3 border-t border-slate-100">
+      <div>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Min bid</dt>
+        <dd class="font-display text-[22px] leading-none mt-1 text-slate-900">
+          <% if parcel[:opening_bid].present? %>
+            <%= number_to_currency(parcel[:opening_bid], precision: 0) %>
+          <% else %>
+            <span class="text-slate-400 text-[14px] font-normal">TBD</span>
+          <% end %>
+        </dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Market value</dt>
+        <dd class="font-display text-[22px] leading-none mt-1 text-slate-900">
+          <% if parcel[:market_value].present? %>
+            <%= number_to_currency(parcel[:market_value], precision: 0) %>
+          <% else %>
+            <span class="text-slate-400 text-[14px] font-normal">—</span>
+          <% end %>
+        </dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Auction</dt>
+        <dd class="text-[13px] mt-1 font-medium text-slate-900">
+          <%= sale_date ? sale_date.strftime("%b %d, %Y") : "TBD" %>
+        </dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Type</dt>
+        <dd class="text-[13px] mt-1 font-mono font-semibold text-slate-700 truncate">
+          <%= parcel[:property_type].presence || "—" %>
+        </dd>
+      </div>
+    </dl>
+
+    <%# Footer ─ View dossier (Rama 2) + save (cosmético) %>
+    <div class="flex items-center gap-2 pt-3 mt-auto border-t border-slate-100">
+      <%= link_to research_parcel_path(parcel[:id]),
+            class: "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 text-white text-[12.5px] font-medium hover:bg-slate-800 transition" do %>
+        View dossier
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M5 12h14M13 5l7 7-7 7"/>
+        </svg>
+      <% end %>
+      <button type="button"
+              class="w-9 h-9 grid place-items-center rounded-lg border border-slate-200 hover:bg-slate-50 transition"
+              title="Save"
+              aria-label="Save parcel">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        </svg>
+      </button>
     </div>
   </div>
-<% end %>
+</article>

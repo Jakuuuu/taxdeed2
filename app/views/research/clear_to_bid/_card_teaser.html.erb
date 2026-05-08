@@ -1,69 +1,117 @@
 <%# ─ PARTIAL: _card_teaser.html.erb ───────────────────────────────────────
-    Non-premier card. HTML "limpio" — el server NO emite address, parcel_id
-    externo, coords, opening_bid. Visualmente: foto regional difuminada,
-    teaser blob tachado, badge de grade visible (es el hook de upsell),
-    CTA naranja "Unlock with Premier".
+    Non-Premier card. El server NO emite address, parcel_id externo, coords,
+    opening_bid. Visualmente: foto regional con shield (backdrop-blur),
+    candado naranja central, badge "Exclusivo Premier" con shimmer dorado,
+    body con valores literales blureados, CTA naranja "Upgrade a Premier".
+
+    REGLA NARANJA #E67E22 — exclusivo CTA transaccional + lock icon.
 
     Locals: teaser — Hash construido por ClearToBidPayload#clear_to_bid_skeleton
             con keys: :id, :state, :county, :clear_to_bid_grade, :teaser
 ─────────────────────────────────────────────────────────────────────────── %>
 
-<article class="relative bg-white rounded-xl border border-gray-200 overflow-hidden"
+<article class="card-lift group relative bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg flex flex-col"
          data-grade="<%= teaser[:clear_to_bid_grade] %>"
          data-grade-filter-target="card">
 
-  <%# ── Blurred regional placeholder (NO leak de coords reales) ────── %>
-  <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+  <%# ── Map shield (regional placeholder, NUNCA coords reales) ─────── %>
+  <div class="relative aspect-[4/3] overflow-hidden bg-slate-100">
     <% if (placeholder = teaser_placeholder_map_url(teaser)) %>
       <%= image_tag placeholder,
             alt: "Locked parcel preview",
             loading: "lazy",
-            class: "w-full h-full object-cover blur-sm grayscale opacity-60" %>
+            class: "absolute inset-0 w-full h-full object-cover" %>
     <% else %>
-      <div class="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 blur-sm"></div>
+      <div class="absolute inset-0 bg-gradient-to-br from-slate-200 to-slate-300"></div>
     <% end %>
 
-    <%# Premier corner badge %>
-    <span class="absolute top-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 shadow-sm">
-      Premier
-    </span>
+    <%# Decorative SVG polygon (genérico, no es el polígono real) %>
+    <svg viewBox="0 0 400 300" preserveAspectRatio="none" class="absolute inset-0 w-full h-full pointer-events-none">
+      <polygon points="140,100 270,90 280,180 150,200"
+               fill="rgba(255,235,160,0.10)" stroke="#fff8d8"
+               stroke-width="2" stroke-linejoin="round"/>
+    </svg>
 
-    <%# Grade badge stays visible — it's the upsell hook %>
-    <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 <%= grade_badge_classes(teaser[:clear_to_bid_grade]) %> px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm">
-      <span class="w-1.5 h-1.5 rounded-full <%= grade_dot_class(teaser[:clear_to_bid_grade]) %>"></span>
-      <%= grade_label(teaser[:clear_to_bid_grade]) %>
-    </span>
+    <%# Heavy blur shield over map %>
+    <div class="absolute inset-0 backdrop-blur-md bg-white/30"></div>
 
-    <%# Centered overlay CTA — REGLA NARANJA #E67E22 (CTA transaccional) %>
-    <div class="absolute inset-0 grid place-items-center bg-black/10">
-      <%= link_to research_settings_path(anchor: "billing"),
-            class: "inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold text-white bg-[#E67E22] hover:bg-[#D86E0E] shadow-md transition" do %>
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 11V7a4 4 0 118 0m-9 4h10a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6a2 2 0 012-2z"/>
+    <%# Top row: Premier exclusive (left) + locked lot id (right) %>
+    <div class="absolute top-3 left-3 right-3 flex items-start justify-between">
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md premier-shimmer text-stone-900 text-[10.5px] font-mono uppercase tracking-[0.12em] font-bold shadow">
+        <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true">
+          <path d="M12 2 9 9l-7 .5 5.5 4.5L6 22l6-3.8L18 22l-1.5-8 5.5-4.5L15 9z"/>
         </svg>
-        Unlock with Premier
-      <% end %>
+        Exclusivo Premier
+      </span>
+      <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm text-white text-[10px] font-mono">
+        <svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="5" y="11" width="14" height="10" rx="2"/>
+          <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+        </svg>
+        Lot ████-█
+      </span>
+    </div>
+
+    <%# Lock icon central — naranja transaccional %>
+    <div class="absolute inset-0 grid place-items-center">
+      <div class="w-14 h-14 rounded-full bg-white/90 backdrop-blur grid place-items-center shadow-lg ring-1 ring-slate-200">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#E67E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="5" y="11" width="14" height="10" rx="2"/>
+          <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+        </svg>
+      </div>
     </div>
   </div>
 
-  <%# ── Body — struck-through teaser blob ──────────────────────────── %>
-  <div class="p-4 space-y-2">
-    <h3 class="font-semibold leading-tight">
-      <span class="line-through text-gray-400">
-        <%= [teaser[:county], teaser[:state]].compact.join(", ").presence || "Address withheld" %>
-      </span>
-    </h3>
-
-    <div class="flex items-center justify-between text-xs">
-      <span class="font-mono line-through text-gray-400">PARCEL-XXXXXX</span>
-      <span class="text-gray-300 line-through">$XXX,XXX</span>
+  <%# ── Body teaser (valores LITERALES, no interpolados) ──────────── %>
+  <div class="relative p-5 flex flex-col gap-4 flex-1 lockscan">
+    <div>
+      <div class="flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold mb-1.5">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M12 22s8-7 8-13a8 8 0 1 0-16 0c0 6 8 13 8 13z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
+        <span class="line-through decoration-slate-300/80 decoration-2">
+          <%= [teaser[:county], teaser[:state]].compact.reject(&:blank?).join(" · ").presence || "Region withheld" %>
+        </span>
+      </div>
+      <h3 class="text-[16px] font-semibold leading-snug text-slate-900 select-none" style="filter: blur(5px);" aria-hidden="true">XXXX Address Withheld</h3>
+      <div class="text-[12.5px] text-slate-500 mt-0.5 select-none" style="filter: blur(4px);" aria-hidden="true">Property type · X.XX acres · Built XXXX</div>
     </div>
 
-    <div class="pt-2 border-t border-gray-100">
-      <p class="text-xs text-gray-500">
-        Analyst-graded <strong><%= grade_label(teaser[:clear_to_bid_grade]) %></strong>
-        opportunity. Upgrade to reveal address, polygon &amp; opening bid.
+    <dl class="grid grid-cols-2 gap-x-4 gap-y-3 pt-3 border-t border-slate-100">
+      <div>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Min bid</dt>
+        <dd class="font-display text-[22px] leading-none mt-1 text-slate-900 select-none" style="filter: blur(6px);" aria-hidden="true">$••,•••</dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Market value</dt>
+        <dd class="font-display text-[22px] leading-none mt-1 text-slate-900 select-none" style="filter: blur(6px);" aria-hidden="true">$•••,•••</dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Auction</dt>
+        <dd class="text-[13px] mt-1 font-medium text-slate-900 select-none" style="filter: blur(4px);" aria-hidden="true">Mmm ••, ••••</dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Internal grade</dt>
+        <dd class="text-[13px] mt-1 font-mono font-semibold text-slate-700 select-none" style="filter: blur(4px);" aria-hidden="true">████████</dd>
+      </div>
+    </dl>
+
+    <%# CTA naranja transaccional — única forma de desbloquear %>
+    <div class="pt-3 mt-auto border-t border-slate-100">
+      <%= link_to research_settings_path(anchor: "billing"),
+            class: "cta-orange w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-white text-[13px] font-semibold transition" do %>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+          <path d="M12 2 9 9l-7 .5 5.5 4.5L6 22l6-3.8L18 22l-1.5-8 5.5-4.5L15 9z"/>
+        </svg>
+        Upgrade a Premier
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <path d="M5 12h14M13 5l7 7-7 7"/>
+        </svg>
+      <% end %>
+      <p class="text-[11px] text-slate-500 text-center mt-2 leading-snug">
+        Acceso completo · Verificación legal · Clasificación interna
       </p>
     </div>
   </div>

@@ -1,95 +1,223 @@
 <%# ══════════════════════════════════════════════════════════════════════
      RAMA 6 — Clear-to-Bid Catalog
      Pre-qualified opportunities, hand-curated by analysts.
-     Branching:
-       - @upgrade_required == true  → renderiza @parcels_teaser (blur + upsell)
+
+     Branching server-side (NO se confía en CSS/JS para ocultar):
+       - @upgrade_required == true  → renderiza @parcels_teaser (HTML sin PII)
        - @upgrade_required == false → renderiza @parcels_full   (datos íntegros)
-     SEO/Layout: usa layout 'research' (header global ya inyectado).
+
+     Layout: 'research' (header global ya inyectado — NO redefinir aquí).
+     Tailwind: cargado vía CDN solo en esta página (content_for :head).
      ══════════════════════════════════════════════════════════════════════ %>
 
-<% content_for :title, "Clear-to-Bid Catalog — TaxDeed Lion" %>
+<% content_for :title, "Clear-to-Bid Catalog — LionTaxdeed" %>
 
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<% content_for :head do %>
+  <%# Tailwind CDN (solo Rama 6 — no afecta a otras vistas).
+      Preflight DESACTIVADO para preservar el header global de research.html.erb
+      (que usa estilos nativos de h1/h2/a/button + .nav-item, .rn-* del layout). %>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { corePlugins: { preflight: false } };</script>
 
-  <%# ── Header ────────────────────────────────────────────────────────── %>
-  <header class="mb-8">
-    <div class="flex items-center gap-3 mb-2">
-      <h1 class="text-3xl font-semibold tracking-tight text-gray-900">
-        Clear-to-Bid Catalog
-      </h1>
-      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
-        Premier-only
-      </span>
+  <%# Tipografía del rediseño Claude Design (Geist + Instrument Serif) %>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:wght@400&display=swap" rel="stylesheet">
+
+  <style>
+    :root { --orange-cta: #E67E22; }
+
+    /* Tipografías del rediseño */
+    .ctb-page { font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: rgb(15 23 42); background: #fafaf9; }
+    .ctb-page .font-display { font-family: 'Instrument Serif', serif; letter-spacing: -0.01em; }
+    .ctb-page .font-mono    { font-family: 'Geist Mono', ui-monospace, monospace; }
+
+    /* Subtle scan line on locked cards */
+    .lockscan {
+      background-image: repeating-linear-gradient(
+        135deg,
+        transparent 0,
+        transparent 8px,
+        rgba(15,23,42,0.025) 8px,
+        rgba(15,23,42,0.025) 9px
+      );
+    }
+
+    /* Card hover lift */
+    .card-lift {
+      transition: transform 280ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 280ms ease, border-color 280ms ease;
+      will-change: transform;
+    }
+    .card-lift:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px -16px rgba(15,23,42,0.18), 0 4px 12px -2px rgba(15,23,42,0.06);
+    }
+
+    /* CTA naranja transaccional — REGLA NARANJA #E67E22 */
+    .cta-orange {
+      background: var(--orange-cta);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.2),
+        0 4px 14px -4px rgba(230,126,34,0.5),
+        0 1px 2px rgba(0,0,0,0.08);
+    }
+    .cta-orange:hover {
+      background: #d3691a;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.2),
+        0 8px 22px -6px rgba(230,126,34,0.55),
+        0 1px 2px rgba(0,0,0,0.08);
+    }
+
+    /* Premier shimmer (badge dorado animado) */
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position:  200% 0; }
+    }
+    .premier-shimmer {
+      background: linear-gradient(90deg, #c79a4a 0%, #f0d28a 25%, #c79a4a 50%, #f0d28a 75%, #c79a4a 100%);
+      background-size: 200% 100%;
+      animation: shimmer 6s linear infinite;
+    }
+  </style>
+<% end %>
+
+<div class="ctb-page">
+
+  <%# ── Hero header ───────────────────────────────────────────────────── %>
+  <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+    <div class="flex items-end justify-between gap-8 flex-wrap">
+      <div class="max-w-2xl">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-amber-900 text-[10.5px] font-mono uppercase tracking-[0.12em] font-semibold">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            Branch 06
+          </span>
+          <span class="text-[10.5px] font-mono uppercase tracking-[0.12em] text-slate-400">
+            Curated · Updated <%= I18n.l(Time.current.to_date, format: :long) rescue Time.current.to_date.strftime("%b %d, %Y") %>
+          </span>
+        </div>
+        <h1 class="font-display text-[42px] sm:text-[56px] leading-[0.95] text-slate-900">
+          Clear-to-Bid <span class="italic text-slate-500">catalog</span>
+        </h1>
+        <p class="mt-4 text-[15px] text-slate-600 leading-relaxed max-w-xl">
+          Propiedades pre-investigadas y validadas por nuestro equipo legal.
+          Cada parcela ha pasado por verificación de título, análisis de
+          gravámenes y una clasificación interna de inversión.
+          Solo disponible para clientes <strong class="text-slate-900">Premier</strong>.
+        </p>
+      </div>
+
+      <%# ── Filter pills (solo Premier — los teaser cards no son filtrables individualmente) ── %>
+      <% unless @upgrade_required %>
+        <nav class="flex items-center gap-2 text-[13px]" aria-label="Grade filters" data-controller="grade-filter">
+          <% [
+                ['all',    'All',    'bg-slate-100 text-slate-800 border-slate-200'],
+                ['optimo', 'Óptimo', 'bg-emerald-50 text-emerald-800 border-emerald-200'],
+                ['viable', 'Viable', 'bg-amber-50 text-amber-800 border-amber-200']
+             ].each do |(value, label, classes)| %>
+            <button type="button"
+                    data-grade-filter-target="pill"
+                    data-grade-value="<%= value %>"
+                    class="<%= classes %> inline-flex items-center px-3 py-1.5 rounded-lg border text-[12.5px] font-semibold transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-300">
+              <%= label %>
+            </button>
+          <% end %>
+        </nav>
+      <% end %>
     </div>
-    <p class="text-gray-500 text-sm md:text-base">
-      Pre-qualified opportunities, hand-curated by our analysts.
-    </p>
-  </header>
 
-  <%# ── Filter pills (only when user has access) ──────────────────────── %>
-  <% unless @upgrade_required %>
-    <nav class="flex flex-wrap gap-2 mb-6" aria-label="Grade filters"
-         data-controller="grade-filter">
-      <% [
-            ['all',        'All',        'bg-gray-100 text-gray-800'],
-            ['optimo',     'Óptimo',     'bg-green-100 text-green-800'],
-            ['viable',     'Viable',     'bg-yellow-100 text-yellow-800']
-         ].each do |(value, label, classes)| %>
-        <button type="button"
-                data-grade-filter-target="pill"
-                data-grade-value="<%= value %>"
-                class="<%= classes %> inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300">
-          <%= label %>
-        </button>
-      <% end %>
-    </nav>
-  <% end %>
+    <%# ── Stats strip (4 KPIs públicos) ──────────────────────────────── %>
+    <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-200 rounded-xl overflow-hidden border border-slate-200">
+      <div class="bg-white px-5 py-4">
+        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold">Total parcels</div>
+        <div class="font-display text-[34px] leading-none mt-1.5"><%= @stats[:total] %></div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1">Across <%= @stats[:county_count] %> counties</div>
+      </div>
+      <div class="bg-white px-5 py-4">
+        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold">Óptimo</div>
+        <div class="font-display text-[34px] leading-none mt-1.5 text-emerald-700"><%= @stats[:optimo] %></div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1">Highest grade</div>
+      </div>
+      <div class="bg-white px-5 py-4">
+        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold">Avg. min bid</div>
+        <div class="font-display text-[34px] leading-none mt-1.5">
+          <% if @stats[:avg_min_bid] %>
+            <%= number_to_currency(@stats[:avg_min_bid], precision: 0) %>
+          <% else %>
+            <span class="text-slate-400">—</span>
+          <% end %>
+        </div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1">Across catalog</div>
+      </div>
+      <div class="bg-white px-5 py-4">
+        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold">Counties</div>
+        <div class="font-display text-[34px] leading-none mt-1.5"><%= @stats[:county_count] %></div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1">Florida coverage</div>
+      </div>
+    </div>
+  </section>
 
-  <%# ── Card Grid ─────────────────────────────────────────────────────── %>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <%# ── Catalog grid ──────────────────────────────────────────────────── %>
+  <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <% if @upgrade_required %>
+        <% Array(@parcels_teaser).each do |teaser| %>
+          <%= render partial: "research/clear_to_bid/card_teaser",
+                     locals: { teaser: teaser } %>
+        <% end %>
+      <% else %>
+        <% Array(@parcels_full).each do |parcel_hash| %>
+          <%= render partial: "research/clear_to_bid/card_full",
+                     locals: { parcel: parcel_hash } %>
+        <% end %>
+      <% end %>
+    </div>
 
-    <% if @upgrade_required %>
-      <% Array(@parcels_teaser).each do |teaser| %>
-        <%= render partial: "research/clear_to_bid/card_teaser",
-                   locals: { teaser: teaser } %>
-      <% end %>
-    <% else %>
-      <% Array(@parcels_full).each do |parcel_hash| %>
-        <%= render partial: "research/clear_to_bid/card_full",
-                   locals: { parcel: parcel_hash } %>
-      <% end %>
+    <%# ── Empty state ─────────────────────────────────────────────────── %>
+    <% if (@upgrade_required ? Array(@parcels_teaser) : Array(@parcels_full)).empty? %>
+      <div class="text-center py-16">
+        <div class="mx-auto w-16 h-16 rounded-full bg-slate-100 grid place-items-center mb-4">
+          <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor"
+               stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 7l9-4 9 4-9 4-9-4zm0 6l9 4 9-4M3 17l9 4 9-4"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-slate-900">No clear-to-bid parcels yet</h3>
+        <p class="text-slate-500 text-sm mt-1">
+          Our analysts publish new opportunities every week. Check back soon.
+        </p>
+      </div>
     <% end %>
 
-  </div>
-
-  <%# ── Empty state ───────────────────────────────────────────────────── %>
-  <% if (@upgrade_required ? Array(@parcels_teaser) : Array(@parcels_full)).empty? %>
-    <div class="text-center py-16">
-      <div class="mx-auto w-16 h-16 rounded-full bg-gray-100 grid place-items-center mb-4">
-        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor"
-             stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M3 7l9-4 9 4-9 4-9-4zm0 6l9 4 9-4M3 17l9 4 9-4"/>
-        </svg>
+    <%# ── Dark CTA banner inline (solo non-Premier, solo si hay catálogo) %>
+    <% if @upgrade_required && @stats[:total].to_i > 0 %>
+      <div class="mt-12 relative overflow-hidden rounded-xl border border-slate-200 bg-slate-900 text-white p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center gap-6">
+        <div class="absolute inset-0 opacity-30 pointer-events-none"
+             style="background: radial-gradient(ellipse at 80% 50%, rgba(230,126,34,0.4), transparent 60%), radial-gradient(ellipse at 20% 100%, rgba(217,165,80,0.25), transparent 60%);"></div>
+        <div class="relative flex-1">
+          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md premier-shimmer text-stone-900 text-[10.5px] font-mono uppercase tracking-[0.14em] font-bold mb-3">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true">
+              <path d="M12 2 9 9l-7 .5 5.5 4.5L6 22l6-3.8L18 22l-1.5-8 5.5-4.5L15 9z"/>
+            </svg>
+            Premier institutional
+          </div>
+          <h2 class="font-display text-[28px] md:text-[36px] leading-tight max-w-2xl">
+            Desbloquea los <em class="not-italic text-amber-200"><%= @stats[:total] %> dossiers</em> verificados de este ciclo.
+          </h2>
+          <p class="text-slate-300 text-[14px] mt-2 max-w-2xl leading-relaxed">
+            Tax deed parcels pre-investigados por nuestro equipo legal en
+            <%= @stats[:county_count] %> condados de Florida. Clasificación interna,
+            gravámenes verificados y mapa catastral por cada propiedad.
+          </p>
+        </div>
+        <%= link_to research_settings_path(anchor: "billing"),
+              class: "cta-orange relative inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg text-white text-[14px] font-semibold whitespace-nowrap" do %>
+          Upgrade a Premier
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M5 12h14M13 5l7 7-7 7"/>
+          </svg>
+        <% end %>
       </div>
-      <h3 class="text-lg font-semibold text-gray-900">No clear-to-bid parcels yet</h3>
-      <p class="text-gray-500 text-sm mt-1">
-        Our analysts publish new opportunities every week. Check back soon.
-      </p>
-    </div>
-  <% end %>
-
-  <%# ── Sticky upgrade footer (teaser mode) ──────────────────────────── %>
-  <% if @upgrade_required %>
-    <div class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 shadow-lg z-30">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-        <p class="text-sm text-gray-700">
-          <strong>Premier members</strong> see the full address, polygon, opening bid &amp; analyst grade for every parcel.
-        </p>
-        <%= link_to "Upgrade to Premier",
-                    research_settings_path(anchor: "billing"),
-                    class: "inline-flex items-center px-5 py-2 rounded-md text-sm font-semibold text-white bg-[#E67E22] hover:bg-[#D86E0E] transition" %>
-      </div>
-    </div>
-  <% end %>
-</section>
+    <% end %>
+  </section>
+</div>

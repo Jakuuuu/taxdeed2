@@ -9,6 +9,14 @@
   </div>
   <div class="fp-card__body">
     <div class="fp-data-grid">
+      <%# Utility flags: en BD las columnas son VARCHAR(10) pero el importer aplica
+          Sanitize.boolean → Ruby true/false → PG coerce a "t"/"f". Por eso debemos
+          tolerar TODAS las representaciones (strings del sheet, "t"/"f" coerced,
+          y booleans reales por si algún flujo los pasa directo). %>
+      <%
+        yes_tokens = %w[yes y true t 1 si sí].freeze
+        no_tokens  = %w[no n false f 0].freeze
+      %>
       <% [
         { label: "Electric", val: @parcel.electric },
         { label: "Water",    val: @parcel.water    },
@@ -17,9 +25,15 @@
       ].each do |u| %>
       <div class="fp-data-label"><%= u[:label] %></div>
       <div class="fp-data-value">
-        <% if u[:val].present? %>
-          <% is_yes = %w[yes true y 1].include?(u[:val].to_s.downcase) %>
-          <span class="fp-badge fp-badge--<%= is_yes ? 'success' : 'danger' %>"><%= is_yes ? "Yes" : "No" %></span>
+        <%
+          raw = u[:val]
+          token = raw.is_a?(TrueClass) || raw.is_a?(FalseClass) ? raw.to_s : raw.to_s.strip.downcase
+          state = yes_tokens.include?(token) ? :yes : (no_tokens.include?(token) ? :no : :unknown)
+        %>
+        <% if state == :yes %>
+          <span class="fp-badge fp-badge--success">Yes</span>
+        <% elsif state == :no %>
+          <span class="fp-badge fp-badge--danger">No</span>
         <% else %>—<% end %>
       </div>
       <% end %>
@@ -33,18 +47,26 @@
 
       <div class="fp-data-label">FEMA Risk Level</div>
       <div class="fp-data-value">
-        <% fema_val = @parcel.fema_risk_level.to_s.strip %>
-        <% if fema_val.blank? || fema_val =~ /\Ahttps?:\/\//i %>—
+        <%# Fuente real del label de riesgo: fema_notes (col AP). El campo
+            fema_risk_level (col AR) está contaminado con URLs de Drive,
+            placeholders ("imagen") y bilingüismo — se usa como fallback solo
+            si es texto plano no-URL. %>
+        <%
+          notes_raw  = @parcel.fema_notes.to_s.strip
+          rl_raw     = @parcel.fema_risk_level.to_s.strip
+          notes_raw  = "" if notes_raw.match?(/\A-+\z/)
+          rl_raw     = "" if rl_raw.match?(/\A-+\z/) || rl_raw =~ /\Ahttps?:\/\//i || rl_raw.downcase == "imagen"
+          fema_val   = notes_raw.presence || rl_raw
+          ds         = fema_val.to_s.downcase
+          high_risk  = ds.include?("in flood") || ds.include?("flood risk") || ds.include?("en flood") || ds.include?("zona de riesgo") || ds.include?("high")
+          low_risk   = ds.include?("out flood") || ds.include?("sin riesgo") || ds.include?("minimal") || ds.include?("no flood")
+        %>
+        <% if fema_val.blank? %>—
         <% else %>
-          <% fc = fema_val.downcase.include?("minimal") ? "success" : (fema_val.downcase.include?("high") ? "danger" : "warning") %>
+          <% fc = high_risk ? "danger" : (low_risk ? "success" : "warning") %>
           <span class="fp-badge fp-badge--<%= fc %>"><%= fema_val %></span>
         <% end %>
       </div>
-
-      <% if @parcel.fema_notes.present? %>
-      <div class="fp-data-label">FEMA Notes</div>
-      <div class="fp-data-value" style="font-size:11px;line-height:1.4;"><%= @parcel.fema_notes %></div>
-      <% end %>
     </div>
   </div>
 </div>

@@ -92,9 +92,9 @@ module SheetColumnMap
 
   # ── FEMA Y MEDIOAMBIENTE ─────────────────────────────────────────────────────
   WETLANDS_RAW        = 40  # col AO — Wetlands ("yes" | "no" → boolean)
-  FEMA_NOTES          = 41  # col AP — Comments on FEMA image
-  FEMA_URL            = 42  # col AQ — Link FEMA
-  FEMA_RISK_LEVEL     = 43  # col AR — Risk factor/FEMA Image label
+  FEMA_NOTES          = 41  # col AP — FEMA Risk Label real ("Out Flood" / "In Flood" / "In a flood risk zone"). Fuente confiable usada en la Ficha.
+  FEMA_URL            = 42  # col AQ — Link FEMA Portal (msc.fema.gov)
+  FEMA_RISK_LEVEL     = 43  # col AR — Junk drawer histórico (URLs de Drive, "imagen", dashes, ES/EN mezclado). NO usar como label primario.
   PROPERTY_IMAGE_URL  = 44  # col AS — Property Image URL
 
   # ⛔ col AT (45) — Zillow (metadata, IGNORADA)

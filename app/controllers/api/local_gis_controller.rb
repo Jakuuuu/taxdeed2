@@ -67,7 +67,26 @@ module Api
       "WASHINGTON|FL" => {
         url: "https://gis.floridahealth.gov/server/rest/services/EHWATER/Parcels/MapServer/66/query",
         out_fields: "PARCEL_ID,PHY_ADDR1,LND_SQFOOT,SHAPE.STArea()"
+      },
+      "SARASOTA|FL" => {
+        url: "https://services3.arcgis.com/icrWMv7eBkctFu1f/arcgis/rest/services/ParcelHosted/FeatureServer/0/query",
+        out_fields: "PARCEL_NO,SITE_ADDR,ACREAGE"
       }
+    }.freeze
+
+    # ── Fallback estatal de Florida (FDOR — Florida Dept. of Revenue) ───────
+    # Cubre los 67 condados del estado con un esquema uniforme.
+    # Se activa automáticamente cuando el condado no tiene entrada propia
+    # en COUNTY_GIS_REGISTRY y el estado es Florida ("FL").
+    #
+    # Endpoint público: ArcGIS Online hosted por FDOR.
+    # Campos uniformes en todos los condados:
+    #   PARCEL_ID  → Número de parcela del condado
+    #   PHY_ADDR1  → Dirección física del predio
+    #   LND_SQFOOT → Superficie del lote en pies cuadrados
+    FLORIDA_STATEWIDE_GIS = {
+      url: "https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0/query",
+      out_fields: "PARCEL_ID,PHY_ADDR1,LND_SQFOOT"
     }.freeze
 
     # Normalización estado: la DB almacena "Florida", el registry usa "FL".
@@ -117,6 +136,15 @@ module Api
       # Buscar endpoint en el registro
       registry_key = "#{county.upcase.strip}|#{state_abbr}"
       config = COUNTY_GIS_REGISTRY[registry_key]
+
+      # Florida statewide fallback: cuando el condado no tiene endpoint propio
+      # pero el estado es Florida, usar el FeatureServer estatal del FDOR.
+      # Cubre automáticamente los 67 condados (Orange, Duval, Collier, Lee,
+      # Polk, Volusia, Pinellas, Miami-Dade, Alachua, etc.).
+      if config.nil? && state_abbr == "FL"
+        Rails.logger.info "[LocalGIS] No individual endpoint for #{registry_key} — using FL statewide fallback (FDOR)"
+        config = FLORIDA_STATEWIDE_GIS
+      end
 
       unless config
         Rails.logger.info "[LocalGIS] No registry entry for #{registry_key} — skipping polygon"

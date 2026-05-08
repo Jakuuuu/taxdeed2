@@ -47,6 +47,10 @@ module ClearToBidPayload
         longitude:          p.longitude,
         polygon_encoded:    p.respond_to?(:polygon_encoded) ? p.polygon_encoded : nil,
         opening_bid:        p.opening_bid,
+        market_value:       p.market_value,
+        year_built:         p.year_built,
+        lot_area_acres:     p.lot_area_acres,
+        property_type:      p.property_type,
         clear_to_bid_grade: p.clear_to_bid_grade,
         auction: p.auction && {
           id:        p.auction.id,

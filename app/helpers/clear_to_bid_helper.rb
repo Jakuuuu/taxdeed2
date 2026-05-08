@@ -129,4 +129,45 @@ module ClearToBidHelper
     else                   "Sin clasificar"
     end
   end
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Helpers de presentación para el catálogo Rama 6 (Tailwind redesign 2026-05).
+  # Cosméticos — no transforman ni filtran datos sensibles, solo formatean lo
+  # que el payload `clear_to_bid_full` ya emite.
+  # ───────────────────────────────────────────────────────────────────────────
+
+  # "27.9506° N · 82.4572° W" — string compacto para overlay del mapa.
+  # Devuelve nil si falta cualquiera de las dos coords (caller renderiza placeholder).
+  def format_coords(lat, lng)
+    return nil if lat.blank? || lng.blank?
+    lat_f = lat.to_f
+    lng_f = lng.to_f
+    ns = lat_f >= 0 ? "N" : "S"
+    ew = lng_f >= 0 ? "E" : "W"
+    format("%.4f° %s · %.4f° %s", lat_f.abs, ns, lng_f.abs, ew)
+  end
+
+  # "Single family · 0.24 acres · Built 1974" — combina property_type, lot_area_acres
+  # y year_built. Omite los segmentos vacíos. Recibe el Hash del payload.
+  def property_type_label(parcel)
+    segments = []
+    segments << parcel[:property_type].to_s.strip if parcel[:property_type].present?
+    if parcel[:lot_area_acres].present?
+      segments << format("%.2f acres", parcel[:lot_area_acres].to_f)
+    end
+    segments << "Built #{parcel[:year_built]}" if parcel[:year_built].present?
+    return nil if segments.empty?
+    segments.join(" · ")
+  end
+
+  # "Lot #4421-A" — toma los últimos 6 chars alfanuméricos de parcel_id, los
+  # parte 4-1 y los presenta como un sello tipo lote. Puramente cosmético: el
+  # parcel_id real (que SÍ es la verdad) sigue presente para clicks/filtros.
+  def lot_short_id(parcel_id)
+    return nil if parcel_id.blank?
+    digits = parcel_id.to_s.gsub(/[^A-Za-z0-9]/, "").upcase
+    return parcel_id.to_s if digits.length < 5
+    last = digits[-5, 5]
+    "Lot ##{last[0, 4]}-#{last[4]}"
+  end
 end
