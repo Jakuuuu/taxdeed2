@@ -1,15 +1,16 @@
 <%# ══════════════════════════════════════════════════════════════════════
-     ADMIN — Parcels Index (Override Clear-to-Bid grade)
+     ADMIN — Parcels Index (Override Hot Deals grade)
      Layout 'admin'. Permite filtrar por state/county/grade y editar
      clear_to_bid_grade inline. NUNCA edita otros campos (Espejo Infalible).
+     Rama 6: software/rules/hotdeals/admin_override.md
      ══════════════════════════════════════════════════════════════════════ %>
 
 <% content_for :title, "Admin — Parcels" %>
 
 <div class="admin-page">
   <header class="admin-header">
-    <h1>Parcels — Clear-to-Bid Override</h1>
-    <p class="admin-subtitle">Edita manualmente el grade. Otros campos vienen del Sheet (Espejo Infalible).</p>
+    <h1>Parcels — Hot Deals Grade Override</h1>
+    <p class="admin-subtitle">Edita manualmente el grade (★ = óptimo&nbsp;5, viable&nbsp;4, deficiente&nbsp;2). Otros campos vienen del Sheet (Espejo Infalible).</p>
   </header>
 
   <%# Filter form %>
@@ -56,9 +57,15 @@
           <td><%= p.address %></td>
           <td>
             <% if p.clear_to_bid_grade.present? %>
-              <span class="badge badge-<%= p.clear_to_bid_grade %>"><%= p.clear_to_bid_grade %></span>
+              <%# Stars (grade_stars_html) + texto del grade %>
+              <div style="display:inline-flex;align-items:center;gap:6px;">
+                <%= grade_stars_html(p.clear_to_bid_grade) %>
+                <span style="font:600 10px ui-monospace,monospace;color:#475569;letter-spacing:0.06em;text-transform:uppercase;">
+                  <%= p.clear_to_bid_grade %>
+                </span>
+              </div>
             <% else %>
-              <em>Sin clasificar</em>
+              <em style="color:#94a3b8;font-size:12px;">Sin clasificar</em>
             <% end %>
           </td>
           <td>

@@ -192,6 +192,22 @@ module Research
         end
       end
 
+      # ── Top Opportunities: top 10 parcels con grado "optimo" + subasta activa más próxima ──
+      # Ordenadas por sale_date ASC (más urgentes primero). Sin N+1: joins en SQL.
+      # SEGURIDAD: opening_bid excluido — permite re-identificación via filtro min_bid de Rama 2.
+      @top_opportunity_parcels = Parcel
+        .by_clear_to_bid_grade("optimo")
+        .joins(:auction)
+        .merge(Auction.active_visible)
+        .select(
+          "parcels.id, parcels.property_type, parcels.bedrooms, parcels.bathrooms,
+           parcels.sqft_living, parcels.county, parcels.state,
+           parcels.address, parcels.parcel_id,
+           auctions.sale_date"
+        )
+        .order("auctions.sale_date ASC")
+        .limit(10)
+
       respond_to do |format|
         format.html
         format.json do

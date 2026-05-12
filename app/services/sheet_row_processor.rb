@@ -260,33 +260,44 @@ class SheetRowProcessor
   end
 
   # ── CLEAR-TO-BID — Normalización de la columna 'Notas' (Rama 6) ────────────
-  # Reglas:
+  # Reglas exactas (post-normalización ASCII-lowercase):
   #   - "deficiente" / "deficient" / "no viable" / "not viable" → "deficiente"
   #   - "optimo" / "óptimo" / "optimal" / "premium"             → "optimo"
   #   - "viable" / "ok" / "aceptable" / "acceptable"            → "viable"
-  #   - cualquier otro string o vacío                            → nil (Espejo Infalible)
   #
-  # Match exacto post-normalización (transliterate + strip + downcase + collapse spaces).
-  # Texto extra ("optimo - revisar") → nil — no usamos include? para evitar falsos positivos.
+  # Fallback de prefijo (para variantes con texto extra como "Optimo - revisar",
+  # "Óptimo (pendiente)", "viable ok", "deficiente - no avanzar"):
+  #   - empieza con "optim" → "optimo"
+  #   - empieza con "defic" / "no via" / "not via" → "deficiente"
+  #   - empieza con "viable" / "via " / "ok" / "acept" / "accept" → "viable"
+  #
+  # Texto extra (sin prefijo reconocido) → nil + log de warning.
   def derive_clear_to_bid_grade(raw)
     return nil if raw.blank?
 
     needle = I18n.transliterate(raw.to_s).downcase.strip.gsub(/\s+/, " ")
     return nil if needle.empty?
 
+    # ── Coincidencia exacta (vocabulario controlado) ──────────────────────
     case needle
     when "deficiente", "deficient", "no viable", "not viable"
-      CTB_GRADE_DEFICIENTE
+      return CTB_GRADE_DEFICIENTE
     when "optimo", "optimal", "premium"
-      CTB_GRADE_OPTIMO
+      return CTB_GRADE_OPTIMO
     when "viable", "ok", "aceptable", "acceptable"
-      CTB_GRADE_VIABLE
-    else
-      Rails.logger.tagged("Sheet:CTB") do
-        Rails.logger.info("[derive_clear_to_bid_grade] Unmapped value=#{raw.inspect} → nil")
-      end
-      nil
+      return CTB_GRADE_VIABLE
     end
+
+    # ── Fallback de prefijo (variantes con notas extra del equipo) ──────────
+    # Cubre: "optimo - revisar", "Óptimo (pendiente)", "viable ok", etc.
+    return CTB_GRADE_OPTIMO      if needle.start_with?("optim")
+    return CTB_GRADE_DEFICIENTE  if needle.start_with?("defic", "no via", "not via")
+    return CTB_GRADE_VIABLE      if needle.start_with?("viable", "via ", "ok ", "acept", "accept")
+
+    Rails.logger.tagged("Sheet:CTB") do
+      Rails.logger.info("[derive_clear_to_bid_grade] Unmapped value=#{raw.inspect} → nil")
+    end
+    nil
   end
 
   # ── HELPERS ───────────────────────────────────────────────────────────────────

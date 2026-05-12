@@ -9,26 +9,45 @@
                       :latitude, :longitude, :polygon_encoded, :opening_bid,
                       :market_value, :year_built, :lot_area_acres,
                       :property_type, :clear_to_bid_grade, :auction
+
+    Mini-ficha: click en la card (excl. botón "View dossier") → abre
+    HotDealModalController con los datos inyectados como data-* attrs.
+    Ver: software/rules/hotdeals/mini_ficha.md
 ─────────────────────────────────────────────────────────────────────────── %>
 
-<% map_struct = OpenStruct.new(
-     latitude:        parcel[:latitude],
-     longitude:       parcel[:longitude],
-     polygon_encoded: parcel[:polygon_encoded]
-   ) %>
-<% coords_label   = format_coords(parcel[:latitude], parcel[:longitude]) %>
-<% lot_label      = lot_short_id(parcel[:parcel_id]) %>
-<% subtitle       = property_type_label(parcel) %>
-<% sale_date      = parcel.dig(:auction, :sale_date) %>
-<% has_polygon    = parcel[:polygon_encoded].present? %>
+<% map_url       = static_map_url(parcel) %>
+<% coords_label  = format_coords(parcel[:latitude], parcel[:longitude]) %>
+<% lot_label     = lot_short_id(parcel[:parcel_id]) %>
+<% subtitle      = property_type_label(parcel) %>
+<% sale_date     = parcel.dig(:auction, :sale_date) %>
+<% has_polygon   = parcel[:polygon_encoded].present? %>
 
-<article class="card-lift group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg flex flex-col"
+<%# ══════════════════════════════════════════════════════════════════════
+    Mini-ficha data attrs — inyectados en el <article> para el Stimulus
+    controller HotDealModal. NUNCA inyectar estos attrs en cards teaser.
+    Todos los valores ya pasan por el payload clear_to_bid_full (server-side).
+    ══════════════════════════════════════════════════════════════════════ %>
+<article class="card-lift group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg flex flex-col cursor-pointer"
+         data-controller="hot-deal-modal"
          data-grade="<%= parcel[:clear_to_bid_grade].to_s %>"
-         data-grade-filter-target="card">
+         data-grade-filter-target="card"
+         data-parcel-id="<%= parcel[:id] %>"
+         data-address="<%= parcel[:address] %>"
+         data-county="<%= parcel[:county] %>"
+         data-state="<%= parcel[:state] %>"
+         data-opening-bid="<%= parcel[:opening_bid] %>"
+         data-market-value="<%= parcel[:market_value] %>"
+         data-year-built="<%= parcel[:year_built] %>"
+         data-lot-area-acres="<%= parcel[:lot_area_acres] %>"
+         data-property-type="<%= parcel[:property_type] %>"
+         data-sale-date="<%= sale_date&.strftime('%b %d, %Y') %>"
+         data-map-url="<%= map_url %>"
+         data-dossier-url="<%= research_parcel_path(parcel[:id]) %>"
+         data-action="click->hot-deal-modal#openCard">
 
   <%# ── Map preview (4:3) ──────────────────────────────────────────── %>
   <div class="relative aspect-[4/3] overflow-hidden bg-slate-100">
-    <% if (map_url = static_map_url(map_struct)) %>
+    <% if map_url %>
       <%= image_tag map_url,
             alt: "Aerial view of parcel #{parcel[:parcel_id]}",
             loading: "lazy",
@@ -69,6 +88,13 @@
       <% end %>
     </div>
 
+    <%# Preview hint — subtle overlay que aparece al hover %>
+    <div class="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+      <span class="bg-white/90 backdrop-blur-sm text-slate-800 text-[11px] font-semibold px-3 py-1.5 rounded-full shadow">
+        Quick Preview ↗
+      </span>
+    </div>
+
     <%# Bottom row: lat/long (left) + Satellite indicator (right) %>
     <div class="absolute bottom-3 left-3 right-3 flex items-end justify-between text-white">
       <% if coords_label %>
@@ -100,6 +126,12 @@
       <% if subtitle %>
         <div class="text-[12.5px] text-slate-500 mt-0.5"><%= subtitle %></div>
       <% end %>
+    </div>
+
+    <%# Estrellas de grade — representación visual premium %>
+    <div class="flex items-center gap-2 py-1">
+      <%= grade_stars_html(parcel[:clear_to_bid_grade]) %>
+      <span class="text-[11px] font-mono text-slate-400 uppercase tracking-[0.08em]"><%= grade_label(parcel[:clear_to_bid_grade]) %></span>
     </div>
 
     <%# Data table — 2x2 grid con métricas verificables %>

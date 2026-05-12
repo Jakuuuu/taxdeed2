@@ -570,7 +570,7 @@ document.addEventListener("DOMContentLoaded", boot);
 (function() {
 "use strict";
 
-var LS_PREFIX = "atlas_panel_v1_";
+var LS_PREFIX = "atlas_panel_v2_";
 
 function AtlasPanelManager(stageEl) {
   this.stage = stageEl;
@@ -598,22 +598,12 @@ AtlasPanelManager.prototype.init = function() {
     try { defaultPos = JSON.parse(el.dataset.panelDefaultPos || "{}"); } catch(e) {}
     try { defaultSize = JSON.parse(el.dataset.panelDefaultSize || "{}"); } catch(e) {}
 
-    // Make position:absolute driven by JS, converting CSS-set position
-    // to computed left/top so drag works from current visual position
-    el.style.position = "absolute";
-    var rect = el.getBoundingClientRect();
-    var stageRect = stage.getBoundingClientRect();
-
     var panel = { el: el, id: id, label: label, defaultPos: defaultPos, defaultSize: defaultSize };
     self.panels.push(panel);
 
-    self._restoreState(panel, rect, stageRect);
+    self._restoreState(panel);
     self._injectControls(panel);
-    self._makeDraggable(panel);
-    // Don't add resize to kpis strip (it's a grid strip)
-    if (id !== "kpis" && id !== "state-pill") {
-      self._makeResizable(panel);
-    }
+    // Static layout: no drag, no resize
   });
 
   // Collect KPI tiles
@@ -637,10 +627,9 @@ AtlasPanelManager.prototype.init = function() {
   });
 };
 
-AtlasPanelManager.prototype._restoreState = function(panel, rect, stageRect) {
+AtlasPanelManager.prototype._restoreState = function(panel) {
   var id = panel.id;
   var el = panel.el;
-  var ds = panel.defaultSize || {};
 
   // Restore visibility
   var vis = this._load(id, "visible");
@@ -648,28 +637,12 @@ AtlasPanelManager.prototype._restoreState = function(panel, rect, stageRect) {
     el.classList.add("atlas-panel--hidden");
   }
 
-  // Restore minimized
-  var min = this._load(id, "minimized");
-  if (min === true) {
+  // Always start minimized on every page load (no persistence for collapse state)
+  if (id !== "kpis" && id !== "state-pill") {
     el.classList.add("atlas-panel--minimized");
+  } else {
+    el.classList.remove("atlas-panel--minimized");
   }
-
-  // Restore size (only if user has previously resized)
-  var size = this._load(id, "size");
-  if (size && size.width) el.style.width = size.width + "px";
-  if (size && size.height) el.style.height = size.height + "px";
-
-  // Restore position ONLY if user has previously moved the panel.
-  // When no saved pos exists we leave the CSS-defined position completely
-  // untouched — the stylesheet already places every panel correctly.
-  var pos = this._load(id, "pos");
-  if (pos) {
-    el.style.left = pos.left + "px";
-    el.style.top  = pos.top  + "px";
-    el.style.right  = "";
-    el.style.bottom = "";
-  }
-  // No else — CSS handles the default layout. Clean and safe.
 };
 
 AtlasPanelManager.prototype._restoreKpiState = function(id, el) {
@@ -684,32 +657,28 @@ AtlasPanelManager.prototype._injectControls = function(panel) {
   var el = panel.el;
   var id = panel.id;
 
+  // No controls on the Active State pill or KPI strip
+  if (id === "state-pill" || id === "kpis") return;
+
   // Guard against double-injection
   if (el.dataset.panelControlsInjected === "1") return;
   el.dataset.panelControlsInjected = "1";
+
 
   // Ensure relative positioning for absolute children
   var cs = window.getComputedStyle(el);
   if (cs.position === "static") el.style.position = "relative";
 
-  // Build control bar
+  // Build control bar — static layout: minimize only (no drag, no resize)
   var bar = document.createElement("div");
   bar.className = "panel-header-controls";
-
-  // Drag handle
-  var dragBtn = document.createElement("button");
-  dragBtn.className = "panel-ctrl-btn panel-ctrl-btn--drag";
-  dragBtn.title = "Drag to move";
-  dragBtn.setAttribute("aria-label", "Drag panel");
-  dragBtn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>';
-  bar.appendChild(dragBtn);
 
   // Minimize button (not for kpis strip)
   if (id !== "kpis") {
     var minBtn = document.createElement("button");
     minBtn.className = "panel-ctrl-btn panel-ctrl-btn--minimize";
-    minBtn.title = "Minimize";
-    minBtn.setAttribute("aria-label", "Minimize panel");
+    minBtn.title = el.classList.contains("atlas-panel--minimized") ? "Expand" : "Collapse";
+    minBtn.setAttribute("aria-label", "Toggle panel");
     minBtn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 15l6 6 6-6"/></svg>';
     if (el.classList.contains("atlas-panel--minimized")) minBtn.classList.add("is-minimized");
     minBtn.addEventListener("click", function(e) {
@@ -719,22 +688,7 @@ AtlasPanelManager.prototype._injectControls = function(panel) {
     bar.appendChild(minBtn);
   }
 
-  // Hide button
-  var hideBtn = document.createElement("button");
-  hideBtn.className = "panel-ctrl-btn panel-ctrl-btn--hide";
-  hideBtn.title = "Hide panel";
-  hideBtn.setAttribute("aria-label", "Hide panel");
-  hideBtn.innerHTML = '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-  hideBtn.addEventListener("click", function(e) {
-    e.stopPropagation();
-    self.toggleVisible(id, false);
-  });
-  bar.appendChild(hideBtn);
-
   el.appendChild(bar);
-
-  // Drag activates from the drag handle OR anywhere on the bar (not just the button)
-  panel._dragHandle = dragBtn;
 };
 
 AtlasPanelManager.prototype._makeDraggable = function(panel) {
@@ -854,8 +808,12 @@ AtlasPanelManager.prototype._makeResizable = function(panel) {
 AtlasPanelManager.prototype.toggleMinimize = function(panel, btn) {
   var el = panel.el;
   var isMin = el.classList.toggle("atlas-panel--minimized");
-  if (btn) btn.classList.toggle("is-minimized", isMin);
-  this._save(panel.id, "minimized", isMin);
+  if (btn) {
+    btn.classList.toggle("is-minimized", isMin);
+    btn.title = isMin ? "Expand" : "Collapse";
+  }
+  // Note: minimized state intentionally NOT saved to localStorage
+  // Panels always start closed on next page load (by design)
 };
 
 AtlasPanelManager.prototype.toggleVisible = function(panelId, visible) {
@@ -1064,10 +1022,7 @@ document.addEventListener("turbo:load", function() {
 <style>
 /* ── CRM Calendar panel container ───────────────────────── */
 .atlas__crm-calendar {
-  position: absolute;
-  right: 24px;
-  top: 220px;
-  width: 280px;
+  /* position/width inherited from .atlas__right-column flex parent */
   min-width: 220px;
   /* Light glass — identical family to .atlas__top-counties and .agenda-list */
   background: oklch(1 0 0);

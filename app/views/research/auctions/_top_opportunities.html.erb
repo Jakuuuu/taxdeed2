@@ -1,0 +1,103 @@
+<%#
+  ── _top_opportunities.html.erb ──────────────────────────────────────────────
+  Panel Rama 1: Top 10 propiedades pre-calificadas con grado "optimo".
+
+  SEGURIDAD / PRIVACIDAD:
+  - `opening_bid` NO se renderiza: permite re-identificación vía filtro min_bid en Rama 2.
+  - La palabra "Óptimo" NUNCA aparece en la UI. El grado se traduce a 5 estrellas (★★★★★).
+  - `address` y `parcel_id` se muestran con blur CSS (filter: blur(5px)).
+  - Click en cualquier ficha → Rama 6 (/research/clear_to_bid).
+  ─────────────────────────────────────────────────────────────────────────────
+%>
+<% parcels ||= [] %>
+
+<% if parcels.empty? %>
+  <div class="top-opp__empty">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-4);margin-bottom:8px;">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>
+    <div>No pre-qualified properties available right now.</div>
+    <div style="margin-top:4px;font-size:11px;color:var(--ink-4);">Check back as the team reviews new listings.</div>
+  </div>
+<% else %>
+  <ol class="top-opp__list">
+    <% parcels.each_with_index do |parcel, idx| %>
+      <%
+        sale_date  = parcel.sale_date
+        days_left  = sale_date.present? ? (sale_date.to_date - Date.current).to_i : nil
+        days_label = if days_left.nil?
+                       "—"
+                     elsif days_left == 0
+                       "Today"
+                     elsif days_left == 1
+                       "1d"
+                     elsif days_left < 7
+                       "#{days_left}d"
+                     elsif days_left < 30
+                       "#{(days_left / 7.0).round}w"
+                     else
+                       "#{(days_left / 30.0).round}mo"
+                     end
+        urgent     = days_left.present? && days_left <= 7
+        prop_type  = parcel.property_type.presence || "Property"
+        beds       = parcel.bedrooms.present?  ? "#{parcel.bedrooms} bd"  : nil
+        baths      = parcel.bathrooms.present? ? "#{parcel.bathrooms} ba" : nil
+        sqft       = parcel.sqft_living.present? ? "#{number_with_delimiter(parcel.sqft_living.to_i)} sqft" : nil
+        specs      = [beds, baths, sqft].compact
+        location   = [parcel.county, parcel.state].compact.join(", ")
+      %>
+      <%# Each card is a full-width link → Rama 6. No parcel ID in URL. %>
+      <li class="top-opp__item">
+        <a href="<%= research_clear_to_bid_path %>"
+           class="top-opp__card"
+           title="View pre-qualified opportunities in Hot Deals"
+           data-turbo-action="advance">
+          <%# ── Header: stars + urgency countdown ── %>
+          <div class="top-opp__card-header">
+            <span class="top-opp__stars" aria-label="5 out of 5 stars — top rated property">
+              <% 5.times do %>
+                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              <% end %>
+            </span>
+            <span class="top-opp__days <%= 'top-opp__days--urgent' if urgent %>" aria-label="<%= days_left.present? ? "#{days_left} days until auction" : "Auction date not set" %>">
+              <% if days_left.present? %>
+                <svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              <% end %>
+              <%= days_label %>
+            </span>
+          </div>
+
+          <%# ── Sensitive: address + APN blurred ── %>
+          <div class="top-opp__sensitive" aria-hidden="true"><%= parcel.address.presence || "Address on file" %></div>
+          <div class="top-opp__sensitive top-opp__sensitive--apn" aria-hidden="true">APN: <%= parcel.parcel_id.presence || "—" %></div>
+
+          <%# ── Property type + specs ── %>
+          <div class="top-opp__meta-row">
+            <span class="top-opp__type"><%= prop_type.titleize %></span>
+            <% if specs.any? %>
+              <span class="top-opp__specs">
+                <% specs.each_with_index do |s, si| %>
+                  <%= s %><% if si < specs.size - 1 %><span class="top-opp__specs-sep"> · </span><% end %>
+                <% end %>
+              </span>
+            <% end %>
+          </div>
+
+          <%# ── Footer: location ── %>
+          <div class="top-opp__footer">
+            <span class="top-opp__location">
+              <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px"><path d="M12 22s8-7 8-13a8 8 0 1 0-16 0c0 6 8 13 8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+              <%= location %>
+            </span>
+            <span class="top-opp__cta-hint">
+              View deals
+              <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </span>
+          </div>
+        </a>
+      </li>
+    <% end %>
+  </ol>
+<% end %>

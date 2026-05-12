@@ -20,10 +20,16 @@ class CountyMarketStat < ApplicationRecord
   scope :alphabetical,    -> { order(:state, :county) }
   scope :with_volumes,    -> { includes(:real_estate_monthly_volumes) }
 
-  # Condados que tienen subastas registradas en el sistema
+  # Condados que tienen subastas VIGENTES en el sistema (alineado con Auction.active_visible)
+  # BUG FIX (2026-05-12): El scope previo buscaba ANY subasta en la tabla auctions,
+  # incluyendo subastas pasadas/completadas. Esto generaba discrepancia con Rama 2,
+  # que filtra por active_visible (status IN upcoming/active AND sale_date >= hoy).
+  # Ahora solo aparecen condados con subastas realmente activas en el mercado.
   scope :with_active_auctions, -> {
     where("EXISTS (SELECT 1 FROM auctions WHERE UPPER(auctions.state) = UPPER(county_market_stats.state) " \
-          "AND UPPER(auctions.county) = UPPER(county_market_stats.county))")
+          "AND UPPER(auctions.county) = UPPER(county_market_stats.county) " \
+          "AND auctions.status IN ('upcoming', 'active') " \
+          "AND auctions.sale_date >= CURRENT_DATE)")
   }
 
   # Búsqueda de texto libre

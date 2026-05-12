@@ -147,6 +147,25 @@
         color: oklch(0.52 0.02 158);
         letter-spacing: 0.05em;
       }
+      /* Rama 6 — Admin-only badge (dorado — NO usa #E67E22, reservado para CTAs) */
+      .nav-badge-admin {
+        font: 600 9px var(--font-mono);
+        padding: 2px 5px;
+        border-radius: 4px;
+        background: oklch(0.82 0.14 70);
+        color: oklch(0.30 0.08 70);
+        letter-spacing: 0.05em;
+      }
+      .nav-item--admin-only {
+        color: var(--ink-2);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .nav-item--admin-only:hover {
+        color: var(--ink-1);
+        background: var(--surface-2);
+      }
 
       .header-right { display: flex; align-items: center; gap: 12px; }
       .icon-btn {
@@ -247,14 +266,22 @@
            class="nav-item <%= 'nav-item--active' if controller_name == 'portfolio' %>">
           My Pipeline
         </a>
-        <%# ── Rama 6: Hot Deals (clausurado temporalmente — acceso deshabilitado) ── %>
-        <span class="nav-item nav-item--disabled"
-              title="Coming soon — access temporarily suspended"
-              aria-disabled="true"
-              style="gap:6px;">
-          Hot Deals
-          <span class="nav-badge-coming-soon">SOON</span>
-        </span>
+        <%# ── Rama 6: Hot Deals — Admin-only (clausurado para usuarios regulares) ── %>
+        <% if current_user&.admin? %>
+          <%= link_to research_clear_to_bid_path,
+                class: "nav-item nav-item--admin-only #{'nav-item--active' if controller_name == 'clear_to_bid'}" do %>
+            🔥 Hot Deals
+            <span class="nav-badge-admin">ADMIN</span>
+          <% end %>
+        <% else %>
+          <span class="nav-item nav-item--disabled"
+                title="Coming soon — access temporarily suspended"
+                aria-disabled="true"
+                style="gap:6px;">
+            Hot Deals
+            <span class="nav-badge-coming-soon">SOON</span>
+          </span>
+        <% end %>
         <a href="<%= research_purchased_reports_path %>"
            class="nav-item <%= 'nav-item--active' if controller_name == 'purchased_reports' %>">
           Reports

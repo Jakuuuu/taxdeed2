@@ -96,10 +96,13 @@ module Research
       end
     end
 
-    # Define @premier_paid para que la vista (Sub-agente 3) ramifique sin
-    # tocar la sesión ni la subscripción de nuevo.
+    # Define @premier_paid para que la vista ramifique sin tocar la sesión de nuevo.
+    # Admin override: los admins siempre reciben el payload completo (@parcels_full)
+    # independientemente de su plan de suscripción. Esto les permite auditar y
+    # previsualizar el catálogo Hot Deals sin necesidad de un plan Premier.
+    # Ver: software/rules/hotdeals/nav_visibility.md
     def load_premier_status
-      @premier_paid = current_user.subscription&.premier_active? || false
+      @premier_paid = current_user.admin? || current_user.subscription&.premier_active? || false
     end
 
     # Anti-bypass: si un no-Premier intenta `?parcel_id=...` para forzar un

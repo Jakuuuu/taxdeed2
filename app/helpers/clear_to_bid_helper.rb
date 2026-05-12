@@ -30,19 +30,29 @@ module ClearToBidHelper
 
   # Build a Static Map URL for a given parcel.
   #
+  # Accepts both:
+  #   - ActiveRecord Parcel objects (Rama 2, Ficha)
+  #   - Hash payloads (clear_to_bid_full — Rama 6 catálogo)
+  # This avoids OpenStruct in views, which requires `require 'ostruct'` en Ruby 3.x.
+  #
   # Tries, in order:
-  #   1. Real parcel polygon (encoded polyline) — when parcel exposes
-  #      `polygon_encoded` (set by GIS proxy: /api/local_gis/parcel_geometry).
-  #   2. Marker at lat/lng with zoom=18 (sane fallback for satellite view).
+  #   1. Real parcel polygon (encoded polyline)
+  #   2. Marker at lat/lng with zoom=18
   #   3. nil → caller renders an "unavailable" placeholder.
   #
-  # @param parcel [Parcel, #latitude, #longitude]
+  # @param parcel [Parcel, Hash, #latitude, #longitude]
   # @param size   [String] "WIDTHxHEIGHT" (default "400x300")
   # @return       [String, nil] fully-qualified URL, or nil if no key / coords.
   def static_map_url(parcel, size: "400x300")
     api_key = ENV["GOOGLE_MAPS_API_KEY"]
     return nil if api_key.blank?
     return nil if parcel.nil?
+
+    # Duck-type: support both Hash payload and AR object
+    is_hash = parcel.is_a?(Hash)
+    lat     = is_hash ? parcel[:latitude]        : parcel.try(:latitude)
+    lng     = is_hash ? parcel[:longitude]       : parcel.try(:longitude)
+    encoded = is_hash ? parcel[:polygon_encoded] : (parcel.respond_to?(:polygon_encoded) ? parcel.polygon_encoded : nil)
 
     params = {
       size:    size,
@@ -52,12 +62,6 @@ module ClearToBidHelper
     }
 
     # ── 1) Real polygon path (preferred when GIS proxy returned geometry) ──
-    # TODO(GIS-PROXY): cuando @parcel exponga un polygon GeoJSON vía
-    #   /api/local_gis/parcel_geometry, encode el ring con el algoritmo
-    #   Google Encoded Polyline (vendored o gem `polylines`) y guárdalo en
-    #   `parcel.polygon_encoded`. Hasta que eso aterrice, fall through al
-    #   marker fallback abajo.
-    encoded = parcel.respond_to?(:polygon_encoded) ? parcel.polygon_encoded : nil
     if encoded.present?
       params[:path] = "color:#{POLYGON_STROKE_COLOR}|" \
                       "weight:3|" \
@@ -66,9 +70,7 @@ module ClearToBidHelper
       return "#{STATIC_MAP_BASE}?#{params.to_query}"
     end
 
-    # ── 2) Marker fallback — requires lat/lng ──────────────────────────────
-    lat = parcel.try(:latitude)
-    lng = parcel.try(:longitude)
+    # ── 2) Marker fallback ──────────────────────────────────────────
     return nil if lat.blank? || lng.blank?
 
     params[:zoom]    = 18
@@ -128,6 +130,36 @@ module ClearToBidHelper
     when "deficiente" then "Deficiente"
     else                   "Sin clasificar"
     end
+  end
+
+  # ★ Representación de estrellas para el grade (mini ficha + admin badges).
+  #
+  # Mapping canónico (inmutable):
+  #   optimo     → 5/5 ★★★★★  verde   (#16a34a)
+  #   viable     → 4/5 ★★★★☆  ámbar   (#ca8a04)
+  #   deficiente → 2/5 ★★☆☆☆  rojo    (#dc2626)
+  #
+  # @param grade [String] 'optimo' | 'viable' | 'deficiente' | nil
+  # @return [ActiveSupport::SafeBuffer] HTML snippet con las estrellas.
+  GRADE_STARS = { "optimo" => 5, "viable" => 4, "deficiente" => 2 }.freeze
+
+  def grade_stars_html(grade)
+    count  = GRADE_STARS[grade.to_s.downcase] || 0
+    filled = "★" * count
+    empty  = "☆" * (5 - count)
+    color  = case grade.to_s.downcase
+             when "optimo"     then "#16a34a"   # green-600
+             when "viable"     then "#ca8a04"   # yellow-600
+             when "deficiente" then "#dc2626"   # red-600
+             else "#94a3b8"                      # slate-400 (sin clasificar)
+             end
+    tag.span(
+      (tag.span(filled, style: "color:#{color};") +
+       tag.span(empty,  style: "color:#cbd5e1;")).html_safe,
+      class: "grade-stars",
+      "aria-label": "#{count} out of 5 stars",
+      style: "font-size:1.1em;letter-spacing:0.05em;display:inline-block;"
+    )
   end
 
   # ───────────────────────────────────────────────────────────────────────────

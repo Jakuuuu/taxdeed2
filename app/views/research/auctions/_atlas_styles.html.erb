@@ -217,7 +217,7 @@
 /* Zoom controls */
 .atlas__zoom-controls {
   position: absolute;
-  bottom: 120px; right: 340px;
+  bottom: 80px; right: 24px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -255,11 +255,12 @@
 /* Floating panels — glass */
 .atlas__top-panel {
   position: absolute;
-  top: 24px; left: 24px;
+  top: 20px; left: 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  z-index: 10;
+  z-index: 11;
+  width: 288px;
 }
 .atlas__state-pill {
   position: relative; /* anchor for the dropdown menu */
@@ -372,7 +373,8 @@
   border: 1px solid oklch(0.91 0.008 158 / 0.7);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  max-width: 320px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .atlas__title-eyebrow {
   display: block;
@@ -402,14 +404,8 @@
 
 
 
-/* Floating left panel — anchored below the top panel, not from bottom */
 .atlas__left-panel {
-  position: absolute;
-  top: 220px; left: 24px;
-  width: 260px;
-  max-height: calc(100% - 360px); /* never overlap KPI strip */
-  /* overflow:visible so the absolute-positioned panel-header-controls
-     are not clipped; inner content scrolls via .agenda-list */
+  /* Width inherited from parent .atlas__right-column */
   overflow: visible;
   z-index: 10;
 }
@@ -429,21 +425,43 @@
   padding: 0;
 }
 
-/* Floating right panel */
-.atlas__right-panel {
+/* Left sidebar — panels column */
+.atlas__right-column {
   position: absolute;
-  top: 24px; right: 24px;
-  width: 320px;
-  /* overflow:visible so panel-header-controls are not clipped;
-     inner county list scrolls via .atlas__top-counties */
+  top: 0;
+  left: 0;
+  width: 312px;
+  height: 100%;
+  padding: 210px 12px 80px;
+  background: oklch(0.965 0.005 155);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: visible;
+  scrollbar-width: none;
+  box-sizing: border-box;
+}
+.atlas__right-column::-webkit-scrollbar { display: none; }
+
+/* Panels inside the column — override absolute positioning */
+.atlas__right-column .atlas__right-panel,
+.atlas__right-column .atlas__crm-calendar,
+.atlas__right-column .atlas__left-panel {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+}
+
+.atlas__right-panel {
   overflow: visible;
   z-index: 10;
-}
-.atlas__right-panel .atlas__top-counties {
-  max-height: calc(100vh - 200px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: oklch(0.82 0.018 158) transparent;
 }
 .atlas__top-counties {
   background: oklch(1 0 0);
@@ -477,10 +495,10 @@
   z-index: 10;
 }
 
-/* KPI strip bottom */
+/* KPI strip — compact */
 .atlas__kpis {
   position: absolute;
-  bottom: 0; left: 0; right: 0;
+  bottom: 0; left: 312px; right: 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
@@ -491,7 +509,7 @@
 .atlas__kpis .kpi-tile {
   border: none;
   border-radius: 0;
-  padding: 18px 28px;
+  padding: 8px 20px;
   background: oklch(1 0 0);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -551,7 +569,7 @@
               padding 200ms ease;
 }
 
-/* Panel controls bar (injected by JS into each panel) */
+/* Panel controls bar — always visible, subtle */
 .panel-header-controls {
   display: flex;
   align-items: center;
@@ -560,11 +578,6 @@
   top: 6px;
   right: 6px;
   z-index: 20;
-  opacity: 0;
-  transition: opacity 160ms ease;
-}
-[data-panel-id]:hover .panel-header-controls,
-[data-panel-id]:focus-within .panel-header-controls {
   opacity: 1;
 }
 
@@ -856,6 +869,311 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
+}
+/* ── KPI strip — horizontal layout: label left · number right ── */
+.atlas__kpis .kpi-tile {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 0;
+  background: oklch(1 0 0);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Left group: icon + label + sub */
+.atlas__kpis .kpi-tile__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.atlas__kpis .kpi-tile__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.atlas__kpis .kpi-icon {
+  display: flex;
+  align-items: center;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+.atlas__kpis .kpi-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.atlas__kpis .kpi-sub {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  opacity: 0.7;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Right group: big number + trend */
+.atlas__kpis .kpi-tile__number {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+}
+.atlas__kpis .kpi-value {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink-1);
+}
+.atlas__kpis .kpi-value--accent {
+  color: var(--accent);
+}
+.atlas__kpis .kpi-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+/* ── Right column: each panel is a glass card ── */
+.atlas__right-column .atlas__right-panel,
+.atlas__right-column .atlas__left-panel {
+  background: oklch(1 0 0 / 0.88);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid oklch(0.91 0.008 158 / 0.65);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px 10px;
+  box-shadow: var(--shadow-md);
+}
+/* Inner content areas become transparent inside the card */
+.atlas__right-column .atlas__top-counties {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 4px 0 0;
+}
+.atlas__right-column .agenda-list {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+/* Section-title no bottom margin inside card */
+.atlas__right-column .section-title {
+  margin-bottom: 0;
+  position: relative;
+  padding-right: 26px; /* room for minimize button */
+}
+/* ═══════════════════════════════════════════════════════
+   Top Opportunities — Mini property cards (Rama 1 panel)
+   ══════════════════════════════════════════════════════ */
+
+.top-opp__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.82 0.018 158) transparent;
+}
+.top-opp__item { display: block; }
+
+/* Card */
+.top-opp__card {
+  display: block;
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: oklch(0.985 0.004 158 / 0.7);
+  border: 1px solid oklch(0.91 0.008 158 / 0.45);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 160ms ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.top-opp__card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    oklch(0.48 0.11 158 / 0.04) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+.top-opp__card:hover {
+  background: oklch(0.96 0.014 158 / 0.9);
+  border-color: oklch(0.72 0.12 158 / 0.5);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 16px oklch(0.18 0.015 158 / 0.10),
+    0 1px 4px oklch(0.18 0.015 158 / 0.06);
+}
+
+/* Header row: stars + countdown */
+.top-opp__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+/* 5 gold stars */
+.top-opp__stars {
+  display: flex;
+  gap: 1.5px;
+  color: oklch(0.74 0.17 75); /* warm gold */
+  flex-shrink: 0;
+}
+.top-opp__stars svg {
+  width: 11px;
+  height: 11px;
+  filter: drop-shadow(0 0 2px oklch(0.74 0.17 75 / 0.4));
+}
+
+/* Countdown pill */
+.top-opp__days {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.top-opp__days--urgent {
+  color: oklch(0.52 0.20 25);
+  background: oklch(0.52 0.20 25 / 0.10);
+  font-weight: 700;
+}
+
+/* Sensitive fields (address + APN) — blurred */
+.top-opp__sensitive {
+  filter: blur(4.5px);
+  user-select: none;
+  pointer-events: none;
+  font-size: 11.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+  margin-bottom: 2px;
+  line-height: 1.4;
+}
+.top-opp__sensitive--apn {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  margin-bottom: 6px;
+}
+
+/* Property type + specs row */
+.top-opp__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin-bottom: 6px;
+}
+.top-opp__type {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-1);
+  white-space: nowrap;
+}
+.top-opp__specs {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1px;
+}
+.top-opp__specs-sep {
+  color: var(--ink-4);
+}
+
+/* Footer: location left + cta-hint right */
+.top-opp__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.top-opp__location {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.top-opp__cta-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 160ms ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.top-opp__card:hover .top-opp__cta-hint {
+  opacity: 1;
+}
+
+/* Empty state */
+.top-opp__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-3);
+  gap: 2px;
 }
 </style>
