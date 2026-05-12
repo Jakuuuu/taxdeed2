@@ -28,7 +28,7 @@ gem "googleauth"
 
 # ── Google Cloud Storage (Active Storage en producción — PDFs de reportes) ───
 # Requiere: GCS_BUCKET, GCS_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS en Render.
-gem "google-cloud-storage", "~> 1.48", require: false
+gem "google-cloud-storage", "~> 1.60", require: false
 
 # ── Pagination ────────────────────────────────────────────────────────────────
 gem "kaminari"
