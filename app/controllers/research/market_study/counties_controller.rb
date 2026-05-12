@@ -4,16 +4,23 @@
 #
 # Regla: 18-market-study.md
 # Acceso: Requiere suscripción activa (heredado de Research::BaseController)
-# Patrón: Drawer AJAX 95vw (show) + Grid de condados (index)
+# Patrón: Página completa (show) + Grid de condados (index)
 #
 # ── Rutas ──────────────────────────────────────────────────────────────────
 #   GET  /research/market_study/counties       → index (grid de condados)
-#   GET  /research/market_study/counties/:id   → show  (ficha en drawer AJAX)
+#   GET  /research/market_study/counties/:id   → show  (ficha completa)
+#
+# ── QA Fixes (2026-05-11) ──────────────────────────────────────────────────
+#   FIX-1: Eliminado includes(:parcels) + sum en Ruby → SQL GROUP BY + SUM
+#   FIX-2: authenticate_user! redundante eliminado (ya garantizado por
+#           BaseController#require_active_subscription! que llama authenticate_user!)
+#   FIX-2v2: Corregido PG::AmbiguousColumn en show — columnas calificadas
+#             con auctions.state / auctions.county (detectado en QA visual)
+#   FIX-3: rescue RecordNotFound para evitar crash si el id no existe
 #
 module Research
   module MarketStudy
     class CountiesController < Research::BaseController
-      before_action :authenticate_user!
       before_action :set_county, only: [:show]
 
       # ── INDEX — Grid de Condados con Subastas ─────────────────────────────
@@ -39,7 +46,7 @@ module Research
                                             .sort
 
         # Pre-calcular conteo de PROPIEDADES en subasta por condado (evita N+1)
-        # Clave: [state.upcase, county.upcase] → count de parcels
+        # ✅ FIX-1: 1 sola query SQL. Clave: [state.upcase, county.upcase] → count de parcels
         @auction_counts_by_county = Parcel
           .joins(:auction)
           .group("auctions.state", "auctions.county")
@@ -50,21 +57,39 @@ module Research
       end
 
       # ── SHOW — Ficha Completa del Condado ─────────────────────────────────
-      # XHR: Renderiza sin layout (drawer AJAX 95vw)
-      # Direct URL: Renderiza con layout research (fallback seguro)
+      # Página completa (NO drawer). render layout: false ha sido eliminado —
+      # el comentario del docstring previo era incorrecto; Rama 4 usa página
+      # completa según 18-market-study.md y market_study/views_and_routes.md.
       def show
         @volumes = @county.real_estate_monthly_volumes.for_chart
-        @active_auctions = Auction.by_state(@county.state).by_county(@county.county)
-                                  .includes(:parcels)
-        @total_properties = @active_auctions.sum { |a| a.parcels.size }
 
-        render layout: false if request.xhr?
+        # ✅ FIX-2 (v2): Corregido PG::AmbiguousColumn detectado en QA visual.
+        # El problema: .merge(@active_auctions) propaga los scopes by_state/by_county
+        # de Auction que emiten WHERE LOWER(state) = ? sin prefijo de tabla.
+        # Al hacer JOIN parcels (que también tiene columnas state/county),
+        # PostgreSQL no puede resolver la referencia → PG::AmbiguousColumn.
+        #
+        # Solución: calificar explícitamente con auctions.state / auctions.county
+        # para que el planificador de consultas de PG nunca tenga ambigüedad.
+        @total_properties = Parcel
+          .joins(:auction)
+          .where(
+            "LOWER(auctions.state) = ? AND LOWER(auctions.county) = ?",
+            @county.state.to_s.downcase,
+            @county.county.to_s.downcase
+          )
+          .count
       end
 
       private
 
       def set_county
+        # ✅ FIX-3: rescue RecordNotFound evita crash 500 si el id no existe.
+        # Redirige al index con mensaje de error en lugar de romper el layout.
         @county = CountyMarketStat.find(params[:id])
+      rescue ActiveRecord::RecordNotFound
+        redirect_to research_market_study_counties_path,
+                    alert: "County not found."
       end
     end
   end

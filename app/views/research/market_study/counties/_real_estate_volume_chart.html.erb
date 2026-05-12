@@ -240,11 +240,11 @@
     <div class="fc-chart-nav">
       <h3 class="fc-section-title">
         <span class="icon">📈</span>
-        <span id="fc-chart-title">Tendencia de Mercado</span>
+        <span id="fc-chart-title"><%= t('market_study.market_trend_title') %></span>
       </h3>
       <% if has_volume_data %>
         <button class="fc-chart-back-btn" id="fc-chart-back" onclick="window.fcChart && window.fcChart.showYearly()">
-          ← Volver
+          <%= t('market_study.back') %>
         </button>
       <% end %>
     </div>
@@ -257,7 +257,7 @@
     </div>
 
     <div class="fc-chart-hint" id="fc-chart-hint">
-      Haz clic en una barra para ver detalle mes a mes
+      <%= t('market_study.chart_hint') %>
     </div>
 
     <%# ── Summary stats ───────────────────────────────────────────── %>
@@ -282,24 +282,24 @@
     %>
     <div class="fc-chart-summary">
       <div class="fc-chart-stat">
-        <span class="fc-chart-stat-label">Período</span>
+        <span class="fc-chart-stat-label"><%= t('market_study.period') %></span>
         <span class="fc-chart-stat-value"><%= first_year %> → <%= last_year %></span>
       </div>
       <div class="fc-chart-stat">
-        <span class="fc-chart-stat-label">Crecimiento Total</span>
+        <span class="fc-chart-stat-label"><%= t('market_study.total_growth') %></span>
         <span class="fc-chart-stat-value" style="color: <%= total_growth >= 0 ? '#38A169' : '#E53E3E' %>;">
           <%= total_growth >= 0 ? '+' : '' %><%= total_growth %>%
         </span>
       </div>
       <div class="fc-chart-stat">
-        <span class="fc-chart-stat-label">CAGR</span>
+        <span class="fc-chart-stat-label"><%= t('market_study.cagr') %></span>
         <span class="fc-chart-stat-value" style="color: var(--accent);">
           <%= cagr.round(1) %>%
         </span>
       </div>
       <div class="fc-chart-stat">
-        <span class="fc-chart-stat-label">Años de datos</span>
-        <span class="fc-chart-stat-value"><%= years_sorted.size %> años</span>
+        <span class="fc-chart-stat-label"><%= t('market_study.years_of_data') %></span>
+        <span class="fc-chart-stat-value"><%= years_sorted.size %> <%= t('market_study.years_unit') %></span>
       </div>
     </div>
 
@@ -307,9 +307,9 @@
     <% unless current_user&.admin? %>
       <div class="fc-paywall-cta">
         <button class="fc-unlock-btn" onclick="alert('Upgrade your plan to unlock historical market data')">
-          🔓 Unlock Historical Insights
+          <%= t('market_study.unlock_historical_insights') %>
         </button>
-        <span class="fc-unlock-subtext">Premium feature — requires active subscription</span>
+        <span class="fc-unlock-subtext"><%= t('market_study.premium_feature_subtext') %></span>
       </div>
     <% end %>
 
@@ -321,11 +321,10 @@
     <div class="fc-chart-empty">
       <div class="fc-chart-empty-icon">📉</div>
       <p class="fc-chart-empty-title">
-        Historical market volume data is currently unavailable for this county
+        <%= t('market_study.historical_unavailable_title') %>
       </p>
       <p class="fc-chart-empty-desc">
-        Market trend data is updated periodically. Once available for
-        <%= county.county %>, the historical volume chart will appear here automatically.
+        <%= t('market_study.historical_unavailable_desc_html', county: county.county).html_safe %>
       </p>
     </div>
   <% end %>

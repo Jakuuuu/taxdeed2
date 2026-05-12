@@ -44,5 +44,9 @@ module TaxSaleResources
 
     # Timezone
     config.time_zone = "Eastern Time (US & Canada)"
+
+    config.i18n.available_locales = [:en, :es]
+    config.i18n.default_locale    = :en
+    config.i18n.fallbacks         = [:en]
   end
 end

@@ -375,63 +375,161 @@ a.auction-card__chip:hover {
   margin-top: 2px;
 }
 
-/* === Tooltip === */
-.county-tooltip {
+/* === County Anchored Popover ===
+   Light glass card. JS sets left/top dynamically.
+   Stem arrow points toward the county centroid. */
+.county-detail-panel {
   position: fixed;
-  z-index: 100;
+  z-index: 200;
+  width: 278px;
+  background: oklch(1 0 0);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid oklch(0.91 0.008 158 / 0.6);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+  padding: 0;
+  overflow: visible; /* stem needs overflow visible */
+  opacity: 0;
   pointer-events: none;
-  background: var(--surface-1);
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  padding: 14px;
-  min-width: 220px;
-  box-shadow: var(--shadow-lg);
-  transform: translate(12px, 12px);
-  animation: tooltipIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  display: none;
+  transform: scale(0.92) translateY(10px);
+  transform-origin: center bottom;
+  transition:
+    opacity 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform, opacity;
 }
-.county-tooltip.visible { display: block; }
-@keyframes tooltipIn {
-  from { opacity: 0; transform: translate(8px, 8px); }
-  to   { opacity: 1; transform: translate(12px, 12px); }
+.county-detail-panel.visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
 }
-.county-tooltip__name {
+/* Clip the inner content but not the stem pseudo-element */
+.county-detail-panel > :not(.cdp__stem) { overflow: hidden; }
+.county-detail-panel > *:first-child { border-radius: 14px 14px 0 0; }
+.county-detail-panel > .cdp__cta { border-radius: 0 0 14px 14px; }
+
+/* Stem arrow */
+.county-detail-panel::after {
+  content: '';
+  position: absolute;
+  width: 0; height: 0;
+  left: var(--cdp-stem-x, 50%);
+  transform: translateX(-50%);
+  border: 10px solid transparent;
+  pointer-events: none;
+}
+.county-detail-panel[data-stem="down"]::after {
+  bottom: -20px;
+  border-top-color: oklch(1 0 0);
+  transform-origin: top center;
+}
+.county-detail-panel[data-stem="up"]::after {
+  top: -20px;
+  border-bottom-color: oklch(1 0 0);
+}
+
+/* Header */
+.cdp__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px 11px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 14px 14px 0 0;
+  background: var(--surface-2);
+}
+.cdp__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.cdp__name {
   font-family: var(--font-display);
-  font-size: 18px;
-  margin-bottom: 10px;
+  font-size: 19px;
+  font-weight: 400;
+  color: var(--ink-1);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+.cdp__close {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  border: none;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 140ms ease, color 140ms ease;
+  margin-top: 1px;
+}
+.cdp__close:hover {
+  background: var(--surface-3);
   color: var(--ink-1);
 }
-.county-tooltip__suffix { color: var(--ink-3); font-size: 12px; font-family: var(--font-sans); }
-.county-tooltip__grid {
+
+/* Stats */
+.cdp__stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 14px;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 13px 16px;
   border-bottom: 1px solid var(--border);
 }
-.county-tooltip__grid > div { display: flex; flex-direction: column; gap: 1px; }
-.county-tooltip__grid .t-full { grid-column: 1 / -1; }
-.county-tooltip__grid .t-label {
+.cdp__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-right: 10px;
+}
+.cdp__stat + .cdp__stat {
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+.cdp__stat-label {
   font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.08em;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-3);
-}
-.county-tooltip__grid strong {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--ink-1);
-  font-family: var(--font-display);
-}
-.county-tooltip__cta {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px;
-  color: var(--accent);
   font-weight: 600;
 }
-.county-tooltip__cta svg { width: 12px; height: 12px; }
+.cdp__stat-value {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
+  color: var(--ink-1);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* CTA */
+.cdp__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 16px;
+  background: oklch(0.48 0.13 158);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  border-radius: 0 0 14px 14px;
+  transition: background 160ms ease, gap 160ms ease;
+  cursor: pointer;
+}
+.cdp__cta:hover { background: oklch(0.40 0.15 158); gap: 12px; }
+.cdp__cta svg { width: 14px; height: 14px; flex-shrink: 0; transition: transform 160ms ease; }
+.cdp__cta:hover svg { transform: translateX(2px); }
 
 /* === Heat legend === */
 .heat-legend {

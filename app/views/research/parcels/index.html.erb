@@ -608,7 +608,7 @@
 
     <!-- "Seleccionar condados con subastas" button (overlay) -->
     <button type="button" class="r2-events-btn" onclick="openAuctionPicker()" id="r2-events-btn">
-      🏛 Seleccionar condados con subastas
+      🏛 <%= t('parcels.select_county_button') %>
       <span class="r2-events-badge" id="r2-events-count">0</span>
     </button>
   </div>
@@ -627,7 +627,7 @@
               class="auction-selector-btn has-auction"
               onclick="openAuctionPicker()"
               id="r2-phase2-county-btn">
-        🏛 <span id="r2-phase2-county-label">Seleccionar condado</span>
+        🏛 <span id="r2-phase2-county-label" data-i18n-default="<%= t('parcels.select_county') %>"><%= t('parcels.select_county') %></span>
         <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
       </button>
 
@@ -689,7 +689,7 @@
         <div id="r2-bulk-bar" class="r2-bulk-bar">
           <span id="r2-bulk-count" class="r2-bulk-bar__count">
             <span class="r2-bulk-bar__count-badge" id="r2-bulk-count-num">0</span>
-            <span>propiedades seleccionadas</span>
+            <span><%= t('parcels.bulk.properties_selected') %></span>
           </span>
 
           <%# ── Bulk Tag (dropdown) ── %>
@@ -724,7 +724,7 @@
 
           <%# ── Cancel ── %>
           <button type="button" class="r2-bulk-bar__btn r2-bulk-bar__btn--cancel" onclick="clearSelection()">
-            ✕ Cancelar
+            <%= t('parcels.bulk.cancel') %>
           </button>
         </div>
 
@@ -741,8 +741,8 @@
   <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="picker-title" style="max-width:640px;">
     <div class="modal__header">
       <div>
-        <h2 class="modal__title" id="picker-title">Seleccionar condado con subastas</h2>
-        <p class="modal__subtitle">Condados con propiedades activas — selecciona uno para explorar</p>
+        <h2 class="modal__title" id="picker-title"><%= t('parcels.select_county_modal_title') %></h2>
+        <p class="modal__subtitle"><%= t('parcels.select_county_modal_subtitle') %></p>
       </div>
       <button class="modal__close" onclick="closeAuctionPickerDirect()" aria-label="Close">&times;</button>
     </div>
@@ -761,16 +761,16 @@
           <div class="detail-col">
             <!-- Búsqueda rápida -->
             <div class="picker-search">
-              <input type="text" id="picker-search-input" placeholder="Filtrar por condado en el estado seleccionado…" oninput="filterPickerRows(this.value)" autocomplete="off">
+              <input type="text" id="picker-search-input" placeholder="<%= t('parcels.search_placeholder') %>" oninput="filterPickerRows(this.value)" autocomplete="off">
             </div>
             <% @picker_counties_by_state.each_with_index do |(state, county_rows), index| %>
               <div class="picker-state-details" id="state-auctions-<%= state.parameterize %>" style="display: <%= index == 0 ? 'block' : 'none' %>;">
                 <div style="margin-bottom: 1.5rem;">
                   <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--ink-1); margin: 0 0 0.35rem 0; letter-spacing: -0.01em;">
-                    Condados en <%= state %>
+                    <%= t('auctions.counties_in_state', state: state) %>
                   </h3>
                   <p style="font-size: 0.875rem; color: var(--ink-3); margin: 0;">
-                    Selecciona un condado para explorar sus propiedades en el mapa.
+                    <%= t('parcels.select_county_modal_help') %>
                   </p>
                 </div>
                 <div class="picker-state-rows open">
@@ -791,7 +791,7 @@
                         </div>
                       </div>
                       <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                        <div class="picker-auction-card__props-label">Propiedades</div>
+                        <div class="picker-auction-card__props-label"><%= t('parcels.properties_label') %></div>
                         <div class="picker-auction-card__props-count"><%= county_row[:parcel_count] %></div>
                       </div>
                     </div>
@@ -804,13 +804,24 @@
       <% else %>
         <div class="empty-state" style="padding:4rem 2rem; text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100%;">
           <div class="empty-state__icon" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.8;">🏛️</div>
-          <p class="empty-state__title" style="font-size: 1.25rem; font-weight: 700; color: var(--ink-1); margin: 0 0 0.5rem 0;">No hay condados con subastas</p>
-          <p class="empty-state__desc" style="font-size: 0.95rem; color: var(--ink-3); margin: 0;">Vuelve a revisar después de la próxima sincronización de datos.</p>
+          <p class="empty-state__title" style="font-size: 1.25rem; font-weight: 700; color: var(--ink-1); margin: 0 0 0.5rem 0;"><%= t('parcels.no_counties_title') %></p>
+          <p class="empty-state__desc" style="font-size: 0.95rem; color: var(--ink-3); margin: 0;"><%= t('parcels.no_counties_desc') %></p>
         </div>
       <% end %>
     </div>
   </div>
 </div>
+
+<%# I18N anchor — server-rendered strings consumed by JS via dataset attributes. See language_preference SOP. %>
+<div id="r2-i18n"
+     data-no-results-title="<%= t('parcels.no_results_title') %>"
+     data-no-results-desc="<%= t('parcels.no_results_desc') %>"
+     data-th-address="<%= t('parcels.table.address') %>"
+     data-th-city="<%= t('parcels.table.city') %>"
+     data-th-parcel="<%= t('parcels.table.parcel') %>"
+     data-th-property-type="<%= t('parcels.table.property_type') %>"
+     data-th-opening-bid="<%= t('parcels.table.opening_bid') %>"
+     style="display:none"></div>
 
 <script>
 // ══════════════════════════════════════════════════════════════
@@ -961,6 +972,25 @@ if (!window._r2TurboRegistered) {
     // Only run if we're on the parcels page
     if (!document.getElementById('r2-events-count')) return;
 
+    // ── Re-read URL params LIVE to avoid stale globals ──────────
+    // When Turbo restores from cache the inline script may not re-run,
+    // so HAS_CONTEXT/INITIAL_COUNTY may still reflect a previous visit.
+    // Reading window.location gives us the ground truth every time.
+    var _urlParams  = new URLSearchParams(window.location.search);
+    var _county     = _urlParams.get('county')     || '';
+    var _state      = _urlParams.get('state')      || '';
+    var _auctionId  = _urlParams.get('auction_id') || '';
+    var _hasCtx     = !!(_auctionId || (_county && _state));
+
+    // Sync the globals so createMapAndEnterPhase() uses fresh values
+    if (_county)    INITIAL_COUNTY     = _county;
+    if (_state)     INITIAL_STATE      = _state;
+    if (_auctionId) INITIAL_AUCTION_ID = _auctionId;
+    // URL is authoritative for HAS_CONTEXT — never inherit stale value
+    HAS_CONTEXT  = _hasCtx;
+    currentPhase = HAS_CONTEXT ? 2 : 1;
+    // ─────────────────────────────────────────────────────────────
+
     r2Initialized = false;
     r2Map = null;
     r2InfoWindow = null;
@@ -995,6 +1025,21 @@ if (document.readyState === 'loading') {
 } else if (!window.Turbo) {
   // No Turbo — hard page load, init immediately
   r2Init();
+} else {
+  // Turbo is present and the script just (re-)executed mid-session
+  // (e.g. Turbo Drive visit). turbo:load may not fire again for THIS
+  // navigation if the listener was registered on a prior visit.
+  // Fire r2Init() directly so we never miss the boot on first Turbo load.
+  setTimeout(function() {
+    if (!r2Initialized && document.getElementById('r2-events-count')) {
+      var _p = new URLSearchParams(window.location.search);
+      var _c = _p.get('county') || ''; var _s = _p.get('state') || '';
+      var _a = _p.get('auction_id') || '';
+      if (_c && _s) { INITIAL_COUNTY = _c; INITIAL_STATE = _s; HAS_CONTEXT = true; currentPhase = 2; }
+      if (_a)       { INITIAL_AUCTION_ID = _a; HAS_CONTEXT = true; currentPhase = 2; }
+      r2Init();
+    }
+  }, 0);
 }
 
 
@@ -1405,7 +1450,7 @@ function enterPhase2Async(auctionId, county, state) {
     } else if (auctionId) {
       label.textContent = 'Auction #' + auctionId;
     } else {
-      label.textContent = 'Seleccionar condado';
+      label.textContent = label.dataset.i18nDefault || '';
     }
   }
 
@@ -2019,12 +2064,14 @@ function loadParcelsList(page) {
         resultsMeta.textContent = meta.total ? (meta.total + ' propiedades') : '0 propiedades';
       }
 
+      var i18n = (document.getElementById('r2-i18n') || {}).dataset || {};
+
       if (!parcels.length) {
         listContent.innerHTML =
           '<div class="r2-list-empty">' +
             '<div class="r2-list-empty__icon">🔍</div>' +
-            '<h3 class="r2-list-empty__title">No se encontraron propiedades</h3>' +
-            '<p class="r2-list-empty__desc">Intenta ajustar tus filtros o los términos de búsqueda.</p>' +
+            '<h3 class="r2-list-empty__title">' + (i18n.noResultsTitle || '') + '</h3>' +
+            '<p class="r2-list-empty__desc">' + (i18n.noResultsDesc || '') + '</p>' +
           '</div>';
         return;
       }
@@ -2033,11 +2080,11 @@ function loadParcelsList(page) {
       var html = '<div class="r2-table-wrap"><table class="r2-table">';
       html += '<thead><tr>';
       html += '<th class="col-checkbox"><input type="checkbox" id="r2-select-all" onchange="toggleSelectAll(this)"></th>';
-      html += buildSortTh('address',       'Dirección',       'col-address');
-      html += buildSortTh('city',          'Ciudad',          'col-city');
-      html += buildSortTh('parcel_id',     'Parcela',         'col-parcel');
-      html += buildSortTh('property_type', 'Tipo de Propiedad', 'col-type');
-      html += buildSortTh('opening_bid',   'Oferta Inicial',  'col-bid');
+      html += buildSortTh('address',       i18n.thAddress      || '', 'col-address');
+      html += buildSortTh('city',          i18n.thCity         || '', 'col-city');
+      html += buildSortTh('parcel_id',     i18n.thParcel       || '', 'col-parcel');
+      html += buildSortTh('property_type', i18n.thPropertyType || '', 'col-type');
+      html += buildSortTh('opening_bid',   i18n.thOpeningBid   || '', 'col-bid');
       html += '</tr></thead>';
 
       html += '<tbody>';
@@ -2212,10 +2259,29 @@ function openParcelDrawer(url) {
     .then(function(r) { return r.text(); })
     .then(function(html) {
       content.innerHTML = html;
-      // Execute inline scripts (innerHTML doesn't auto-run them)
-      content.querySelectorAll('script').forEach(function(oldScript) {
+      // Execute inline scripts (innerHTML doesn't auto-run them).
+      // Isolate each script: a SyntaxError in one must NOT abort the others
+      // (or the drawer renders as a fragment of itself). Preserve attributes
+      // so type="application/json" data blocks aren't re-evaluated as JS.
+      var scripts = Array.prototype.slice.call(content.querySelectorAll('script'));
+      scripts.forEach(function(oldScript, idx) {
+        var body = oldScript.textContent || '';
+        // Pre-validate: `new Function` compiles but does not execute. If the
+        // body has a SyntaxError it surfaces here as a catchable exception,
+        // unlike DOM-injected <script> tags whose errors bypass try/catch.
+        try {
+          new Function(body);
+        } catch (syntaxErr) {
+          console.error('[ParcelDrawer] inline script #' + idx + ' has SyntaxError:', syntaxErr.message);
+          console.error('[ParcelDrawer] FULL offending content:\n' + body);
+          return; // skip injection so the rest of the drawer still works
+        }
         var newScript = document.createElement('script');
-        newScript.textContent = oldScript.textContent;
+        for (var i = 0; i < oldScript.attributes.length; i++) {
+          var a = oldScript.attributes[i];
+          newScript.setAttribute(a.name, a.value);
+        }
+        newScript.textContent = body;
         oldScript.replaceWith(newScript);
       });
     })

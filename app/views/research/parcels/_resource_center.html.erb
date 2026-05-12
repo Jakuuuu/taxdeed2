@@ -7,22 +7,22 @@
 <div class="fp-card" id="ficha-resource-center">
   <div class="fp-card__hdr">
     <span class="fp-card__hdr-icon">🔗</span>
-    <h3 class="fp-card__hdr-title">Resource Center</h3>
+    <h3 class="fp-card__hdr-title"><%= t('ficha_cards.resource_center') %></h3>
     <span class="fp-card__hdr-sub"><%= @parcel.county.presence || "" %></span>
   </div>
   <div class="fp-card__body fp-resource-list">
     <% resources = [
-      { icon: "🏛", title: "Bid at Auction",       desc: "Ir al portal de subasta",           url: @parcel.auction&.bidding_url },
-      { icon: "🗺", title: "Regrid Map",            desc: "Mapa parcelario y datos GIS",         url: @parcel.regrid_url           },
-      { icon: "📋", title: "Property Appraisal Page", desc: "Validar información de la propiedad", url: @parcel.property_appraiser_url },
-      { icon: "⚖",  title: "Clerk of Courts",       desc: "Búsqueda de records oficiales",      url: @parcel.clerk_url            },
-      { icon: "🧾", title: "Tax Collector",          desc: "Verificar impuestos pagados",        url: @parcel.tax_collector_url     },
-      { icon: "📍", title: "Google Maps",            desc: "Vista aérea y Street View",          url: @parcel.google_maps_url      },
-      { icon: "🌊", title: "FEMA Flood Map",         desc: "Riesgo de inundación",               url: @parcel.fema_url             }
+      { icon: "🏛", title: t('resource_center.bid_at_auction_title'),  desc: t('resource_center.bid_at_auction_desc'),  url: @parcel.auction&.bidding_url },
+      { icon: "🗺", title: t('resource_center.regrid_title'),          desc: t('resource_center.regrid_desc'),          url: @parcel.regrid_url           },
+      { icon: "📋", title: t('resource_center.appraiser_title'),       desc: t('resource_center.appraiser_desc'),       url: @parcel.property_appraiser_url },
+      { icon: "⚖",  title: t('resource_center.clerk_title'),           desc: t('resource_center.clerk_desc'),           url: @parcel.clerk_url            },
+      { icon: "🧾", title: t('resource_center.tax_collector_title'),   desc: t('resource_center.tax_collector_desc'),   url: @parcel.tax_collector_url     },
+      { icon: "📍", title: t('resource_center.google_maps_title'),     desc: t('resource_center.google_maps_desc'),     url: @parcel.google_maps_url      },
+      { icon: "🌊", title: t('resource_center.fema_title'),            desc: t('resource_center.fema_desc'),            url: @parcel.fema_url             }
     ] %>
 
     <% has_resources = resources.any? { |r| r[:url].present? } %>
-    
+
     <% if has_resources %>
       <% resources.each do |r| %>
         <% if r[:url].present? %>
@@ -39,7 +39,7 @@
     <% else %>
       <div class="fp-empty-state" style="padding: 24px 16px; text-align: center; color: var(--fp-text-muted);">
         <div style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;">📭</div>
-        <p style="margin: 0; font-size: 13px;">No external resources available for this property.</p>
+        <p style="margin: 0; font-size: 13px;"><%= t('resource_center.no_resources') %></p>
       </div>
     <% end %>
   </div>

@@ -132,6 +132,21 @@
       }
       .nav-item:hover { color: var(--ink-1); background: var(--surface-2); }
       .nav-item--active { color: var(--ink-1); background: var(--surface-2); font-weight: 500; }
+      .nav-item--disabled {
+        color: var(--ink-4);
+        opacity: 0.55;
+        cursor: not-allowed;
+        pointer-events: none;
+        user-select: none;
+      }
+      .nav-item--disabled .nav-badge-coming-soon {
+        font: 600 9px var(--font-mono);
+        padding: 2px 5px;
+        border-radius: 4px;
+        background: oklch(0.90 0.02 158);
+        color: oklch(0.52 0.02 158);
+        letter-spacing: 0.05em;
+      }
 
       .header-right { display: flex; align-items: center; gap: 12px; }
       .icon-btn {
@@ -232,15 +247,14 @@
            class="nav-item <%= 'nav-item--active' if controller_name == 'portfolio' %>">
           My Pipeline
         </a>
-        <%# ── Rama 6: Clear-to-Bid (Premier-only payload, teaser + upsell para resto) ── %>
-        <a href="<%= research_clear_to_bid_path %>"
-           class="nav-item <%= 'nav-item--active' if controller_name == 'clear_to_bid' %>"
-           style="gap:6px;">
-          Clear-to-Bid
-          <span style="font:600 9px var(--font-mono); padding:2px 6px; border-radius:4px;
-                       background:oklch(0.92 0.06 70); color:oklch(0.42 0.13 70);
-                       letter-spacing:0.05em;">PREMIER</span>
-        </a>
+        <%# ── Rama 6: Hot Deals (clausurado temporalmente — acceso deshabilitado) ── %>
+        <span class="nav-item nav-item--disabled"
+              title="Coming soon — access temporarily suspended"
+              aria-disabled="true"
+              style="gap:6px;">
+          Hot Deals
+          <span class="nav-badge-coming-soon">SOON</span>
+        </span>
         <a href="<%= research_purchased_reports_path %>"
            class="nav-item <%= 'nav-item--active' if controller_name == 'purchased_reports' %>">
           Reports
@@ -250,7 +264,11 @@
         <%# ── Notifications bell (auction reminders inbox) ──────────── %>
         <% if current_user %>
           <% unread_count = current_user.notifications.unread.count %>
-          <div style="position:relative;" id="notif-bell-wrap">
+          <div style="position:relative;" id="notif-bell-wrap"
+               data-i18n-download-title-report="<%= t('notifications.download_title_report') %>"
+               data-i18n-generate-title-report="<%= t('notifications.generate_title_report') %>"
+               data-i18n-auction-upcoming-title="<%= t('notifications.auction_upcoming_title') %>"
+               data-i18n-auction-today-title="<%= t('notifications.auction_today_title') %>">
             <button type="button"
                     class="icon-btn"
                     id="notif-bell-btn"
@@ -278,16 +296,16 @@
                         border-radius:12px; box-shadow:var(--shadow-lg); z-index:60;">
               <div style="display:flex; align-items:center; justify-content:space-between;
                           padding:10px 14px; border-bottom:1px solid var(--border);">
-                <strong style="font:600 13px var(--font-sans); color:var(--ink-1);">Notifications</strong>
+                <strong style="font:600 13px var(--font-sans); color:var(--ink-1);"><%= t('notifications.panel_title') %></strong>
                 <button type="button"
                         id="notif-mark-all"
                         style="font:500 11px var(--font-sans); color:var(--accent); background:none; border:none; cursor:pointer;">
-                  Mark all read
+                  <%= t('notifications.mark_all_read') %>
                 </button>
               </div>
               <div id="notif-bell-list" style="padding:4px;">
                 <div style="padding:20px; text-align:center; color:var(--ink-3); font:500 12px var(--font-sans);">
-                  Cargando…
+                  <%= t('notifications.loading') %>
                 </div>
               </div>
             </div>
@@ -320,21 +338,21 @@
               if (reportCta === 'download') {
                 return '<span style="display:inline-block; margin-top:6px; padding:3px 8px; border-radius:6px; '
                      + 'background:#E67E22; color:#fff; font:600 10px var(--font-sans); letter-spacing:0.3px;">'
-                     + '⬇ Descargar Title Report</span>';
+                     + '⬇ ' + (wrap.dataset.i18nDownloadTitleReport || '') + '</span>';
               }
               if (reportCta === 'generate') {
                 return '<span style="display:inline-block; margin-top:6px; padding:3px 8px; border-radius:6px; '
                      + 'background:transparent; color:#E67E22; border:1px solid #E67E22; '
                      + 'font:600 10px var(--font-sans); letter-spacing:0.3px;">'
-                     + '✚ Generar Title Report</span>';
+                     + '✚ ' + (wrap.dataset.i18nGenerateTitleReport || '') + '</span>';
               }
               return '';
             }
 
             // Fallback de título por kind cuando el payload viene sin title.
             function fallbackTitle(kind) {
-              if (kind === 'auction_upcoming') return 'Subasta próxima';
-              if (kind === 'auction_today')    return 'Hoy se subasta tu propiedad';
+              if (kind === 'auction_upcoming') return wrap.dataset.i18nAuctionUpcomingTitle || kind;
+              if (kind === 'auction_today')    return wrap.dataset.i18nAuctionTodayTitle    || kind;
               return kind;
             }
 

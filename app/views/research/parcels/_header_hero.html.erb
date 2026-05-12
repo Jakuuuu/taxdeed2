@@ -4,7 +4,7 @@
 ─────────────────────────────────────────────────────────────────────────── %>
 
 <% back_path = session[:last_parcels_path] || research_parcels_path(auction_id: @parcel.auction_id) %>
-<%= link_to back_path, class: "fp-back" do %>← Back to Properties<% end %>
+<%= link_to back_path, class: "fp-back" do %>← <%= t('parcels.back_to_properties') %><% end %>
 
 <div class="fp-hero">
   <%# ── Top bar: brand + status badge + county link ──────────────────── %>
@@ -24,13 +24,13 @@
                   backdrop-filter: blur(4px); white-space: nowrap;"
            onmouseover="this.style.background='rgba(255,255,255,0.20)'; this.style.borderColor='rgba(255,255,255,0.42)'; this.style.transform='translateY(-1px)';"
            onmouseout="this.style.background='rgba(255,255,255,0.10)'; this.style.borderColor='rgba(255,255,255,0.22)'; this.style.transform='none';">
-          📊 Conocer más sobre el condado →
+          📊 <%= t('parcels.learn_about_county') %>
         </a>
       <% end %>
       <div class="fp-hero__status-badge">
-        <span class="fp-hero__status-label">ANALYSIS STATUS</span>
+        <span class="fp-hero__status-label"><%= t('parcels.analysis_status_label') %></span>
         <span class="fp-hero__status-value">
-          <%= @unlocked ? "COMPLETE ✓" : "LOCKED 🔒" %>
+          <%= @unlocked ? t('parcels.analysis_status_complete') : t('parcels.analysis_status_locked') %>
         </span>
       </div>
     </div>
@@ -40,10 +40,10 @@
   <h1 class="fp-hero__title" style="display: flex; align-items: center; gap: 8px;">
     <span class="fp-hero__pin">📍</span>
     <% if @fully_verified %>
-      <%= @parcel.address.presence || "Address not available" %>
+      <%= @parcel.address.presence || t('parcels.address_not_available') %>
     <% else %>
       <span style="display:inline-flex;align-items:center;gap:6px;">
-        <span style="filter:blur(5px);user-select:none;pointer-events:none;"><%= @parcel.address.presence || "Address" %></span>
+        <span style="filter:blur(5px);user-select:none;pointer-events:none;"><%= @parcel.address.presence || t('parcels.address_not_available') %></span>
         <span style="font-size:0.55em;background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;font-weight:500;letter-spacing:0.03em;">🔒</span>
       </span>
     <% end %>
@@ -69,15 +69,15 @@
     <% end %>
     <% ds = @parcel.display_auction_status %>
     <% s_cls = case ds; when "available" then "success"; when "sold" then "danger"; when "expired" then "muted"; else "muted"; end %>
-    <span class="fp-badge fp-badge--<%= s_cls %>"><%= ds == "expired" ? "No Disponible" : ds&.titleize %></span>
+    <span class="fp-badge fp-badge--<%= s_cls %>"><%= ds == "expired" ? t('common.not_available') : ds&.titleize %></span>
     <% if @admin_override %>
-      <span class="fp-admin-badge">Admin Override</span>
+      <span class="fp-admin-badge"><%= t('parcels.admin_override') %></span>
     <% end %>
   </div>
 
   <%# ── Opening Bid — prominent ──────────────────────────────────── %>
   <div class="fp-hero__bid">
-    <span class="fp-hero__bid-label">Minimum Bid</span>
+    <span class="fp-hero__bid-label"><%= t('parcels.minimum_bid') %></span>
     <span class="fp-hero__bid-amount">
       <%= @parcel.opening_bid ? number_to_currency(@parcel.opening_bid) : "—" %>
     </span>

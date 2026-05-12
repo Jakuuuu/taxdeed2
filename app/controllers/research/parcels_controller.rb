@@ -32,7 +32,13 @@ module Research
       elsif params[:county].present? && params[:state].present?
         # ── FASE 2 — Modo County: drill-down al condado seleccionado ───
         # ÚNICA vía legítima de llegar a Fase 2 sin auction_id.
-        @selected_state  = params[:state]
+        # Normalize: accept both "FL" and "Florida" — resolve to stored abbreviation.
+        raw_state = params[:state].to_s.strip
+        state_entry = Research::AuctionsHelper::ATLAS_STATES.find { |s|
+          s[:abbr].casecmp?(raw_state) || s[:name].casecmp?(raw_state)
+        }
+        normalized_state = state_entry ? state_entry[:abbr] : raw_state
+        @selected_state  = normalized_state
         @selected_county = params[:county]
         auction_ids = Auction.active_visible
                         .by_state(@selected_state)
@@ -42,6 +48,7 @@ module Research
         scope    = apply_parcel_filters(scope)
         @parcels = scope.order(created_at: :desc).page(params[:page]).per(@per_page)
         @auction = nil
+
 
       else
         # ── FASE 1 — Sin contexto: pantalla de selección (county overview) ──
@@ -188,10 +195,21 @@ module Research
     def county_overview
       auctions = Auction.active_visible.includes(:parcels)
 
+      # Pre-compute total parcel count per auction_id in ONE SQL query — no N+1.
+      # ⚠️  Intentionally NO .has_coords filter here:
+      # county_overview drives the Fase 1 popup count AND the Fase 2 list shows
+      # meta.total = ALL parcels (with or without GPS). Both numbers must match.
+      # The Fase 2 map may display fewer pins (only mappable parcels), which is
+      # expected and acceptable — the list total is the authoritative figure.
+      all_auction_ids = auctions.map(&:id)
+      total_count_by_auction = Parcel.where(auction_id: all_auction_ids)
+                                      .group(:auction_id)
+                                      .count
+
       grouped = auctions.group_by { |a| [a.county, a.state] }
 
       results = grouped.filter_map do |(county, state), auction_list|
-        parcel_count       = auction_list.sum { |a| a.parcel_count || 0 }
+        parcel_count       = auction_list.sum { |a| total_count_by_auction[a.id] || 0 }
         total_amount       = auction_list.sum { |a| a.total_amount.to_f }
         opening_bid_total  = auction_list.sum { |a| a.parcels.sum { |p| p.opening_bid.to_f } }
         auction_count      = auction_list.size

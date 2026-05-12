@@ -5,8 +5,8 @@
 <div class="fp-card" id="ficha-crm">
   <div class="fp-card__hdr">
     <span class="fp-card__hdr-icon">🏷</span>
-    <h3 class="fp-card__hdr-title">My CRM — Tags &amp; Notes</h3>
-    <span class="fp-card__hdr-badge">Always Visible</span>
+    <h3 class="fp-card__hdr-title"><%= t('crm.title') %></h3>
+    <span class="fp-card__hdr-badge"><%= t('crm.always_visible') %></span>
   </div>
   <div class="fp-card__body">
 
@@ -45,8 +45,8 @@
     <%# New note form %>
     <%= form_with url: research_parcel_user_notes_path(parcel_id: @parcel.id), method: :post, local: false do |f| %>
       <%= f.text_area :body, class: "crm-textarea",
-          placeholder: "Add a private note about this property…\n(Only visible to you)" %>
-      <%= f.submit "Save Note", class: "crm-save-btn" %>
+          placeholder: t('crm.add_note_placeholder') %>
+      <%= f.submit t('crm.save_note'), class: "crm-save-btn" %>
     <% end %>
 
     <%# ── Auction Reminder toggle (Mini CRM, inmune a paywall) ─────────
@@ -68,11 +68,11 @@
                    id="crm-watch-toggle"
                    <%= "checked" if watching %>
                    style="width:16px; height:16px; cursor:pointer; accent-color: var(--accent);">
-            🔔 Notificarme antes de la subasta
+            🔔 <%= t('crm.notify_before_auction') %>
           </label>
           <span id="crm-watch-status"
                 style="font:500 11px var(--font-sans); color:var(--ink-3);">
-            <%= watching ? "Activo" : "" %>
+            <%= watching ? t('crm.notify_before_auction_active') : "" %>
           </span>
         </div>
 
@@ -80,28 +80,28 @@
              style="<%= watching ? '' : 'display:none;' %> padding:8px 10px; background:var(--surface-2); border-radius:8px;">
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
             <label for="crm-watch-days" style="font:500 11px var(--font-sans); color:var(--ink-2); white-space:nowrap;">
-              Avisar
+              <%= t('crm.notify_before_label') %>
             </label>
             <select id="crm-watch-days"
                     style="flex:1; padding:4px 6px; border:1px solid var(--border); border-radius:6px; font:500 12px var(--font-sans); background:var(--surface-1); color:var(--ink-1); cursor:pointer;">
               <% [1, 3, 7, 14, 30].each do |d| %>
-                <option value="<%= d %>" <%= "selected" if d == current_days %>><%= d %> día<%= "s" if d > 1 %> antes</option>
+                <option value="<%= d %>" <%= "selected" if d == current_days %>><%= d == 1 ? t('crm.days_before_one', count: d) : t('crm.days_before_other', count: d) %></option>
               <% end %>
             </select>
           </div>
           <label style="display:flex; align-items:center; gap:6px; font:500 11px var(--font-sans); color:var(--ink-3); cursor:not-allowed; opacity:0.65;"
-                 title="Disponible cuando se configure el proveedor de email">
+                 title="<%= t('crm.notify_email_unavailable_tooltip') %>">
             <input type="checkbox"
                    id="crm-watch-email"
                    <%= "checked" if email_on %>
                    disabled
                    style="width:14px; height:14px; accent-color: var(--accent);">
-            También por email <span style="font-size:10px; color:var(--ink-3);">(próximamente)</span>
+            <%= t('crm.notify_email_also') %> <span style="font-size:10px; color:var(--ink-3);"><%= t('common.coming_soon') %></span>
           </label>
         </div>
       <% else %>
         <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--surface-2); border-radius:8px; font:500 12px var(--font-sans); color:var(--ink-3);">
-          🔔 <span>Sin subasta programada — no se pueden activar recordatorios</span>
+          🔔 <span><%= t('crm.no_auction_no_reminders') %></span>
         </div>
       <% end %>
     </div>

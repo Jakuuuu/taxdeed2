@@ -1,29 +1,41 @@
-<%# Atlas Scripts — Florida SVG Map + Interactions %>
-<%# NOTE: florida-geo.js is loaded dynamically below to survive Turbo Drive navigations %>
+<%# Atlas Scripts — Multi-state SVG Map + Interactions %>
+<%# NOTE: state-geo.js files are loaded dynamically below to survive Turbo Drive navigations %>
 <script>
 (function(){
 "use strict";
 
 // ═══════════════════════════════════════
-// Turbo-safe geo-data loader
+// Multi-state geo registry (one entry per *-geo.js file in /public)
 // ═══════════════════════════════════════
-function ensureGeoData(cb) {
-  if (window.FL_COUNTY_PATHS_REAL && Object.keys(window.FL_COUNTY_PATHS_REAL).length > 0) {
-    cb(); return;
-  }
-  // Dynamically inject the script so Turbo can't skip it
+var STATE_GEO = {
+  FL: { script: "/florida-geo.js",    name: "Florida",    paths: "FL_COUNTY_PATHS_REAL", labels: "FL_COUNTY_LABELS_REAL", viewBox: "FL_MAP_VIEWBOX" },
+  TX: { script: "/texas-geo.js",      name: "Texas",      paths: "TX_COUNTY_PATHS_REAL", labels: "TX_COUNTY_LABELS_REAL", viewBox: "TX_MAP_VIEWBOX" },
+  CA: { script: "/california-geo.js", name: "California", paths: "CA_COUNTY_PATHS_REAL", labels: "CA_COUNTY_LABELS_REAL", viewBox: "CA_MAP_VIEWBOX" }
+};
+var ACTIVE_STATE = "<%= (@active_state && @active_state[:abbr]) || 'FL' %>";
+if (!STATE_GEO[ACTIVE_STATE]) ACTIVE_STATE = "FL";
+function activeStateName() { return (STATE_GEO[ACTIVE_STATE] || STATE_GEO.FL).name; }
+
+// ═══════════════════════════════════════
+// Turbo-safe geo-data loader (per state)
+// ═══════════════════════════════════════
+function ensureGeoData(stateAbbr, cb) {
+  var cfg = STATE_GEO[stateAbbr];
+  if (!cfg) { console.warn("[Atlas] unknown state:", stateAbbr); return; }
+  if (window[cfg.paths] && Object.keys(window[cfg.paths]).length > 0) { cb(); return; }
   var s = document.createElement("script");
-  s.src = "/florida-geo.js?_t=" + Date.now(); // cache-bust for safety
+  s.src = cfg.script + "?_t=" + Date.now(); // cache-bust for safety
   s.onload = function() { cb(); };
-  s.onerror = function() { console.warn("[Atlas] florida-geo.js failed to load"); };
+  s.onerror = function() { console.warn("[Atlas] geo script failed:", cfg.script); cb(); };
   document.head.appendChild(s);
 }
 
 var P, L, VB;
-function initGeoRefs() {
-  P = window.FL_COUNTY_PATHS_REAL || {};
-  L = window.FL_COUNTY_LABELS_REAL || {};
-  VB = window.FL_MAP_VIEWBOX || "0 0 1000 800";
+function initGeoRefs(stateAbbr) {
+  var cfg = STATE_GEO[stateAbbr] || STATE_GEO.FL;
+  P  = window[cfg.paths]   || {};
+  L  = window[cfg.labels]  || {};
+  VB = window[cfg.viewBox] || "0 0 1000 800";
 }
 
 var CD={};
@@ -53,6 +65,24 @@ var panStart = { x: 0, y: 0 };
 var panDragged = false;
 var DRAG_THRESHOLD = 5; // px before counting as drag vs click
 var mapSvg = null;
+
+// ── County selection state (shared across renderMap / initTip / boot) ──
+var activeCounty = null;   // currently hovered county item
+var selectedCounty = null; // click-persistent selected county item
+
+function applySelected(item){
+ item.p.setAttribute("fill","oklch(0.35 0.13 158)");
+ item.p.setAttribute("stroke","oklch(0.62 0.17 155)");
+ item.p.setAttribute("stroke-width","2.5");
+ item.p.style.filter="drop-shadow(0 0 10px oklch(0.62 0.17 155/0.55))";
+}
+function clearSelected(item){
+ if(!item)return;
+ item.p.setAttribute("fill",item.origFill);
+ item.p.setAttribute("stroke","#2C3E50");
+ item.p.setAttribute("stroke-width","1.2");
+ item.p.style.filter="none";
+}
 
 function initViewBox() {
   var vbParts = (VB || "0 0 1000 800").split(" ").map(Number);
@@ -108,9 +138,9 @@ function renderMap(){
   sp.setAttribute("transform","translate(2 4)");sh.appendChild(sp);}
  svg.appendChild(sh);
 
- // Counties — exclusive hover tracking (only 1 county label at a time)
+ // Counties — hover tracking + click-to-select
+ // NOTE: activeCounty, selectedCounty, applySelected, clearSelected are in IIFE scope above renderMap
  var cg=document.createElementNS(ns,"g");
- var activeCounty=null; // ref to currently hovered county item
  function resetCounty(item){
   if(!item)return;
   item.g.style.transform="translate(0,0) scale(1)";item.g.style.filter="none";
@@ -118,7 +148,7 @@ function renderMap(){
   item.p.setAttribute("stroke-width","1.2");if(item.lg)item.lg.style.opacity="0";
  }
  for(var id in P){(function(id){
-  var c=CD[id]||{id:id,name:(L[id]||{}).name||id,state:"Florida",props:0,next:"—",url:""};
+  var c=CD[id]||{id:id,name:(L[id]||{}).name||id,state:activeStateName(),props:0,next:"—",url:""};
   var lb=L[id], co=hc(c.props);
   var g=document.createElementNS(ns,"g");
   g.style.cssText="cursor:pointer;transition:transform 220ms cubic-bezier(.2,.8,.2,1),filter 220ms ease";
@@ -153,35 +183,64 @@ function renderMap(){
   var item={g:g,p:p,lg:lg,origFill:co.f};
 
   g.addEventListener("mouseenter",function(){
-   if (isPanning) return;
-   // Exclusive: reset previous county before activating new one
-   if(activeCounty && activeCounty!==item){ resetCounty(activeCounty); hideTip(); }
+   if(isPanning)return;
+   if(activeCounty&&activeCounty!==item){resetCounty(activeCounty);}
    activeCounty=item;
-   g.style.transform="translate(-3px,-8px) scale(1.04)";
-   g.style.filter="drop-shadow(0 10px 18px oklch(0.18 0.015 158/0.28)) drop-shadow(0 0 14px oklch(0.48 0.11 158/0.35))";
-   p.setAttribute("fill","var(--accent-soft)");p.setAttribute("stroke","var(--accent-strong)");
-   p.setAttribute("stroke-width","1.8");if(lg)lg.style.opacity="1";
-   cg.appendChild(g); showTip(c);
+   // Don't override selected state visuals
+   if(selectedCounty!==item){
+    g.style.transform="translate(-3px,-8px) scale(1.04)";
+    g.style.filter="drop-shadow(0 10px 18px oklch(0.18 0.015 158/0.28))";
+    p.setAttribute("fill","var(--accent-soft)");p.setAttribute("stroke","var(--accent-strong)");
+    p.setAttribute("stroke-width","1.8");
+   }
+   if(lg)lg.style.opacity="1";
+   cg.appendChild(g);
+   // Mostrar ficha flotante en hover (no pisar el estado click-pinned)
+   if(selectedCounty!==item){
+    var hx,hy;
+    if(lb&&mapSvg){var sp=svgToScreen(mapSvg,lb.x,lb.y);hx=sp.x;hy=sp.y;}
+    else{var r=p.getBoundingClientRect();hx=r.left+r.width/2;hy=r.top+r.height/2;}
+    showTip(c,hx,hy);
+   }
   });
   g.addEventListener("mouseleave",function(){
+   if(selectedCounty===item)return; // keep selected state, don't reset
    resetCounty(item);
-   if(activeCounty===item) activeCounty=null;
-   hideTip();
+   if(activeCounty===item)activeCounty=null;
+   if(!selectedCounty)hideTip(); // oculta solo si nada está pinned
   });
-  (function(county){
+  (function(county,labelData){
    var downX=0,downY=0;
-   g.addEventListener("mousedown",function(e){ downX=e.clientX; downY=e.clientY; });
+   g.addEventListener("mousedown",function(e){downX=e.clientX;downY=e.clientY;});
    g.addEventListener("click",function(e){
-    var dx=Math.abs(e.clientX-downX), dy=Math.abs(e.clientY-downY);
-    if(dx>DRAG_THRESHOLD||dy>DRAG_THRESHOLD) return;
+    var dx=Math.abs(e.clientX-downX),dy=Math.abs(e.clientY-downY);
+    if(dx>DRAG_THRESHOLD||dy>DRAG_THRESHOLD)return;
     e.stopPropagation();
-    if(county.url) window.location.href=county.url;
-    else window.location.href="/research/parcels?county="+encodeURIComponent(county.name)+"&state="+encodeURIComponent(county.state||"Florida");
+    // Toggle: clicking selected county closes the popover
+    if(selectedCounty===item){clearSelected(item);selectedCounty=null;hideTip();return;}
+    // Select new county
+    if(selectedCounty)clearSelected(selectedCounty);
+    selectedCounty=item;
+    applySelected(item);
+    // Get screen position from SVG centroid, fall back to click coords
+    var sx,sy;
+    if(labelData&&mapSvg){var sp=svgToScreen(mapSvg,labelData.x,labelData.y);sx=sp.x;sy=sp.y;}
+    else{sx=e.clientX;sy=e.clientY;}
+    showTip(county,sx,sy);
    });
-  })(c);
+  })(c,lb);
   cg.appendChild(g);
  })(id);}
  svg.appendChild(cg);
+
+ // Close county detail panel when clicking on empty SVG background
+ svg.addEventListener("click",function(e){
+  if(e.target===svg||e.target.tagName==="rect"){
+   hideTip();
+   if(activeCounty){ resetCounty(activeCounty); activeCounty=null; }
+  }
+ });
+
  w.innerHTML="";w.appendChild(svg);
 
  // ═══════════════════════════════════════
@@ -256,40 +315,150 @@ function renderMap(){
  }, { passive: false });
 }
 
-// Tooltip
+// County Anchored Popover
 var tt=null,tn=null,tp=null,ta=null,tx=null;
-function initTip(){
- tt=document.getElementById("atlasTooltip");
- tn=document.getElementById("tooltipName");
- tp=document.getElementById("tooltipProps");
- ta=document.getElementById("tooltipAuctions");
- tx=document.getElementById("tooltipNext");
+
+// Convert SVG coordinate to screen pixel
+function svgToScreen(svgEl,svgX,svgY){
+ var pt=svgEl.createSVGPoint();
+ pt.x=svgX;pt.y=svgY;
+ var ctm=svgEl.getScreenCTM();
+ if(!ctm)return{x:0,y:0};
+ return pt.matrixTransform(ctm);
 }
-function showTip(c){if(!tt)return;tn.innerHTML=c.name+' <span style="opacity:.5">County</span>';
- tp.textContent=c.props;if(ta)ta.textContent=c.auctions||c.props;if(tx)tx.textContent=c.next||"—";
- tt.classList.add("visible");}
-function hideTip(){if(tt)tt.classList.remove("visible");}
-// Named function so we can manage it via window._atlasMouseMoveHandler
-function _atlasMouseMove(e){if(!tt)return;
- var x=e.clientX+12,y=e.clientY+12;
- if(x+240>window.innerWidth)x=e.clientX-252;
- if(y+180>window.innerHeight)y=e.clientY-192;
- tt.style.left=x+"px";tt.style.top=y+"px";}
+
+function initTip(){
+ tt=document.getElementById("atlasCountyPanel");
+ tn=document.getElementById("cdpName");
+ tp=document.getElementById("cdpProps");
+ ta=document.getElementById("cdpAuctions");
+ tx=document.getElementById("cdpNext");
+ var closeBtn=document.getElementById("cdpClose");
+ if(closeBtn)closeBtn.addEventListener("click",function(e){
+  e.stopPropagation();
+  // selectedCounty and clearSelected are in IIFE scope — always accessible
+  if(selectedCounty){clearSelected(selectedCounty);selectedCounty=null;}
+  hideTip();
+ });
+}
+
+function showTip(c,screenX,screenY){
+ // Lazy init — retry panel lookup in case boot() ran before the partial was painted
+ if(!tt) initTip();
+ if(!tt)return;
+ // Populate content
+ tn.textContent=c.name;
+ if(tp)tp.textContent=c.props;
+ if(ta)ta.textContent=c.auctions||c.props;
+ if(tx)tx.textContent=c.next||"—";
+ var cta=document.getElementById("cdpCta");
+ if(cta){
+   var ctaUrl="/research/parcels?county="+encodeURIComponent(c.name)+"&state="+encodeURIComponent(c.state||ACTIVE_STATE);
+   // Assign onclick directly — immune to Turbo cache and missing data-href attributes
+   cta.onclick=function(e){
+     e.preventDefault();
+     if(typeof Turbo!=="undefined"){Turbo.visit(ctaUrl);}
+     else{window.location.href=ctaUrl;}
+   };
+ }
+ // Smart positioning
+ var PW=278,PH=168,OFFSET=22;
+ var vw=window.innerWidth,vh=window.innerHeight;
+ var PANEL_L=416,PANEL_R=316; // widths of left/right panels
+ var stemDir="down"; // popover above county → stem points down
+ var top=screenY-PH-OFFSET;
+ var left=screenX-PW/2;
+ if(top<88){top=screenY+OFFSET;stemDir="up";}
+ var minL=PANEL_L+8,maxL=vw-PANEL_R-PW-8;
+ if(left<minL)left=minL;
+ if(left>maxL)left=maxL;
+ // Stem x offset: where arrow points relative to popover left edge
+ var stemX=Math.max(18,Math.min(PW-18,Math.round(screenX-left)));
+ tt.style.left=left+"px";
+ tt.style.top=top+"px";
+ tt.setAttribute("data-stem",stemDir);
+ tt.style.setProperty("--cdp-stem-x",stemX+"px");
+ tt.setAttribute("aria-hidden","false");
+ tt.classList.add("visible");
+}
+
+function hideTip(){
+ if(!tt)return;
+ tt.classList.remove("visible");
+ tt.setAttribute("aria-hidden","true");
+}
+// no-op — hover handlers manejan show/hide; click solo "pinnea"
+function _atlasMouseMove(e){}
 // NOTE: mousemove listener is registered in the Turbo management section below
 
 // Expose resetView globally for the zoom controls
 window.atlasResetView = function() { resetView(); };
+
+// ═══════════════════════════════════════
+// State switcher — opens the inline glass dropdown and reloads via Turbo
+// ═══════════════════════════════════════
+window.atlasChangeActiveState = function(stateAbbr) {
+  var cfg = STATE_GEO[stateAbbr];
+  if (!cfg) return;
+  var url = new URL(window.location.href);
+  url.searchParams.set("state", cfg.name);
+  // Drop pagination/county filters that don't carry across states
+  url.searchParams.delete("county");
+  url.searchParams.delete("page");
+  if (window.Turbo && typeof Turbo.visit === "function") {
+    Turbo.visit(url.toString(), { action: "replace" });
+  } else {
+    window.location.href = url.toString();
+  }
+};
+
+function initStateMenu() {
+  var pill = document.getElementById("atlasStatePill");
+  var btn  = document.getElementById("atlasStateSwitch");
+  var menu = document.getElementById("atlasStateMenu");
+  if (!btn || !menu || !pill) return;
+  // Guard against double-binding across Turbo loads
+  if (pill.dataset.stateMenuReady === "1") return;
+  pill.dataset.stateMenuReady = "1";
+
+  function openMenu()  { menu.hidden = false; btn.setAttribute("aria-expanded","true"); }
+  function closeMenu() { menu.hidden = true;  btn.setAttribute("aria-expanded","false"); }
+
+  btn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    menu.hidden ? openMenu() : closeMenu();
+  });
+
+  menu.querySelectorAll(".atlas__state-menu-item").forEach(function(item) {
+    item.addEventListener("click", function(e) {
+      e.stopPropagation();
+      var abbr = item.dataset.stateAbbr;
+      closeMenu();
+      window.atlasChangeActiveState(abbr);
+    });
+  });
+
+  // Click-outside closes the menu (use mousedown so it fires before pan handlers)
+  document.addEventListener("mousedown", function(e) {
+    if (!menu.hidden && !pill.contains(e.target)) closeMenu();
+  });
+  // Esc closes
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && !menu.hidden) closeMenu();
+  });
+}
 
 function boot(){
   // Guard: skip if the atlas map container is not in the DOM (we're on another page)
   if (!document.getElementById("atlasMapWrap")) return;
 
   // Ensure geo data is loaded (survives Turbo Drive navigations)
-  ensureGeoData(function() {
-    initGeoRefs();
+  ensureGeoData(ACTIVE_STATE, function() {
+    initGeoRefs(ACTIVE_STATE);
     initViewBox();
     initTip();
     renderMap();
+    initStateMenu();
 
     // Zoom control buttons
     var zoomIn = document.getElementById("atlasZoomIn");
@@ -315,29 +484,46 @@ function boot(){
     });
     if (zoomReset) zoomReset.addEventListener("click", function() { resetView(); });
 
-    // Force-hide tooltip AND reset all county highlights when mouse exits map area
-    var wrap = document.getElementById("atlasMapWrap");
+    // Ocultar el popover INMEDIATAMENTE al salir de los bordes del mapa.
+    // Si el mouse va hacia el panel (popover), no se oculta para permitir el click.
+    var wrap  = document.getElementById("atlasMapWrap");
+    var panel = document.getElementById("atlasCountyPanel");
+
+    function hideIfNotTowardPanel(e) {
+      // relatedTarget = elemento al que va el mouse tras salir
+      var to = e.relatedTarget;
+      if (panel && to && (panel === to || panel.contains(to))) return; // va al popover → no ocultar
+      // Va fuera del mapa y fuera del popover → ocultar de inmediato
+      var groups = wrap ? wrap.querySelectorAll("g[style]") : [];
+      [].forEach.call(groups, function(g){
+        g.style.transform = "translate(0,0) scale(1)";
+        g.style.filter = "none";
+        var path = g.querySelector("path");
+        if(path && path.dataset.origFill){
+          path.setAttribute("fill", path.dataset.origFill);
+          path.setAttribute("stroke", "#2C3E50");
+          path.setAttribute("stroke-width", "1.2");
+        }
+        var label = g.querySelector("g[style*='pointer-events']");
+        if(label) label.style.opacity = "0";
+      });
+      if(activeCounty){ activeCounty = null; }
+      if(!selectedCounty){ hideTip(); }
+    }
+
     if(wrap){
-      wrap.addEventListener("mouseleave", function(){
-        hideTip();
-        // Reset every county group inside the map
-        var groups = wrap.querySelectorAll("g[style]");
-        groups.forEach(function(g){
-          g.style.transform = "translate(0,0) scale(1)";
-          g.style.filter = "none";
-          // Reset path fill/stroke to original
-          var path = g.querySelector("path");
-          if(path && path.dataset.origFill){
-            path.setAttribute("fill", path.dataset.origFill);
-            path.setAttribute("stroke", "#2C3E50");
-            path.setAttribute("stroke-width", "1.2");
-          }
-          // Hide hover label
-          var label = g.querySelector("g[style*='pointer-events']");
-          if(label) label.style.opacity = "0";
-        });
+      wrap.addEventListener("mouseleave", hideIfNotTowardPanel);
+    }
+    if(panel){
+      // Al salir del popover: ocultar de inmediato si el mouse NO vuelve al mapa
+      panel.addEventListener("mouseleave", function(e){
+        var to = e.relatedTarget;
+        if (wrap && to && (wrap === to || wrap.contains(to))) return; // vuelve al mapa → no ocultar
+        if(!selectedCounty){ hideTip(); }
       });
     }
+    // Signal to AtlasPanelManager that the map is fully rendered
+    document.dispatchEvent(new CustomEvent("atlas:booted"));
   });
 }
 
@@ -357,6 +543,15 @@ window._atlasTurboBeforeRender = function() {
   hideTip();
   var tip = document.getElementById("atlasTooltip");
   if (tip) tip.classList.remove("visible");
+  // Clear panel manager flags so it re-initializes after Turbo navigation
+  var stage = document.getElementById("atlasStage");
+  if (stage) {
+    delete stage.dataset.panelMgrReady;
+    stage.querySelectorAll("[data-panel-controls-injected]").forEach(function(el) {
+      delete el.dataset.panelControlsInjected;
+    });
+  }
+  window.atlasPanelMgr = null;
 };
 window._atlasTurboLoad = function() { boot(); };
 window._atlasMouseMoveHandler = _atlasMouseMove;
@@ -366,6 +561,824 @@ document.addEventListener("turbo:load", window._atlasTurboLoad);
 document.addEventListener("mousemove", window._atlasMouseMoveHandler);
 
 document.addEventListener("DOMContentLoaded", boot);
+
+})(); // ── close IIFE #1 (Atlas Scripts: map + interactions) ──
+
+// ═══════════════════════════════════════════════════════
+// AtlasPanelManager — Draggable, resizable, minimizable panels
+// ═══════════════════════════════════════════════════════
+(function() {
+"use strict";
+
+var LS_PREFIX = "atlas_panel_v1_";
+
+function AtlasPanelManager(stageEl) {
+  this.stage = stageEl;
+  this.panels = []; // { el, id, label, defaultPos, defaultSize }
+  this.kpiTiles = []; // { el, id, label }
+  this._mgrOpen = false;
+}
+
+AtlasPanelManager.prototype.init = function() {
+  var self = this;
+  var stage = this.stage;
+  if (!stage) return;
+
+  // Guard: only inject once per DOM boot (Turbo cache safety)
+  if (stage.dataset.panelMgrReady === "1") return;
+  stage.dataset.panelMgrReady = "1";
+
+  // Collect panels
+  var panelEls = stage.querySelectorAll("[data-panel-id]");
+  panelEls.forEach(function(el) {
+    var id = el.dataset.panelId;
+    var label = el.dataset.panelLabel || id;
+    var defaultPos = {};
+    var defaultSize = {};
+    try { defaultPos = JSON.parse(el.dataset.panelDefaultPos || "{}"); } catch(e) {}
+    try { defaultSize = JSON.parse(el.dataset.panelDefaultSize || "{}"); } catch(e) {}
+
+    // Make position:absolute driven by JS, converting CSS-set position
+    // to computed left/top so drag works from current visual position
+    el.style.position = "absolute";
+    var rect = el.getBoundingClientRect();
+    var stageRect = stage.getBoundingClientRect();
+
+    var panel = { el: el, id: id, label: label, defaultPos: defaultPos, defaultSize: defaultSize };
+    self.panels.push(panel);
+
+    self._restoreState(panel, rect, stageRect);
+    self._injectControls(panel);
+    self._makeDraggable(panel);
+    // Don't add resize to kpis strip (it's a grid strip)
+    if (id !== "kpis" && id !== "state-pill") {
+      self._makeResizable(panel);
+    }
+  });
+
+  // Collect KPI tiles
+  var kpiEls = stage.querySelectorAll("[data-kpi-id]");
+  kpiEls.forEach(function(el) {
+    var ktiId = el.dataset.kpiId;
+    var ktiLabel = el.dataset.kpiLabel || ktiId;
+    self.kpiTiles.push({ el: el, id: ktiId, label: ktiLabel });
+    self._restoreKpiState(ktiId, el);
+  });
+
+  // Build Panel Manager list
+  this._buildMgrList();
+
+  // Click outside popover closes it
+  document.addEventListener("mousedown", function(e) {
+    var mgr = document.getElementById("atlasPanelManager");
+    if (mgr && !mgr.contains(e.target)) {
+      self._closeMgrPopover();
+    }
+  });
+};
+
+AtlasPanelManager.prototype._restoreState = function(panel, rect, stageRect) {
+  var id = panel.id;
+  var el = panel.el;
+  var ds = panel.defaultSize || {};
+
+  // Restore visibility
+  var vis = this._load(id, "visible");
+  if (vis === false) {
+    el.classList.add("atlas-panel--hidden");
+  }
+
+  // Restore minimized
+  var min = this._load(id, "minimized");
+  if (min === true) {
+    el.classList.add("atlas-panel--minimized");
+  }
+
+  // Restore size (only if user has previously resized)
+  var size = this._load(id, "size");
+  if (size && size.width) el.style.width = size.width + "px";
+  if (size && size.height) el.style.height = size.height + "px";
+
+  // Restore position ONLY if user has previously moved the panel.
+  // When no saved pos exists we leave the CSS-defined position completely
+  // untouched — the stylesheet already places every panel correctly.
+  var pos = this._load(id, "pos");
+  if (pos) {
+    el.style.left = pos.left + "px";
+    el.style.top  = pos.top  + "px";
+    el.style.right  = "";
+    el.style.bottom = "";
+  }
+  // No else — CSS handles the default layout. Clean and safe.
+};
+
+AtlasPanelManager.prototype._restoreKpiState = function(id, el) {
+  var vis = this._load("kpi_" + id, "visible");
+  if (vis === false) {
+    el.classList.add("kpi-tile--hidden");
+  }
+};
+
+AtlasPanelManager.prototype._injectControls = function(panel) {
+  var self = this;
+  var el = panel.el;
+  var id = panel.id;
+
+  // Guard against double-injection
+  if (el.dataset.panelControlsInjected === "1") return;
+  el.dataset.panelControlsInjected = "1";
+
+  // Ensure relative positioning for absolute children
+  var cs = window.getComputedStyle(el);
+  if (cs.position === "static") el.style.position = "relative";
+
+  // Build control bar
+  var bar = document.createElement("div");
+  bar.className = "panel-header-controls";
+
+  // Drag handle
+  var dragBtn = document.createElement("button");
+  dragBtn.className = "panel-ctrl-btn panel-ctrl-btn--drag";
+  dragBtn.title = "Drag to move";
+  dragBtn.setAttribute("aria-label", "Drag panel");
+  dragBtn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>';
+  bar.appendChild(dragBtn);
+
+  // Minimize button (not for kpis strip)
+  if (id !== "kpis") {
+    var minBtn = document.createElement("button");
+    minBtn.className = "panel-ctrl-btn panel-ctrl-btn--minimize";
+    minBtn.title = "Minimize";
+    minBtn.setAttribute("aria-label", "Minimize panel");
+    minBtn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 15l6 6 6-6"/></svg>';
+    if (el.classList.contains("atlas-panel--minimized")) minBtn.classList.add("is-minimized");
+    minBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      self.toggleMinimize(panel, minBtn);
+    });
+    bar.appendChild(minBtn);
+  }
+
+  // Hide button
+  var hideBtn = document.createElement("button");
+  hideBtn.className = "panel-ctrl-btn panel-ctrl-btn--hide";
+  hideBtn.title = "Hide panel";
+  hideBtn.setAttribute("aria-label", "Hide panel");
+  hideBtn.innerHTML = '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  hideBtn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    self.toggleVisible(id, false);
+  });
+  bar.appendChild(hideBtn);
+
+  el.appendChild(bar);
+
+  // Drag activates from the drag handle OR anywhere on the bar (not just the button)
+  panel._dragHandle = dragBtn;
+};
+
+AtlasPanelManager.prototype._makeDraggable = function(panel) {
+  var self = this;
+  var el = panel.el;
+  var handle = panel._dragHandle || el;
+
+  var startX, startY, startLeft, startTop;
+  var isDragging = false;
+
+  handle.addEventListener("mousedown", function(e) {
+    if (e.button !== 0) return;
+    // CRITICAL: stopPropagation so SVG map pan is NOT triggered
+    e.stopPropagation();
+    e.preventDefault();
+
+    isDragging = false;
+    startX = e.clientX;
+    startY = e.clientY;
+
+    var rect = el.getBoundingClientRect();
+    var stageRect = self.stage.getBoundingClientRect();
+    startLeft = rect.left - stageRect.left;
+    startTop = rect.top - stageRect.top;
+
+    // Fix left/top immediately so we work in absolute coords
+    el.style.left = startLeft + "px";
+    el.style.top = startTop + "px";
+    el.style.right = "";
+    el.style.bottom = "";
+
+    function onMove(e) {
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
+      if (!isDragging && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+        isDragging = true;
+        el.classList.add("atlas-panel--dragging");
+        el.style.pointerEvents = "none";
+        document.body.style.userSelect = "none";
+        document.body.style.cursor = "grabbing";
+      }
+      if (!isDragging) return;
+
+      var stageRect = self.stage.getBoundingClientRect();
+      var newLeft = Math.max(0, Math.min(stageRect.width - 40, startLeft + dx));
+      var newTop = Math.max(0, Math.min(stageRect.height - 40, startTop + dy));
+      el.style.left = newLeft + "px";
+      el.style.top = newTop + "px";
+    }
+
+    function onUp() {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      if (isDragging) {
+        el.classList.remove("atlas-panel--dragging");
+        el.style.pointerEvents = "";
+        document.body.style.userSelect = "";
+        document.body.style.cursor = "";
+        self._saveState(panel);
+      }
+      isDragging = false;
+    }
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+};
+
+AtlasPanelManager.prototype._makeResizable = function(panel) {
+  var self = this;
+  var el = panel.el;
+
+  var handle = document.createElement("div");
+  handle.className = "panel-resize-handle";
+  el.appendChild(handle);
+
+  var startX, startY, startW, startH;
+  var isResizing = false;
+
+  handle.addEventListener("mousedown", function(e) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+
+    isResizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startW = el.offsetWidth;
+    startH = el.offsetHeight;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "nwse-resize";
+
+    function onMove(e) {
+      if (!isResizing) return;
+      var newW = Math.max(180, startW + (e.clientX - startX));
+      var newH = Math.max(80, startH + (e.clientY - startY));
+      el.style.width = newW + "px";
+      if (el.dataset.panelId !== "agenda") { // agenda scroll height is dynamic
+        el.style.height = newH + "px";
+      }
+    }
+
+    function onUp() {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      isResizing = false;
+      self._saveState(panel);
+    }
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+};
+
+AtlasPanelManager.prototype.toggleMinimize = function(panel, btn) {
+  var el = panel.el;
+  var isMin = el.classList.toggle("atlas-panel--minimized");
+  if (btn) btn.classList.toggle("is-minimized", isMin);
+  this._save(panel.id, "minimized", isMin);
+};
+
+AtlasPanelManager.prototype.toggleVisible = function(panelId, visible) {
+  var panel = this.panels.find(function(p) { return p.id === panelId; });
+  if (!panel) return;
+  if (visible) {
+    panel.el.classList.remove("atlas-panel--hidden");
+  } else {
+    panel.el.classList.add("atlas-panel--hidden");
+  }
+  this._save(panelId, "visible", visible);
+  this._buildMgrList();
+};
+
+AtlasPanelManager.prototype.toggleKpiTile = function(kpiId, visible) {
+  var tile = this.kpiTiles.find(function(t) { return t.id === kpiId; });
+  if (!tile) return;
+  if (visible) {
+    tile.el.classList.remove("kpi-tile--hidden");
+  } else {
+    tile.el.classList.add("kpi-tile--hidden");
+  }
+  this._save("kpi_" + kpiId, "visible", visible);
+  this._buildMgrList();
+};
+
+AtlasPanelManager.prototype._saveState = function(panel) {
+  var el = panel.el;
+  var cs = window.getComputedStyle(el);
+  var pos = { left: parseFloat(el.style.left) || 0, top: parseFloat(el.style.top) || 0 };
+  var size = { width: el.offsetWidth, height: el.offsetHeight };
+  this._save(panel.id, "pos", pos);
+  this._save(panel.id, "size", size);
+};
+
+AtlasPanelManager.prototype.toggleMgrPopover = function() {
+  this._mgrOpen = !this._mgrOpen;
+  var pop = document.getElementById("atlasPanelMgrPopover");
+  if (pop) pop.style.display = this._mgrOpen ? "" : "none";
+};
+
+AtlasPanelManager.prototype._closeMgrPopover = function() {
+  this._mgrOpen = false;
+  var pop = document.getElementById("atlasPanelMgrPopover");
+  if (pop) pop.style.display = "none";
+};
+
+AtlasPanelManager.prototype._buildMgrList = function() {
+  var self = this;
+  var list = document.getElementById("atlasPanelMgrList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  this.panels.forEach(function(panel) {
+    var isVisible = !panel.el.classList.contains("atlas-panel--hidden");
+    var row = document.createElement("div");
+    row.className = "panel-mgr-row";
+
+    var label = document.createElement("span");
+    label.className = "panel-mgr-row__label";
+    label.textContent = panel.label;
+    row.appendChild(label);
+
+    var controls = document.createElement("div");
+    controls.className = "panel-mgr-row__controls";
+
+    // Toggle
+    var tog = document.createElement("label");
+    tog.className = "panel-mgr-toggle";
+    var inp = document.createElement("input");
+    inp.type = "checkbox";
+    inp.checked = isVisible;
+    var track = document.createElement("span");
+    track.className = "panel-mgr-toggle-track";
+    tog.appendChild(inp);
+    tog.appendChild(track);
+    inp.addEventListener("change", function() {
+      self.toggleVisible(panel.id, inp.checked);
+    });
+    controls.appendChild(tog);
+    row.appendChild(controls);
+    list.appendChild(row);
+
+    // KPI sub-rows
+    if (panel.id === "kpis" && self.kpiTiles.length > 0) {
+      var sub = document.createElement("div");
+      sub.className = "panel-mgr-kpi-sub";
+      self.kpiTiles.forEach(function(tile) {
+        var kpiVisible = !tile.el.classList.contains("kpi-tile--hidden");
+        var kRow = document.createElement("div");
+        kRow.className = "panel-mgr-kpi-row";
+        var kLabel = document.createElement("span");
+        kLabel.className = "panel-mgr-kpi-row__label";
+        kLabel.textContent = tile.label;
+        kRow.appendChild(kLabel);
+
+        var kTog = document.createElement("label");
+        kTog.className = "panel-mgr-toggle";
+        var kInp = document.createElement("input");
+        kInp.type = "checkbox";
+        kInp.checked = kpiVisible;
+        var kTrack = document.createElement("span");
+        kTrack.className = "panel-mgr-toggle-track";
+        kTog.appendChild(kInp);
+        kTog.appendChild(kTrack);
+        kInp.addEventListener("change", (function(t, inp) {
+          return function() { self.toggleKpiTile(t.id, inp.checked); };
+        })(tile, kInp));
+
+        kRow.appendChild(kTog);
+        sub.appendChild(kRow);
+      });
+      list.appendChild(sub);
+    }
+  });
+};
+
+AtlasPanelManager.prototype.resetAllPanels = function() {
+  var self = this;
+
+  // Clear all saved state for panels
+  this.panels.forEach(function(p) {
+    ["pos","size","minimized","visible"].forEach(function(k) {
+      try { localStorage.removeItem(LS_PREFIX + p.id + "_" + k); } catch(e) {}
+    });
+    // Restore DOM
+    p.el.classList.remove("atlas-panel--hidden", "atlas-panel--minimized");
+    var minBtn = p.el.querySelector(".panel-ctrl-btn--minimize");
+    if (minBtn) minBtn.classList.remove("is-minimized");
+    // Clear all inline styles — the CSS stylesheet defines the correct
+    // default position/size for each panel, so we just let it take over.
+    p.el.style.left   = "";
+    p.el.style.top    = "";
+    p.el.style.right  = "";
+    p.el.style.bottom = "";
+    p.el.style.width  = "";
+    p.el.style.height = "";
+  });
+
+  // Clear KPI tiles
+  this.kpiTiles.forEach(function(t) {
+    try { localStorage.removeItem(LS_PREFIX + "kpi_" + t.id + "_visible"); } catch(e) {}
+    t.el.classList.remove("kpi-tile--hidden");
+  });
+
+  this._buildMgrList();
+  this._closeMgrPopover();
+};
+
+// localStorage helpers
+AtlasPanelManager.prototype._save = function(id, key, val) {
+  try { localStorage.setItem(LS_PREFIX + id + "_" + key, JSON.stringify(val)); } catch(e) {}
+};
+AtlasPanelManager.prototype._load = function(id, key) {
+  try {
+    var v = localStorage.getItem(LS_PREFIX + id + "_" + key);
+    return v !== null ? JSON.parse(v) : null;
+  } catch(e) { return null; }
+};
+
+// ── AtlasPanelManager boot — multi-path init ──
+// Path 1: atlas:booted (normal — map rendered successfully)
+document.addEventListener("atlas:booted", function() {
+  var stage = document.getElementById("atlasStage");
+  if (!stage) return;
+  delete stage.dataset.panelMgrReady;
+  window.atlasPanelMgr = new AtlasPanelManager(stage);
+  window.atlasPanelMgr.init();
+  initCrmCalendar();
+});
+
+// Path 2: turbo:load (Turbo Drive navigation)
+document.addEventListener("turbo:load", function() {
+  var stage = document.getElementById("atlasStage");
+  if (!stage) return;
+  // Clear ready flag so we can re-initialize (cache may have left it set)
+  delete stage.dataset.panelMgrReady;
+  stage.querySelectorAll("[data-panel-controls-injected]").forEach(function(el) {
+    delete el.dataset.panelControlsInjected;
+  });
+  setTimeout(function() {
+    // Only run if atlas:booted hasn't already initialized it
+    if (stage.dataset.panelMgrReady !== "1") {
+      window.atlasPanelMgr = new AtlasPanelManager(stage);
+      window.atlasPanelMgr.init();
+    }
+    initCrmCalendar();
+  }, 600);
+});
+
+// Path 3: Immediate inline attempt (script runs after DOM is parsed on first load)
+// This handles the case where DOMContentLoaded already fired before this IIFE ran.
+(function tryBootPanelMgr() {
+  var stage = document.getElementById("atlasStage");
+  if (!stage) return;
+  if (stage.dataset.panelMgrReady === "1") return;
+  window.atlasPanelMgr = new AtlasPanelManager(stage);
+  window.atlasPanelMgr.init();
+  initCrmCalendar();
+})();
+
+})();
+</script>
+
+<%# ── CRM Calendar panel styles ── %>
+<style>
+/* ── CRM Calendar panel container ───────────────────────── */
+.atlas__crm-calendar {
+  position: absolute;
+  right: 24px;
+  top: 220px;
+  width: 280px;
+  min-width: 220px;
+  /* Light glass — identical family to .atlas__top-counties and .agenda-list */
+  background: oklch(1 0 0);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid oklch(0.91 0.008 158 / 0.6);
+  border-radius: 14px;
+  padding: 14px 16px 12px;
+  box-shadow: var(--shadow-md);
+  z-index: 90;
+  transition: opacity 0.2s ease;
+}
+
+/* Hidden via Panel Manager */
+.atlas__crm-calendar.atlas-panel--hidden { display: none !important; }
+
+/* Minimized via panel collapse — uses .panel-body max-height trick */
+.atlas__crm-calendar.atlas-panel--minimized .panel-body {
+  max-height: 0 !important;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+.atlas__crm-calendar .panel-body {
+  max-height: 340px;
+  overflow: hidden;
+  transition: max-height 0.32s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── CRM Calendar grid ───────────────────────────────────── */
+.crm-cal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.crm-cal__month-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-1);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: var(--font-mono, monospace);
+}
+.crm-cal__nav {
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 5px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.crm-cal__nav:hover {
+  color: var(--ink-1);
+  background: var(--surface-2);
+}
+.crm-cal__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.crm-cal__wd {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-3);
+  text-align: center;
+  letter-spacing: 0.06em;
+  font-family: var(--font-mono, monospace);
+}
+.crm-cal__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.crm-cal__day {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 10px;
+  color: var(--ink-2);
+  cursor: default;
+  transition: background 0.15s;
+  min-height: 26px;
+}
+.crm-cal__day--today {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 700;
+  box-shadow: 0 0 0 1.5px var(--accent);
+}
+.crm-cal__day--has-event {
+  color: var(--accent-strong);
+  cursor: pointer;
+  background: var(--accent-soft);
+}
+.crm-cal__day--has-event:hover {
+  background: oklch(0.90 0.04 158);
+}
+.crm-cal__day--empty {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Green auction dot */
+.crm-cal__event-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: oklch(0.70 0.20 155);
+  box-shadow: 0 0 5px oklch(0.70 0.20 155 / 0.7);
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+/* ── Legend + Empty state ────────────────────────────────── */
+.crm-cal__legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.crm-cal__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: oklch(0.70 0.20 155);
+  box-shadow: 0 0 5px oklch(0.70 0.20 155 / 0.6);
+  flex-shrink: 0;
+}
+.crm-cal__legend-label {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.03em;
+}
+.crm-cal__empty {
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 16px 0 8px;
+  line-height: 1.6;
+}
+
+/* ── count-pill accent variant ──────────────────────────── */
+.count-pill--accent {
+  background: oklch(0.62 0.17 155 / 0.25);
+  color: oklch(0.75 0.18 155);
+  border: 1px solid oklch(0.62 0.17 155 / 0.35);
+}
+</style>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CRM Calendar — Personal pipeline auction calendar
+// SOURCE: data-events JSON on [data-panel-id="crm-calendar"]
+// SECURITY: data is pre-filtered server-side to current_user.pipeline_properties
+// ═══════════════════════════════════════════════════════
+(function() {
+"use strict";
+
+// State: which month is being displayed
+var _crmYear  = new Date().getFullYear();
+var _crmMonth = new Date().getMonth(); // 0-indexed
+
+window.initCrmCalendar = function() {
+  var panelEl = document.querySelector('[data-panel-id="crm-calendar"]');
+  if (!panelEl) return;
+
+  var gridEl = document.getElementById("crmCalGrid");
+  if (!gridEl) return;
+
+  // Parse events from server-rendered JSON
+  var events = {};
+  try {
+    events = JSON.parse(panelEl.dataset.events || "{}");
+  } catch(e) {
+    events = {};
+  }
+
+  // Render current month
+  renderCrmMonth(gridEl, events, _crmYear, _crmMonth);
+};
+
+function renderCrmMonth(gridEl, events, year, month) {
+  gridEl.innerHTML = "";
+
+  var MONTH_NAMES = ["January","February","March","April","May","June",
+                     "July","August","September","October","November","December"];
+  var today = new Date();
+  var todayKey = today.getFullYear() + "-" +
+    String(today.getMonth() + 1).padStart(2,"0") + "-" +
+    String(today.getDate()).padStart(2,"0");
+
+  // ── Header: Prev | Month Year | Next ──
+  var header = document.createElement("div");
+  header.className = "crm-cal__header";
+
+  var prevBtn = document.createElement("button");
+  prevBtn.className = "crm-cal__nav";
+  prevBtn.setAttribute("aria-label", "Previous month");
+  prevBtn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>';
+  prevBtn.onclick = function() {
+    _crmMonth--;
+    if (_crmMonth < 0) { _crmMonth = 11; _crmYear--; }
+    renderCrmMonth(gridEl, events, _crmYear, _crmMonth);
+  };
+
+  var monthLabel = document.createElement("span");
+  monthLabel.className = "crm-cal__month-label";
+  monthLabel.textContent = MONTH_NAMES[month] + " " + year;
+
+  var nextBtn = document.createElement("button");
+  nextBtn.className = "crm-cal__nav";
+  nextBtn.setAttribute("aria-label", "Next month");
+  nextBtn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>';
+  nextBtn.onclick = function() {
+    _crmMonth++;
+    if (_crmMonth > 11) { _crmMonth = 0; _crmYear++; }
+    renderCrmMonth(gridEl, events, _crmYear, _crmMonth);
+  };
+
+  header.appendChild(prevBtn);
+  header.appendChild(monthLabel);
+  header.appendChild(nextBtn);
+  gridEl.appendChild(header);
+
+  // ── Weekday labels ──
+  var wds = document.createElement("div");
+  wds.className = "crm-cal__weekdays";
+  ["Su","Mo","Tu","We","Th","Fr","Sa"].forEach(function(d) {
+    var span = document.createElement("span");
+    span.className = "crm-cal__wd";
+    span.textContent = d;
+    wds.appendChild(span);
+  });
+  gridEl.appendChild(wds);
+
+  // ── Day cells ──
+  var days = document.createElement("div");
+  days.className = "crm-cal__days";
+
+  var firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  var daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Empty cells before first day
+  for (var i = 0; i < firstDay; i++) {
+    var empty = document.createElement("div");
+    empty.className = "crm-cal__day crm-cal__day--empty";
+    days.appendChild(empty);
+  }
+
+  // Day cells
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dateKey = year + "-" +
+      String(month + 1).padStart(2,"0") + "-" +
+      String(d).padStart(2,"0");
+
+    var hasEvent = !!events[dateKey];
+    var isToday  = dateKey === todayKey;
+
+    var cell = document.createElement("div");
+    cell.className = "crm-cal__day" +
+      (isToday  ? " crm-cal__day--today"     : "") +
+      (hasEvent ? " crm-cal__day--has-event"  : "");
+
+    var num = document.createElement("span");
+    num.textContent = d;
+    cell.appendChild(num);
+
+    if (hasEvent) {
+      var dot = document.createElement("div");
+      dot.className = "crm-cal__event-dot";
+      cell.appendChild(dot);
+
+      // Tooltip: list jurisdiction names on hover
+      var evts = events[dateKey] || [];
+      var jurisdictions = evts.map(function(e) { return e.jurisdiction; }).join(", ");
+      cell.title = jurisdictions;
+      cell.setAttribute("aria-label", "Auctions: " + jurisdictions);
+      cell.setAttribute("role", "button");
+      cell.setAttribute("tabindex", "0");
+    }
+
+    days.appendChild(cell);
+  }
+
+  gridEl.appendChild(days);
+
+  // ── Empty state if no events in any visible date ──
+  var hasAnyEvent = Object.keys(events).length > 0;
+  var existingEmpty = gridEl.querySelector(".crm-cal__empty");
+  if (existingEmpty) existingEmpty.remove();
+
+  if (!hasAnyEvent) {
+    var empty = document.createElement("div");
+    empty.className = "crm-cal__empty";
+    empty.textContent = "No CRM pipeline auctions found. Add properties to your pipeline to track their auction dates.";
+    gridEl.appendChild(empty);
+  }
+}
+
 })();
 </script>
 

@@ -41,7 +41,7 @@
         <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true">
           <path d="M12 2 9 9l-7 .5 5.5 4.5L6 22l6-3.8L18 22l-1.5-8 5.5-4.5L15 9z"/>
         </svg>
-        Exclusivo Premier
+        <%= t('clear_to_bid.teaser_exclusive') %>
       </span>
       <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm text-white text-[10px] font-mono">
         <svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -72,28 +72,28 @@
           <circle cx="12" cy="9" r="2.5"/>
         </svg>
         <span class="line-through decoration-slate-300/80 decoration-2">
-          <%= [teaser[:county], teaser[:state]].compact.reject(&:blank?).join(" · ").presence || "Region withheld" %>
+          <%= [teaser[:county], teaser[:state]].compact.reject(&:blank?).join(" · ").presence || t('clear_to_bid.teaser_region_withheld') %>
         </span>
       </div>
-      <h3 class="text-[16px] font-semibold leading-snug text-slate-900 select-none" style="filter: blur(5px);" aria-hidden="true">XXXX Address Withheld</h3>
-      <div class="text-[12.5px] text-slate-500 mt-0.5 select-none" style="filter: blur(4px);" aria-hidden="true">Property type · X.XX acres · Built XXXX</div>
+      <h3 class="text-[16px] font-semibold leading-snug text-slate-900 select-none" style="filter: blur(5px);" aria-hidden="true"><%= t('clear_to_bid.teaser_address_withheld') %></h3>
+      <div class="text-[12.5px] text-slate-500 mt-0.5 select-none" style="filter: blur(4px);" aria-hidden="true"><%= t('clear_to_bid.teaser_property_summary') %></div>
     </div>
 
     <dl class="grid grid-cols-2 gap-x-4 gap-y-3 pt-3 border-t border-slate-100">
       <div>
-        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Min bid</dt>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold"><%= t('clear_to_bid.teaser_min_bid') %></dt>
         <dd class="font-display text-[22px] leading-none mt-1 text-slate-900 select-none" style="filter: blur(6px);" aria-hidden="true">$••,•••</dd>
       </div>
       <div>
-        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Market value</dt>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold"><%= t('clear_to_bid.teaser_market_value') %></dt>
         <dd class="font-display text-[22px] leading-none mt-1 text-slate-900 select-none" style="filter: blur(6px);" aria-hidden="true">$•••,•••</dd>
       </div>
       <div>
-        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Auction</dt>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold"><%= t('clear_to_bid.teaser_auction') %></dt>
         <dd class="text-[13px] mt-1 font-medium text-slate-900 select-none" style="filter: blur(4px);" aria-hidden="true">Mmm ••, ••••</dd>
       </div>
       <div>
-        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Internal grade</dt>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold"><%= t('clear_to_bid.teaser_internal_grade') %></dt>
         <dd class="text-[13px] mt-1 font-mono font-semibold text-slate-700 select-none" style="filter: blur(4px);" aria-hidden="true">████████</dd>
       </div>
     </dl>
@@ -105,13 +105,13 @@
         <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
           <path d="M12 2 9 9l-7 .5 5.5 4.5L6 22l6-3.8L18 22l-1.5-8 5.5-4.5L15 9z"/>
         </svg>
-        Upgrade a Premier
+        <%= t('clear_to_bid.upgrade_to_premier') %>
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
           <path d="M5 12h14M13 5l7 7-7 7"/>
         </svg>
       <% end %>
       <p class="text-[11px] text-slate-500 text-center mt-2 leading-snug">
-        Acceso completo · Verificación legal · Clasificación interna
+        <%= t('clear_to_bid.teaser_footer') %>
       </p>
     </div>
   </div>

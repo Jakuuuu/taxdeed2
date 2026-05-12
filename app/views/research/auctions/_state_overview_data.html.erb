@@ -19,15 +19,23 @@
     (selected_state && @auctions_by_state[selected_state] &&
      @auctions_by_state[selected_state][:auctions]&.any? { |a| a.county == r[:county] }) }
 
-  # If state_counties is empty, try building from the @auctions_by_state data directly
+  # If state_counties is empty, try building from the @auctions_by_state data directly.
+  # NOTE: parcel_count uses real Parcel records with GPS coords (same source as the
+  # controller's @county_rows) — NOT auction.parcel_count, which is a stale cached field
+  # that includes parcels without coordinates and causes the count mismatch with Phase 2.
   if state_counties.empty? && state_data[:auctions].present?
+    fallback_auction_ids = state_data[:auctions].map(&:id)
+    fallback_coords_count = Parcel.where(auction_id: fallback_auction_ids)
+                                   .has_coords
+                                   .group(:auction_id)
+                                   .count
     state_counties = state_data[:auctions]
                        .group_by(&:county)
                        .map do |county, auctions|
                          {
                            county: county,
                            state: auctions.first.state,
-                           parcel_count: auctions.sum { |a| a.parcel_count || 0 },
+                           parcel_count: auctions.sum { |a| fallback_coords_count[a.id] || 0 },
                            sale_dates: auctions.filter_map(&:sale_date).sort,
                            display_date: auctions.filter_map(&:sale_date).select { |d| d >= Date.current }.min
                          }
@@ -51,12 +59,12 @@
     </div>
     <div>
       <h2 class="r1-state-overview-title" id="r1-state-overview-title">
-        <%= selected_state || "Select a State" %> Overview
+        <%= t('auctions.state_overview_title', state: selected_state || t('auctions.select_state')) %>
       </h2>
       <p class="r1-state-overview-subtitle">
-        <span id="r1-state-county-count"><%= state_counties.size %></span> condados con subastas ·
-        <span id="r1-state-auction-count"><%= active_dates.size %></span> fechas con subastas activas ·
-        <span id="r1-state-property-count"><%= number_with_delimiter(state_data[:total_parcels] || 0) %></span> Properties Up for Bid
+        <span id="r1-state-county-count"><%= state_counties.size %></span> <%= t('auctions.counties_with_auctions_short').downcase %> ·
+        <span id="r1-state-auction-count"><%= active_dates.size %></span> <%= t('auctions.dates_with_active_auctions').downcase %> ·
+        <span id="r1-state-property-count"><%= number_with_delimiter(state_data[:total_parcels] || 0) %></span> <%= t('auctions.properties_up_for_bid') %>
       </p>
     </div>
   </div>
@@ -65,7 +73,7 @@
   <div class="r1-state-section">
     <h3 class="r1-state-section-title">
       <i data-lucide="building-2" style="width:16px;height:16px;"></i>
-      Condados con subastas
+      <%= t('auctions.counties_with_auctions_short') %>
       <span class="r1-section-badge"><%= state_counties.size %></span>
     </h3>
 
@@ -87,7 +95,7 @@
               <% if county_row[:display_date] %>
                 <span class="r1-county-meta-item">
                   <i data-lucide="calendar" style="width:11px;height:11px;"></i>
-                  Next: <%= county_row[:display_date].strftime('%b %d, %Y') %>
+                  <%= t('auctions.next_auction', date: county_row[:display_date].strftime('%b %d, %Y')) %>
                 </span>
               <% end %>
             </div>
@@ -97,7 +105,7 @@
     <% else %>
       <div class="r1-empty-state">
         <i data-lucide="inbox" style="width:32px;height:32px;color:var(--r1-color-text-muted,#6C757D);"></i>
-        <p>No condados con subastas found for this state.</p>
+        <p><%= t('auctions.no_counties_found') %></p>
       </div>
     <% end %>
   </div>
@@ -106,7 +114,7 @@
   <div class="r1-state-section">
     <h3 class="r1-state-section-title">
       <i data-lucide="calendar-days" style="width:16px;height:16px;"></i>
-      Upcoming Auction Dates
+      <%= t('auctions.upcoming_auction_dates') %>
       <span class="r1-section-badge"><%= active_dates.size %></span>
     </h3>
 
@@ -133,11 +141,11 @@
               <% days_away = (date - Date.current).to_i %>
               <div class="r1-date-card-countdown">
                 <% if days_away == 0 %>
-                  <span style="color:var(--r1-color-success,#15803D);font-weight:700;">Today</span>
+                  <span style="color:var(--r1-color-success,#15803D);font-weight:700;"><%= t('common.today') %></span>
                 <% elsif days_away == 1 %>
-                  Tomorrow
+                  <%= t('common.tomorrow') %>
                 <% else %>
-                  In <%= days_away %> days
+                  <%= t('common.in_days', count: days_away) %>
                 <% end %>
               </div>
             </div>
@@ -147,7 +155,7 @@
     <% else %>
       <div class="r1-empty-state">
         <i data-lucide="calendar-x" style="width:32px;height:32px;color:var(--r1-color-text-muted,#6C757D);"></i>
-        <p>No upcoming auction dates for this state.</p>
+        <p><%= t('auctions.no_upcoming_dates') %></p>
       </div>
     <% end %>
   </div>

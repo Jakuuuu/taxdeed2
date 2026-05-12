@@ -7,7 +7,7 @@
 <div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-card-chars">
   <div class="fp-card__hdr">
     <span class="fp-card__hdr-icon">🏠</span>
-    <h3 class="fp-card__hdr-title">Property Characteristics</h3>
+    <h3 class="fp-card__hdr-title"><%= t('ficha_cards.property_characteristics') %></h3>
   </div>
   <div class="fp-card__body">
     <div class="fp-data-grid">
@@ -57,7 +57,7 @@
       <div class="fp-data-value" style="font-size:12px;line-height:1.45;"><%= @parcel.legal_description %></div>
       <% end %>
 
-      <div class="fp-data-label">Modalidad de Subasta</div>
+      <div class="fp-data-label"><%= t('parcels.auction_modality') %></div>
       <div class="fp-data-value">
         <% if @parcel.sale_venue.present? %>
           <%= @parcel.sale_venue.downcase.include?("online") ? "💻" : "🏛" %> <%= @parcel.sale_venue %>
@@ -66,7 +66,7 @@
         <% end %>
       </div>
 
-      <div class="fp-data-label">Nivel de Crimen</div>
+      <div class="fp-data-label"><%= t('parcels.crime_level') %></div>
       <div class="fp-data-value">
         <% if @parcel.crime_level.present? %>
           <% c_color = case @parcel.crime_level.downcase; when "low" then "#22c55e"; when "moderate" then "#f59e0b"; when "high" then "#ef4444"; else "#94a3b8"; end %>

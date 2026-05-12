@@ -60,25 +60,25 @@
          data-fp-lot-card>
   <header class="fp-card__hdr fp-card__hdr--accent">
     <span class="fp-card__hdr-icon">📐</span>
-    <h3 class="fp-card__hdr-title">Lot Dimensions</h3>
+    <h3 class="fp-card__hdr-title"><%= t('ficha_cards.lot_dimensions') %></h3>
   </header>
   <div class="fp-card__body">
     <div class="fp-lot-grid">
       <div class="fp-lot-metric">
-        <span class="fp-lot-metric__label">Área (sqft)</span>
+        <span class="fp-lot-metric__label"><%= t('ficha_cards.lot_area_sqft') %></span>
         <span class="fp-lot-metric__value">
-          <span data-fp-lot-area-sqft>8,712</span><span class="fp-lot-metric__unit">sqft</span>
+          <span data-fp-lot-area-sqft>8,712</span><span class="fp-lot-metric__unit"><%= t('ficha_cards.sqft_unit') %></span>
         </span>
       </div>
       <div class="fp-lot-metric">
-        <span class="fp-lot-metric__label">Área (acres)</span>
+        <span class="fp-lot-metric__label"><%= t('ficha_cards.lot_area_acres') %></span>
         <span class="fp-lot-metric__value">
-          <span data-fp-lot-area-acres>0.20</span><span class="fp-lot-metric__unit">ac</span>
+          <span data-fp-lot-area-acres>0.20</span><span class="fp-lot-metric__unit"><%= t('ficha_cards.acres_unit') %></span>
         </span>
       </div>
     </div>
     <div class="fp-lot-empty" data-fp-lot-empty hidden>
-      No disponible para este condado
+      <%= t('ficha_cards.lot_unavailable_for_county') %>
     </div>
   </div>
 </section>

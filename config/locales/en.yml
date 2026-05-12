@@ -1,31 +1,274 @@
-# Files in the config/locales directory are used for internationalization and
-# are automatically loaded by Rails. If you want to use locales other than
-# English, add the necessary files in this directory.
-#
-# To use the locales, use `I18n.t`:
-#
-#     I18n.t "hello"
-#
-# In views, this is aliased to just `t`:
-#
-#     <%= t("hello") %>
-#
-# To use a different locale, set it with `I18n.locale`:
-#
-#     I18n.locale = :es
-#
-# This would use the information in config/locales/es.yml.
-#
-# To learn more about the API, please read the Rails Internationalization guide
-# at https://guides.rubyonrails.org/i18n.html.
-#
-# Be aware that YAML interprets the following case-insensitive strings as
-# booleans: `true`, `false`, `on`, `off`, `yes`, `no`. Therefore, these strings
-# must be quoted to be interpreted as strings. For example:
-#
-#     en:
-#       "yes": yup
-#       enabled: "ON"
+# English Native Institutional — TaxDeed Lion default locale.
+# Tone: formal US business English. Terminology must mirror product rules:
+#   "Counties with Active Auctions" / "Properties Up for Bid" — never "Sale Events".
 
 en:
-  hello: "Hello world"
+  common:
+    save: "Save"
+    cancel: "Cancel"
+    search: "Search"
+    loading: "Loading..."
+    close: "Close"
+    yes: "Yes"
+    no: "No"
+    next: "Next"
+    previous: "Previous"
+    today: "Today"
+    tomorrow: "Tomorrow"
+    in_days: "In %{count} days"
+    not_available: "Not Available"
+    coming_soon: "(coming soon)"
+    active: "Active"
+    error_network: "Network error. Please try again."
+
+  auctions:
+    counties_with_auctions: "Counties with Active Auctions"
+    counties_with_auctions_short: "Counties with auctions"
+    dates_with_active_auctions: "Dates with Active Auctions"
+    upcoming_properties: "Upcoming Properties for Auction"
+    properties_up_for_bid: "Properties Up for Bid"
+    properties_for_bid_short: "Properties for Bid"
+    upcoming_auction: "Upcoming Auction"
+    upcoming_auction_dates: "Upcoming Auction Dates"
+    counties_in_state: "Counties in %{state}"
+    state_overview_subtitle_html: "%{counties} counties with auctions · %{dates} active auction dates · %{properties} Properties Up for Bid"
+    no_counties_found: "No counties with active auctions found for this state."
+    no_upcoming_dates: "No upcoming auction dates for this state."
+    next_auction: "Next: %{date}"
+    select_state: "Select a State"
+    state_overview_title: "%{state} Overview"
+    heat_map_title: "Tax Deed Auction Heat Map"
+    legend_with_auctions: "With auctions"
+    legend_without_auctions: "Without auctions"
+    county_level_sales: "County-level tax sales"
+    unique_auction_dates: "Unique auction dates"
+    properties_up_for_bid_sub: "Properties up for bid"
+    state_popup_view_in_state: "View Properties for Bid in State →"
+    table_count_html: "Showing counties with auctions <strong>%{from}</strong>–<strong>%{to}</strong> of <strong>%{total}</strong>"
+    table_count_sub: "(each row = one county sale)"
+    pagination_displaying_html: "Displaying counties <strong>%{from}</strong> – <strong>%{to}</strong> of <strong>%{total}</strong>"
+    calendar_view: "Calendar"
+    list_view: "List View"
+    map_view: "Map View"
+    month: "Month"
+
+  parcels:
+    parcel: "Parcel"
+    properties: "Properties"
+    auction_modality: "Auction Modality"
+    crime_level: "Crime Level"
+    download_pdf_report: "Download PDF Report"
+    search_placeholder: "Search county, state, or city..."
+    select_county_button: "Select County with Active Auctions"
+    select_county: "Select a County"
+    select_county_modal_title: "Select a County with Active Auctions"
+    select_county_modal_subtitle: "Counties with active properties — choose one to explore"
+    select_county_modal_help: "Choose a county to explore its properties on the map."
+    no_counties_title: "No counties available"
+    no_counties_desc: "Please check back after the next data sync."
+    list_empty_filtered_title: "No properties match your filters"
+    list_empty_filtered_desc: "Try adjusting your filters or search terms."
+    properties_label: "Properties"
+    learn_about_county: "Learn more about this county →"
+    address_not_available: "Address not available"
+    back_to_properties: "Back to Properties"
+    analysis_status_label: "ANALYSIS STATUS"
+    analysis_status_complete: "COMPLETE ✓"
+    analysis_status_locked: "LOCKED 🔒"
+    minimum_bid: "Minimum Bid"
+    admin_override: "Admin Override"
+    no_results_title: "No properties found"
+    no_results_desc: "Try adjusting your filters or search terms."
+    table:
+      address: "Address"
+      city: "City"
+      parcel: "Parcel"
+      property_type: "Property Type"
+      opening_bid: "Opening Bid"
+    bulk:
+      properties_selected: "properties selected"
+      cancel: "✕ Cancel"
+
+  ficha:
+    intelligence_report_title: "Property Intelligence Report"
+    unlock_full_card_cta: "Unlock Full Property Card — 1 Credit"
+    unlocking: "Unlocking..."
+    unlock_failed: "Unable to unlock. Please verify your credit balance."
+    unlocked_banner: "Full property card unlocked — all advanced data is available."
+    admin_override_banner: "Admin Override — Viewing full premium data. No credits consumed."
+    credits_available: "%{count} credits available"
+    vault_title: "Unlock Full Intelligence Report"
+    vault_subtitle: "Access 34+ data points for this property — valuation, investment metrics, environmental risk, and more."
+    vault_feature_property: "Property Details"
+    vault_feature_property_count: "15 fields"
+    vault_feature_investment: "Investment Metrics"
+    vault_feature_investment_count: "6 KPIs"
+    vault_feature_environment: "Risk & Environment"
+    vault_feature_environment_count: "7 indicators"
+    generate_title_report: "Generate Title Report"
+    order_title_report_title: "Order Title Report"
+    order_title_report_desc: "Get a comprehensive title search report for this property. Verify liens, encumbrances, and chain of title."
+    technical_analysis_title: "Technical Analysis"
+    technical_analysis_badge: "Research Notes"
+    technical_analysis_footnote: "Technical analysis — not editable by the user"
+
+  ficha_cards:
+    property_characteristics: "Property Characteristics"
+    investment_summary: "Investment Summary"
+    valuation_tax: "Valuation & Tax"
+    utilities_environmental: "Utilities & Environmental Risk"
+    lot_dimensions: "Lot Dimensions"
+    resource_center: "Resource Center"
+    lot_area_sqft: "Lot Area (sqft)"
+    lot_area_acres: "Lot Area (acres)"
+    lot_unavailable_for_county: "Not available for this county"
+    sqft_unit: "sqft"
+    acres_unit: "ac"
+
+  crm:
+    title: "My CRM — Tags & Notes"
+    always_visible: "Always Visible"
+    save_note: "Save Note"
+    add_note_placeholder: "Add a private note about this property…\n(Only visible to you)"
+    notify_before_auction: "Notify me before the auction"
+    notify_before_auction_active: "Active"
+    notify_before_label: "Notify"
+    notify_email_also: "Email me as well"
+    notify_email_unavailable_tooltip: "Available once the email provider is configured"
+    no_auction_no_reminders: "No scheduled auction — reminders cannot be enabled"
+    in_pipeline: "In Pipeline"
+    pipeline_stage_label: "Stage:"
+    add_to_pipeline: "Add to My Pipeline"
+    adding: "Adding..."
+    add_failed: "Failed — try again"
+    days_before_one: "%{count} day before"
+    days_before_other: "%{count} days before"
+
+  resource_center:
+    bid_at_auction_title: "Bid at Auction"
+    bid_at_auction_desc: "Go to the auction portal"
+    regrid_title: "Regrid Map"
+    regrid_desc: "Parcel map and GIS data"
+    appraiser_title: "Property Appraisal Page"
+    appraiser_desc: "Verify property information"
+    clerk_title: "Clerk of Courts"
+    clerk_desc: "Search official records"
+    tax_collector_title: "Tax Collector"
+    tax_collector_desc: "Verify tax payments"
+    google_maps_title: "Google Maps"
+    google_maps_desc: "Aerial view and Street View"
+    fema_title: "FEMA Flood Map"
+    fema_desc: "Flood risk"
+    no_resources: "No external resources available for this property."
+
+  notifications:
+    panel_title: "Notifications"
+    mark_all_read: "Mark all read"
+    loading: "Loading…"
+    empty: "You have no notifications"
+    today_pill: "TODAY"
+    auction_today_title: "Today your property is up for auction"
+    auction_upcoming_title: "Upcoming Auction"
+    download_title_report: "Download Title Report"
+    generate_title_report: "Generate Title Report"
+
+  clear_to_bid:
+    catalog_title_html: "Hot <span class=\"italic text-slate-500\">Deals</span>"
+    catalog_subtitle: "Pre-vetted properties validated by our legal team. Each parcel has been through title verification, lien analysis, and an internal investment grade. Available exclusively to <strong class=\"text-slate-900\">Premier</strong> clients."
+    branch_label: "Branch 06"
+    curated_updated_html: "Curated · Updated %{date}"
+    filter_all: "All"
+    filter_optimal: "Optimal"
+    filter_viable: "Viable"
+    stats_total: "Total parcels"
+    stats_total_sub_html: "Across %{count} counties"
+    stats_optimal: "Optimal"
+    stats_optimal_sub: "Highest grade"
+    stats_avg_min_bid: "Avg. min bid"
+    stats_avg_min_bid_sub: "Across catalog"
+    stats_counties: "Counties"
+    stats_counties_sub: "Florida coverage"
+    empty_title: "No Hot Deals available yet"
+    empty_desc: "Our analysts publish new opportunities every week. Check back soon."
+    upgrade_banner_label: "Premier institutional"
+    upgrade_banner_title_html: "Unlock the <em class=\"not-italic text-amber-200\">%{count} verified dossiers</em> in this cycle."
+    upgrade_banner_desc_html: "Tax deed parcels pre-vetted by our legal team across %{count} Florida counties. Internal grading, verified liens, and a parcel map for every property."
+    upgrade_to_premier: "Upgrade to Premier"
+    teaser_exclusive: "Premier Exclusive"
+    teaser_address_withheld: "XXXX Address Withheld"
+    teaser_property_summary: "Property type · X.XX acres · Built XXXX"
+    teaser_region_withheld: "Region withheld"
+    teaser_min_bid: "Min bid"
+    teaser_market_value: "Market value"
+    teaser_auction: "Auction"
+    teaser_internal_grade: "Internal grade"
+    teaser_footer: "Full access · Legal verification · Internal grading"
+    card_min_bid: "Min bid"
+    card_market_value: "Market value"
+    card_auction: "Auction"
+    card_type: "Type"
+    card_view_dossier: "View dossier"
+    card_address_pending: "Address pending"
+    map_unavailable: "Map unavailable"
+    save: "Save"
+
+  reports:
+    title_report: "Title Report"
+
+  market_study:
+    population: "Population"
+    public_budget: "Public Budget"
+    days_on_market: "Days on Market"
+    period: "Period"
+    years_of_data: "Years of data"
+    years_unit: "years"
+    market_active: "Active Market"
+    market_inactive: "Inactive Market"
+    annual_growth: "Growth"
+    view_properties: "View properties"
+    market_trend_title: "Market Trend"
+    back: "← Back"
+    chart_hint: "Click a bar to see month-by-month detail"
+    total_growth: "Total Growth"
+    cagr: "CAGR"
+    historical_unavailable_title: "Historical market volume data is currently unavailable for this county"
+    historical_unavailable_desc_html: "Market trend data is updated periodically. Once available for %{county}, the historical volume chart will appear here automatically."
+    unlock_historical_insights: "🔓 Unlock Historical Insights"
+    premium_feature_subtext: "Premium feature — requires active subscription"
+
+  settings:
+    language: "Language"
+    save_language: "Save Language Preference"
+    locale_updated: "Language preference saved."
+    locale:
+      en: "English"
+      es: "Español"
+    auction_reminders_title: "Auction Reminders"
+    auction_reminders_intro_html: "When you enable <strong>“Notify me before the auction”</strong> on a property card, these are the defaults that will apply. Already-configured parcels are <em>not</em> modified retroactively."
+    notify_in_advance_label: "Notify me in advance by"
+    email_me_too: "Email me as well"
+    email_provider_warning: "⚠️ The email provider is not yet configured — this preference will be saved and activated automatically once available."
+    save_preferences: "Save preferences"
+    save_changes: "Save Changes"
+    days_before:
+      one: "%{count} day before"
+      other: "%{count} days before"
+
+  legal:
+    premium_disclaimer:
+      heading: "Legal Disclaimer — Premium Data"
+      subheading: "Please read and accept before viewing property data"
+      body_title: "DESCARGO DE RESPONSABILIDAD / DISCLAIMER"
+      body_p1: "La información proporcionada en esta plataforma, incluyendo pero no limitándose a datos de propiedades, valuaciones, análisis de inversión, datos ambientales, información de gravámenes e hipotecas y datos de riesgo, se ofrece únicamente con fines <strong>informativos y de investigación</strong>."
+      body_p2: "<strong>TaxDeed Lion NO garantiza</strong> la exactitud, integridad, actualidad ni idoneidad de la información presentada. Los datos provienen de fuentes públicas de terceros (registros de condados, datos catastrales, FEMA, entre otros) y pueden contener errores, omisiones o información desactualizada."
+      body_p3: "Esta información <strong>NO constituye asesoramiento legal, financiero, inmobiliario ni de inversión</strong>. Antes de tomar cualquier decisión de compra, inversión o puja en una subasta de Tax Deed, usted debe realizar su propia diligencia debida (<em>due diligence</em>) independiente y consultar con profesionales licenciados (abogados, tasadores, asesores financieros, inspectores, etc.)."
+      body_p4: "Los cálculos de \"Max Bid\", \"Price Estimate\", valores estimados de venta y cualquier otra métrica de inversión son <strong>estimaciones automatizadas</strong> basadas en modelos matemáticos y datos públicos. NO deben interpretarse como predicciones ni garantías de rendimiento futuro."
+      body_p5: "Al aceptar este descargo, usted reconoce y acepta que:"
+      body_li1: "Utiliza la información bajo su propio riesgo."
+      body_li2: "TaxDeed Lion, sus propietarios, operadores y afiliados no serán responsables de pérdidas, daños o perjuicios derivados del uso de esta información."
+      body_li3: "Es su responsabilidad verificar de manera independiente toda la información antes de actuar sobre ella."
+      body_li4: "Las leyes de subastas de Tax Deed varían por estado y jurisdicción; usted es responsable de conocer y cumplir las regulaciones aplicables."
+      body_footnote: "Al hacer clic en \"Aceptar y Ver Datos\", usted confirma que ha leído, entendido y aceptado este descargo de responsabilidad en su totalidad."
+      checkbox_label: "He leído y acepto los términos y el descargo de responsabilidad. Entiendo que la información es de carácter informativo y no constituye asesoramiento profesional."
+      accept_button: "Accept and View Data"
+      receipt_note: "Your acceptance is recorded with date and time as legal evidence."

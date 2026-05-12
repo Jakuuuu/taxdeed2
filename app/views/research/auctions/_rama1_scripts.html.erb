@@ -13,14 +13,16 @@
 if (typeof lucide !== 'undefined') lucide.createIcons();
 
 // ─── REAL DATA FROM RAILS ───────────────────────────────────────────────
-const R1_AUCTIONS_BY_STATE = <%= raw @auctions_by_state.to_json %>;
-const R1_CALENDAR_EVENTS   = <%= raw @calendar_events.to_json %>;
-const R1_CURRENT_PAGE      = <%= @page %>;
-const R1_TOTAL_PAGES       = <%= @total_pages %>;
+// Use `var` (not `const`) so Turbo Drive re-renders don't throw
+// "Identifier has already been declared" when this partial re-executes.
+var R1_AUCTIONS_BY_STATE = <%= raw @auctions_by_state.to_json %>;
+var R1_CALENDAR_EVENTS   = <%= raw @calendar_events.to_json %>;
+var R1_CURRENT_PAGE      = <%= @page %>;
+var R1_TOTAL_PAGES       = <%= @total_pages %>;
 
 // ─── STATE ZOOM: SVG viewBox manipulation ───────────────────────────────
 // Full name → abbreviation lookup (SVG paths use data-state="FL", not "Florida")
-const R1_NAME_TO_ABBR = {
+var R1_NAME_TO_ABBR = {
   'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
   'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
   'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
@@ -292,8 +294,8 @@ let r1CalYear, r1CalMonth;
   r1CalMonth = now.getMonth();
 })();
 
-const R1_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const R1_DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var R1_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+var R1_DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function r1RenderCalendar() {
   document.getElementById('r1-cal-title').textContent = R1_MONTH_NAMES[r1CalMonth] + ' ' + r1CalYear;

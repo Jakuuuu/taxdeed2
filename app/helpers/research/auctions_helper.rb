@@ -2,6 +2,26 @@
 
 module Research
   module AuctionsHelper
+    # Atlas v3.0 — states with SVG choropleth coverage.
+    # Add a new entry when a new *-geo.js is generated in /public.
+    ATLAS_STATES = [
+      { abbr: "FL", name: "Florida",    geo_script: "/florida-geo.js",    geo_namespace: "FL", county_count: 67  },
+      { abbr: "TX", name: "Texas",      geo_script: "/texas-geo.js",      geo_namespace: "TX", county_count: 254 },
+      { abbr: "CA", name: "California", geo_script: "/california-geo.js", geo_namespace: "CA", county_count: 58  }
+    ].freeze
+
+    def atlas_states
+      ATLAS_STATES
+    end
+
+    # Resolves the active state from params. Accepts either USPS abbr ("FL") or
+    # full name ("Florida"). Defaults to Florida.
+    def active_atlas_state(params)
+      raw = params[:state].to_s.strip
+      match = ATLAS_STATES.find { |s| s[:abbr].casecmp?(raw) || s[:name].casecmp?(raw) }
+      match || ATLAS_STATES.first
+    end
+
     # Returns CSS class for SVG choropleth coloring (binary: auction/no-auction).
     def state_heat_class(state_name, auctions_by_state)
       data = auctions_by_state[state_name]
@@ -55,6 +75,14 @@ module Research
     # ═══════════════════════════════════════════════════════════════════════
     def counties_with_auctions_grouped(auctions_scope = Auction.visible)
       all = auctions_scope.order(state: :asc, county: :asc)
+
+      # Pre-compute total parcel count per auction_id in ONE SQL query — no N+1.
+      # ⚠️  Intentionally NO .has_coords filter: must match Fase 2 list meta.total.
+      all_ids = all.map(&:id)
+      total_count_by_auction = Parcel.where(auction_id: all_ids)
+                                      .group(:auction_id)
+                                      .count
+
       grouped_by_state = {}
 
       all.group_by(&:state).each do |state, state_auctions|
@@ -64,7 +92,7 @@ module Research
             county:       county,
             state:        state,
             auction_ids:  auctions.map(&:id),
-            parcel_count: auctions.sum { |a| a.parcel_count || 0 },
+            parcel_count: auctions.sum { |a| total_count_by_auction[a.id] || 0 },
             total_amount: auctions.sum { |a| a.total_amount&.to_f || 0 },
             sale_dates:   auctions.filter_map(&:sale_date).sort,
             bidding_url:  auctions.find { |a| a.bidding_url.present? }&.bidding_url

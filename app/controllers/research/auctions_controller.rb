@@ -23,12 +23,30 @@ module Research
         redirect_to research_auctions_path and return
       end
 
+      # ── Atlas v3.0: resolve active state (accepts "FL" or "Florida") ────────
+      raw_state = params[:state].to_s.strip
+      @active_state = Research::AuctionsHelper::ATLAS_STATES.find { |s|
+        s[:abbr].casecmp?(raw_state) || s[:name].casecmp?(raw_state)
+      } || Research::AuctionsHelper::ATLAS_STATES.first
+      @active_state_abbr = @active_state[:abbr]
+
       # ── Base scope: always active auctions (prior tab is redirected above) ──
       base_scope = apply_filters(Auction.active_visible)
 
       # ── Group auctions by (county, state) → 1 row per county ─────────────
       all_auctions = base_scope.order(sale_date: :asc)
       grouped = all_auctions.group_by { |a| [a.county, a.state] }
+
+      # Pre-compute REAL parcel counts with GPS coords (single SQL, no N+1).
+      # This is the authoritative count: it matches exactly what Phase 2
+      # map_data renders — parcels that can actually appear as map pins.
+      # Using auction.parcel_count (a cached aggregate field) caused a mismatch
+      # because it includes parcels without coordinates.
+      all_auction_ids = all_auctions.map(&:id)
+      coords_count_by_auction = Parcel.where(auction_id: all_auction_ids)
+                                       .has_coords
+                                       .group(:auction_id)
+                                       .count
 
       # Build county rows with aggregated data
       @county_rows = grouped.map do |(county, state), auctions|
@@ -38,7 +56,7 @@ module Research
           county:        county,
           state:         state,
           auction_ids:   auctions.map(&:id),
-          parcel_count:  auctions.sum { |a| a.parcel_count || 0 },
+          parcel_count:  auctions.sum { |a| coords_count_by_auction[a.id] || 0 },
           total_amount:  auctions.sum { |a| a.total_amount&.to_f || 0 },
           sale_dates:    auctions.filter_map { |a| a.sale_date }.sort,
           next_sale_date: next_date,
@@ -137,6 +155,43 @@ module Research
                                           aucts.map { |a| { id: a.id, jurisdiction: "#{a.county}, #{a.state}", parcels: a.parcel_count || 0, status: a.status } }
                                         end
 
+      # ── CRM Calendar events: auctions linked to current_user's pipeline ──────
+      # SECURITY: scoped exclusively to this user's pipeline_properties.
+      # Never mix with @calendar_events (global) to prevent data leaks.
+      # JOIN PATH: pipeline_properties → parcels → auctions (PipelineProperty has no direct :auction)
+      @crm_calendar_events = {}
+      if defined?(current_user) && current_user.present?
+        begin
+          # Traverse: PipelineProperty → Parcel (belongs_to) → Auction (belongs_to)
+          crm_auction_ids = current_user.pipeline_properties
+                                        .joins(parcel: :auction)
+                                        .where.not(parcels: { auction_id: nil })
+                                        .pluck("parcels.auction_id")
+                                        .compact
+                                        .uniq
+
+          unless crm_auction_ids.empty?
+            # Show auctions from 30 days ago through future so users see recent+upcoming
+            crm_auctions = Auction
+                             .where(id: crm_auction_ids)
+                             .where.not(sale_date: nil)
+                             .where("sale_date >= ?", 30.days.ago.to_date)
+                             .select(:id, :county, :state, :sale_date, :parcel_count, :status)
+                             .order(sale_date: :asc)
+
+            @crm_calendar_events = crm_auctions
+                                     .group_by { |a| a.sale_date.strftime("%Y-%m-%d") }
+                                     .transform_values do |aucts|
+                                       aucts.map { |a| { id: a.id, jurisdiction: "#{a.county}, #{a.state}", parcels: a.parcel_count || 0, status: a.status } }
+                                     end
+          end
+        rescue => e
+          # Silently degrade — CRM panel will show empty state
+          Rails.logger.warn("[AuctionsController] CRM calendar query failed: #{e.message}")
+          @crm_calendar_events = {}
+        end
+      end
+
       respond_to do |format|
         format.html
         format.json do
@@ -186,11 +241,14 @@ module Research
     end
 
     def apply_filters(scope)
-      # Multi-state filtering: states[] array param
+      # Multi-state filtering: states[] array param.
+      # DB can store either USPS abbr ("FL") or full name ("Florida") depending
+      # on import source, so we match on both forms (case-insensitive).
       if params[:states].present?
-        scope = scope.where(state: Array(params[:states]).compact.reject(&:blank?))
+        raw_states = Array(params[:states]).compact.reject(&:blank?)
+        scope = scope.where(state_match_sql(raw_states))
       elsif params[:state].present?
-        scope = scope.by_state(params[:state])
+        scope = scope.where(state_match_sql([ params[:state] ]))
       end
 
       scope = scope.by_county(params[:county])     if params[:county].present?
@@ -199,6 +257,20 @@ module Research
       scope = scope.to_date(params[:to_date])      if params[:to_date].present?
 
       scope
+    end
+
+    # Builds `LOWER(state) IN (?, ?, ...)` SQL fragment covering both the USPS
+    # abbreviation and the full name for each requested state, so it works
+    # regardless of which form the DB happens to store.
+    def state_match_sql(raw_states)
+      values = raw_states.flat_map { |raw|
+        s = raw.to_s.strip
+        match = Research::AuctionsHelper::ATLAS_STATES.find { |st|
+          st[:abbr].casecmp?(s) || st[:name].casecmp?(s)
+        }
+        match ? [ match[:abbr].downcase, match[:name].downcase ] : [ s.downcase ]
+      }.uniq
+      [ "LOWER(state) IN (?)", values ]
     end
 
     def auction_json(auction)

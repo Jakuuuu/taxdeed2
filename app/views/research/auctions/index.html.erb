@@ -61,6 +61,11 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 9v6l-4-2v-4z"/></svg>
         <span>Filters</span>
       </button>
+      <%# ── Panel Manager button in tabs bar ── %>
+      <button class="ghost-btn" id="panelMgrTabBtn" onclick="window.atlasPanelMgr && window.atlasPanelMgr.toggleMgrPopover()" title="Customize panels">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Panels</span>
+      </button>
     </div>
   </div>
 
@@ -101,32 +106,46 @@
     </div>
 
     <%# ── Floating panel: State pill + title block ── %>
-    <div class="atlas__top-panel">
-      <div class="atlas__state-pill">
+    <div class="atlas__top-panel" data-panel-id="state-pill" data-panel-label="State Overview" data-panel-default-pos='{"left":24,"top":24}'>
+      <div class="atlas__state-pill" id="atlasStatePill">
         <span class="atlas__state-flag" aria-hidden="true">
           <svg viewBox="0 0 24 16" width="22" height="14"><rect width="24" height="16" fill="#fff"/><g fill="#b22234"><rect y="0" width="24" height="1.23"/><rect y="2.46" width="24" height="1.23"/><rect y="4.92" width="24" height="1.23"/><rect y="7.38" width="24" height="1.23"/><rect y="9.84" width="24" height="1.23"/><rect y="12.30" width="24" height="1.23"/><rect y="14.76" width="24" height="1.23"/></g><rect width="10" height="8.61" fill="#3c3b6e"/></svg>
         </span>
         <div>
           <div class="atlas__state-label">Active state</div>
-          <div class="atlas__state-name">Florida</div>
+          <div class="atlas__state-name" id="atlasStateName"><%= @active_state[:name] %></div>
         </div>
-        <span class="atlas__state-count"><%= active_counties %> counties</span>
-        <button class="atlas__state-switch" aria-label="Switch state">
+        <span class="atlas__state-count" id="atlasStateCount"><%= active_counties %> counties</span>
+        <button class="atlas__state-switch" id="atlasStateSwitch" aria-label="Switch state" aria-expanded="false" aria-controls="atlasStateMenu">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </button>
+
+        <%# ── Inline glass dropdown — opens on chevron click ── %>
+        <div class="atlas__state-menu" id="atlasStateMenu" role="listbox" hidden>
+          <% atlas_states.each do |st| %>
+            <button type="button"
+                    class="atlas__state-menu-item<%= ' is-active' if st[:abbr] == @active_state[:abbr] %>"
+                    role="option"
+                    data-state-abbr="<%= st[:abbr] %>"
+                    data-state-name="<%= st[:name] %>">
+              <span class="atlas__state-menu-name"><%= st[:name] %></span>
+              <span class="atlas__state-menu-meta"><%= st[:county_count] %> counties</span>
+            </button>
+          <% end %>
+        </div>
       </div>
 
       <div class="atlas__title-block">
         <h1 class="atlas__title">
           <span class="atlas__title-eyebrow">Tax deed auction map</span>
-          Florida overview
+          <span id="atlasStateOverview"><%= @active_state[:name] %> overview</span>
         </h1>
         <p class="atlas__subtitle"><%= active_counties %> counties · <%= total_auction_dates %> upcoming auction dates · <%= number_with_delimiter(total_props) %> properties up for bid</p>
       </div>
     </div>
 
     <%# ── Floating left: Upcoming agenda ── %>
-    <div class="atlas__left-panel">
+    <div class="atlas__left-panel" data-panel-id="agenda" data-panel-label="Next Auctions" data-panel-default-pos='{"left":24,"top":220}' data-panel-default-size='{"width":260}'>
       <div class="section-title">
         <div class="section-title__main">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
@@ -185,7 +204,7 @@
     </div>
 
     <%# ── Floating right: Top counties ── %>
-    <div class="atlas__right-panel">
+    <div class="atlas__right-panel" data-panel-id="top-counties" data-panel-label="Top Opportunities" data-panel-default-pos='{"right":24,"top":24}' data-panel-default-size='{"width":320}'>
       <div class="section-title">
         <div class="section-title__main">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
@@ -233,26 +252,32 @@
 
 
     <%# ── KPI strip (bottom) ── %>
-    <div class="atlas__kpis">
-      <div class="kpi-tile">
+    <div class="atlas__kpis" data-panel-id="kpis" data-panel-label="KPI Strip">
+      <div class="kpi-tile" data-kpi-id="counties-active" data-kpi-label="Counties Active">
         <div class="kpi-tile__head">
           <span class="kpi-label">Counties active</span>
           <span class="kpi-icon">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-7 8-13a8 8 0 1 0-16 0c0 6 8 13 8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
           </span>
+          <button class="kpi-hide-btn" onclick="window.atlasPanelMgr && window.atlasPanelMgr.toggleKpiTile('counties-active', false)" title="Hide this tile" aria-label="Hide Counties Active tile">
+            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
         </div>
         <div class="kpi-value-row">
           <span class="kpi-value"><%= active_counties %></span>
         </div>
-        <div class="kpi-sub">of 67 in Florida</div>
+        <div class="kpi-sub">of <%= @active_state[:county_count] %> in <%= @active_state[:name] %></div>
       </div>
 
-      <div class="kpi-tile">
+      <div class="kpi-tile" data-kpi-id="upcoming-dates" data-kpi-label="Upcoming Dates">
         <div class="kpi-tile__head">
           <span class="kpi-label">Upcoming dates</span>
           <span class="kpi-icon">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
           </span>
+          <button class="kpi-hide-btn" onclick="window.atlasPanelMgr && window.atlasPanelMgr.toggleKpiTile('upcoming-dates', false)" title="Hide this tile" aria-label="Hide Upcoming Dates tile">
+            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
         </div>
         <div class="kpi-value-row">
           <span class="kpi-value"><%= total_auction_dates %></span>
@@ -260,12 +285,15 @@
         <div class="kpi-sub">next 90 days</div>
       </div>
 
-      <div class="kpi-tile">
+      <div class="kpi-tile" data-kpi-id="properties-bid" data-kpi-label="Properties up for Bid">
         <div class="kpi-tile__head">
           <span class="kpi-label">Properties up for bid</span>
           <span class="kpi-icon">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5M3 18l9 5 9-5"/></svg>
           </span>
+          <button class="kpi-hide-btn" onclick="window.atlasPanelMgr && window.atlasPanelMgr.toggleKpiTile('properties-bid', false)" title="Hide this tile" aria-label="Hide Properties tile">
+            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
         </div>
         <div class="kpi-value-row">
           <span class="kpi-value kpi-value--accent"><%= number_with_delimiter(total_props) %></span>
@@ -278,20 +306,88 @@
       </div>
     </div>
 
-    <%# ── Tooltip (hidden, managed by JS) ── %>
-    <div class="county-tooltip" id="atlasTooltip">
-      <div class="county-tooltip__name" id="tooltipName"></div>
-      <div class="county-tooltip__grid">
-        <div><span class="t-label">Properties</span><strong id="tooltipProps">0</strong></div>
-        <div><span class="t-label">Auctions</span><strong id="tooltipAuctions">0</strong></div>
-        <div class="t-full"><span class="t-label">Next sale</span><strong id="tooltipNext">—</strong></div>
+    <%# ── CRM Auction Calendar panel ── %>
+    <%# SOURCE: @crm_calendar_events — scoped to current_user.pipeline_properties (SECURITY) %>
+    <%# DEFAULT: hidden — user must enable via Panel Manager %>
+    <%# RULE: .panel-body is REQUIRED for the minimize animation (max-height transition) %>
+    <div class="atlas__crm-calendar"
+         data-panel-id="crm-calendar"
+         data-panel-label="My CRM Calendar"
+         data-panel-default-pos='{"right":24,"top":220}'
+         data-panel-default-size='{"width":280}'
+         data-events="<%= (@crm_calendar_events || {}).to_json %>"
+         aria-label="CRM Auction Calendar">
+      <div class="section-title">
+        <div class="section-title__main">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
+          My CRM Calendar
+        </div>
+        <% crm_count = (@crm_calendar_events || {}).values.sum(&:size) %>
+        <span class="count-pill count-pill--circle count-pill--accent"><%= crm_count %></span>
       </div>
-      <div class="county-tooltip__cta" id="tooltipCta">
-        View opportunities
-        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      <div class="panel-body" id="crmCalendarBody">
+        <%# Calendar grid and event dots rendered by initCrmCalendar() in atlas_scripts %>
+        <div class="crm-cal__grid" id="crmCalGrid"></div>
+        <div class="crm-cal__legend">
+          <span class="crm-cal__dot"></span>
+          <span class="crm-cal__legend-label">Auction in your pipeline</span>
+        </div>
       </div>
     </div>
 
+    <%# ── Panel Manager popover (anchored to top-bar panelMgrTabBtn) ── %>
+    <div class="atlas__panel-manager" id="atlasPanelManager">
+      <div class="atlas__panel-mgr-popover" id="atlasPanelMgrPopover" style="display:none" role="dialog" aria-label="Panel manager">
+        <div class="atlas__panel-mgr-header">
+          <span class="atlas__panel-mgr-title">Customize Panels</span>
+          <button class="atlas__panel-mgr-close" onclick="window.atlasPanelMgr && window.atlasPanelMgr.toggleMgrPopover()" aria-label="Close panel manager">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="atlas__panel-mgr-list" id="atlasPanelMgrList">
+          <%# List populated by JS %>
+        </div>
+        <div class="atlas__panel-mgr-footer">
+          <button class="atlas__panel-mgr-reset" onclick="window.atlasPanelMgr && window.atlasPanelMgr.resetAllPanels()">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 5 5 0 0 0-5 5"/><path d="m3 3 4 5H3"/></svg>
+            Reset layout
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <%# ── County Detail Panel — OUTSIDE atlasStage so overflow:hidden doesn't clip the fixed popover ── %>
+  <div class="county-detail-panel" id="atlasCountyPanel" aria-hidden="true">
+    <div class="cdp__header">
+      <div>
+        <div class="cdp__eyebrow">County overview</div>
+        <div class="cdp__name" id="cdpName">—</div>
+      </div>
+      <button class="cdp__close" id="cdpClose" aria-label="Close county panel" title="Close">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="cdp__stats">
+      <div class="cdp__stat">
+        <span class="cdp__stat-label">Properties</span>
+        <strong class="cdp__stat-value" id="cdpProps">0</strong>
+      </div>
+      <div class="cdp__stat">
+        <span class="cdp__stat-label">Auctions</span>
+        <strong class="cdp__stat-value" id="cdpAuctions">0</strong>
+      </div>
+      <div class="cdp__stat">
+        <span class="cdp__stat-label">Next sale</span>
+        <strong class="cdp__stat-value" id="cdpNext">—</strong>
+      </div>
+    </div>
+    <button class="cdp__cta" id="cdpCta" data-href="#"
+      onclick="var u=this.dataset.href;if(u&&u!=='#'){if(typeof Turbo!=='undefined'){Turbo.visit(u)}else{window.location.href=u}}">
+      <span>View Opportunities</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </button>
   </div>
 
   <%# ═══════════════════════════════════════
@@ -328,10 +424,11 @@
     document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('view-btn--active'));
     btn.classList.add('view-btn--active');
 
-    // Panels
+    // Panels — guard against null (Turbo may call this before DOM is ready)
     const mapStage = document.getElementById('atlasStage');
     const calPanel = document.getElementById('atlas-panel-calendar');
     const tblPanel = document.getElementById('atlas-panel-table');
+    if (!mapStage || !calPanel || !tblPanel) return;
 
     if (view === 'map') {
       mapStage.style.display = '';

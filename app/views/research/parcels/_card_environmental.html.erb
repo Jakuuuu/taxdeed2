@@ -5,7 +5,7 @@
 <div class="fp-card fp-premium <%= @unlocked ? 'fp-unlocked' : 'fp-locked' %>" id="ficha-card-env">
   <div class="fp-card__hdr">
     <span class="fp-card__hdr-icon">⚡</span>
-    <h3 class="fp-card__hdr-title">Utilities & Environmental Risk</h3>
+    <h3 class="fp-card__hdr-title"><%= t('ficha_cards.utilities_environmental') %></h3>
   </div>
   <div class="fp-card__body">
     <div class="fp-data-grid">
@@ -41,7 +41,7 @@
       <div class="fp-data-label">Wetlands</div>
       <div class="fp-data-value">
         <% unless @parcel.wetlands.nil? %>
-          <span class="fp-badge fp-badge--<%= @parcel.wetlands ? 'warning' : 'success' %>"><%= @parcel.wetlands ? "Yes" : "No" %></span>
+          <span class="fp-badge fp-badge--<%= @parcel.wetlands ? 'success' : 'danger' %>"><%= @parcel.wetlands ? "Yes" : "No" %></span>
         <% else %>—<% end %>
       </div>
 

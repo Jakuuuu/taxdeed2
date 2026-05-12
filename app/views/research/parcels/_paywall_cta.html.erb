@@ -3,6 +3,10 @@
     REDISEÑO 2026-04-26: "Intelligence Vault" con mini-cards de features.
     CRÍTICO: CRM y Mapa NUNCA quedan bajo este difuminado.
     Admin Override: oculta el paywall completamente.
+
+    I18N GOTCHA: data-i18n-* attrs expose translated strings to the
+    inline JS in _ficha_javascript.html.erb. Never put ERB t() output
+    inside a script tag — use data-* attributes instead.
 ─────────────────────────────────────────────────────────────────────────── %>
 
 <%# REGLA NARANJA — CTA transaccional: solo este botón y Title Report %>
@@ -13,36 +17,40 @@
   <div class="fp-vault__icon">🔒</div>
 
   <%# ── Title + Subtitle ──────────────────────────────────────── %>
-  <h2 class="fp-vault__title">Unlock Full Intelligence Report</h2>
-  <p class="fp-vault__sub">Access 34+ data points for this property — valuation, investment metrics, environmental risk, and more.</p>
+  <h2 class="fp-vault__title"><%= t('ficha.vault_title') %></h2>
+  <p class="fp-vault__sub"><%= t('ficha.vault_subtitle') %></p>
 
   <%# ── Feature Mini-Cards ────────────────────────────────────── %>
   <div class="fp-vault-features">
     <div class="fp-vault-feature">
       <div class="fp-vault-feature__icon">🏠</div>
-      <div class="fp-vault-feature__label">Property Details</div>
-      <div class="fp-vault-feature__count">15 fields</div>
+      <div class="fp-vault-feature__label"><%= t('ficha.vault_feature_property') %></div>
+      <div class="fp-vault-feature__count"><%= t('ficha.vault_feature_property_count') %></div>
     </div>
     <div class="fp-vault-feature">
       <div class="fp-vault-feature__icon">💰</div>
-      <div class="fp-vault-feature__label">Investment Metrics</div>
-      <div class="fp-vault-feature__count">6 KPIs</div>
+      <div class="fp-vault-feature__label"><%= t('ficha.vault_feature_investment') %></div>
+      <div class="fp-vault-feature__count"><%= t('ficha.vault_feature_investment_count') %></div>
     </div>
     <div class="fp-vault-feature">
       <div class="fp-vault-feature__icon">⚡</div>
-      <div class="fp-vault-feature__label">Risk & Environment</div>
-      <div class="fp-vault-feature__count">7 indicators</div>
+      <div class="fp-vault-feature__label"><%= t('ficha.vault_feature_environment') %></div>
+      <div class="fp-vault-feature__count"><%= t('ficha.vault_feature_environment_count') %></div>
     </div>
   </div>
 
   <%# ── Unlock Button (Regla Naranja #E67E22) ────────────────── %>
   <div class="fp-unlock-wrap">
     <button class="fp-unlock-btn" id="ficha-unlock-btn"
+            data-i18n-unlock-cta="<%= t('ficha.unlock_full_card_cta') %>"
+            data-i18n-unlocking="<%= t('ficha.unlocking') %>"
+            data-i18n-unlock-failed="<%= t('ficha.unlock_failed') %>"
+            data-i18n-error-network="<%= t('common.error_network') %>"
             onclick="fichaUnlock(<%= @parcel.id %>)">
-      🔓 Desbloquear Ficha Completa — 1 Crédito
+      <%= t('ficha.unlock_full_card_cta') %>
     </button>
     <% credits_left = current_user.subscription&.limit_parcels.to_i - current_user.subscription&.used_parcels.to_i %>
-    <div class="fp-credit-hint"><%= credits_left %> créditos disponibles</div>
+    <div class="fp-credit-hint"><%= t('ficha.credits_available', count: credits_left) %></div>
   </div>
 
 </div>
@@ -52,11 +60,11 @@
 <% if @admin_override %>
   <div class="fp-admin-banner" id="ficha-unlocked-banner">
     <span>⚡</span>
-    <span>Admin Override — Viewing full premium data. No credits consumed.</span>
+    <span><%= t('ficha.admin_override_banner') %></span>
   </div>
 <% else %>
   <div class="fp-unlocked-banner<%= ' fp-visible' if @unlocked %>" id="ficha-unlocked-banner">
     <span>✅</span>
-    <span>Ficha completa desbloqueada — todos los datos avanzados están disponibles.</span>
+    <span><%= t('ficha.unlocked_banner') %></span>
   </div>
 <% end %>

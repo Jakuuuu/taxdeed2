@@ -7,8 +7,8 @@
 <div class="fp-card" id="ficha-technical-analysis">
   <div class="fp-card__hdr" style="background: linear-gradient(135deg, #FFF8E1 0%, #FFF3CD 100%); border-bottom-color: rgba(218,165,32,0.25);">
     <span class="fp-card__hdr-icon">📋</span>
-    <h3 class="fp-card__hdr-title" style="color: #856404;">Technical Analysis</h3>
-    <span class="fp-card__hdr-badge" style="background: rgba(218,165,32,0.12); color: #856404; border-color: rgba(218,165,32,0.3);">Research Notes</span>
+    <h3 class="fp-card__hdr-title" style="color: #856404;"><%= t('ficha.technical_analysis_title') %></h3>
+    <span class="fp-card__hdr-badge" style="background: rgba(218,165,32,0.12); color: #856404; border-color: rgba(218,165,32,0.3);"><%= t('ficha.technical_analysis_badge') %></span>
   </div>
   <div class="fp-card__body">
     <div style="
@@ -24,7 +24,7 @@
       font-family: var(--fp-font);
     "><%= @parcel.technical_analysis %></div>
     <p style="font-size: 11px; color: var(--fp-text-dim); margin: 10px 0 0; text-align: right;">
-      📌 Technical analysis — no editable por el usuario
+      📌 <%= t('ficha.technical_analysis_footnote') %>
     </p>
   </div>
 </div>

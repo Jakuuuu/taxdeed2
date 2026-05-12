@@ -3,9 +3,18 @@
      Diseño: Ficha preview estilo Market Study (análisis de mercado)
      Variables: county (CountyMarketStat), auction_counts (Hash)
      Uso: Se renderiza dentro de un loop en index.html.erb
+
+     QA Fix (2026-05-11):
+       Convertida de onclick/drawer AJAX → link nativo full-page.
+       La card completa es un <a> que navega a counties#show vía Turbo Drive
+       (SPA sin recarga completa). Sin blur, sin overlay lateral.
     ═══════════════════════════════════════════════════════════════════════════ %>
 
-<div class="ms-county-card" onclick="openCountyDrawer('<%= research_market_study_county_path(county) %>')">
+<a href="<%= research_market_study_county_path(county) %>"
+   class="ms-county-card ms-county-card--link"
+   data-turbo="true"
+   aria-label="Ver ficha de <%= county.county.upcase %>">
+
   <%# ── Header: Nombre + subtítulo + badge estado ─────────────────────── %>
   <div class="ms-card-header">
     <div class="ms-card-header__left">
@@ -58,7 +67,7 @@
     </div>
   <% end %>
 
-  <%# ── Footer: Propiedades en subasta + botón flecha ─────────────────── %>
+  <%# ── Footer: Propiedades en subasta + ícono flecha ───────────────── %>
   <div class="ms-card-footer">
     <div class="ms-card-footer__info">
       <span class="ms-card-footer__fire">🔥</span>
@@ -70,4 +79,5 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
   </div>
-</div>
+
+</a>

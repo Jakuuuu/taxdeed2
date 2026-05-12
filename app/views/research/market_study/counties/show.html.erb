@@ -1,13 +1,18 @@
 <%# ═══════════════════════════════════════════════════════════════════════════
      Rama 4 — Ficha de Condado (Show) — Orquestador Modular
      Regla: 18-market-study.md
-     Patrón: Drawer AJAX 95vw (renderizado sin layout vía XHR)
+     Patrón: Full-page — renderizado con el layout research (navbar incluida)
      CSS: inline estricto — prohibido content_for :head
-     
+
+     QA Fix (2026-05-11):
+       Eliminado _drawer_close_button (era el botón sticky ✕ del overlay).
+       Reemplazado por un back-link nativo arriba del contenido.
+       El show ahora vive como página completa dentro del layout research.
+
      Módulos (11 partials):
        1. _county_styles          → Design tokens + CSS base
-       2. _drawer_close_button    → Botón sticky "Cerrar ficha"
-       3. _county_header          → Título + badges + breadcrumb
+       2. Back link               → ← Volver (nativo, no drawer JS)
+       3. _county_header          → Título + badges + quick stats + CTA
        4. _county_kpi_cards       → 6 KPIs financieros/demográficos
        5. _county_geographic      → Mapa/geolocalización del condado
        6. _county_lion_tip        → Nota contextual del analista
@@ -21,14 +26,22 @@
 <%# ── 1. Design Tokens + CSS ────────────────────────────────────────────── %>
 <%= render "research/market_study/counties/county_styles" %>
 
-<%# ── 2. Drawer Close Button (sticky top) ────────────────────────────────── %>
-<%= render "research/market_study/counties/drawer_close_button" %>
-
 <div class="fc-container">
-  <%# ── 3. Header — Nombre, estado, badges ──────────────────────────────── %>
+
+  <%# ── 2. Back Link — Navegación nativa hacia el índice ─────────────────── %>
+  <a href="<%= research_market_study_counties_path %>"
+     class="fc-back-link"
+     data-turbo="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    <%= t('market_study.back') %>
+  </a>
+
+  <%# ── 3. Header — Nombre, estado, badges, quick stats, CTA ─────────────── %>
   <%= render "research/market_study/counties/county_header",
              county: @county,
-             active_auctions: @active_auctions,
              total_properties: @total_properties %>
 
   <%# ── 4. KPI Cards — Métricas financieras principales ─────────────────── %>
@@ -59,6 +72,7 @@
   <%# ── 10. Cities — Ciudades del condado ────────────────────────────────── %>
   <%= render "research/market_study/counties/county_cities",
              county: @county %>
+
 </div>
 
 <%# ── 11. Scripts — JavaScript del chart ─────────────────────────────────── %>

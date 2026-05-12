@@ -17,10 +17,16 @@
   window.__fichaUnlocked = <%= @unlocked ? 'true' : 'false' %>;
 
   // ─── Unlock action ─────────────────────────────────────────────────────
+  // I18N GOTCHA: button copy is provided via data-i18n-* attrs in
+  // _paywall_cta.html.erb. Never hardcode language strings here.
   function fichaUnlock(parcelId) {
     var btn = document.getElementById('ficha-unlock-btn');
+    var i18nCta       = btn.dataset.i18nUnlockCta;
+    var i18nUnlocking = btn.dataset.i18nUnlocking;
+    var i18nFailed    = btn.dataset.i18nUnlockFailed;
+    var i18nNetErr    = btn.dataset.i18nErrorNetwork;
     btn.disabled = true;
-    btn.textContent = 'Desbloqueando…';
+    btn.textContent = i18nUnlocking;
 
     fetch('/research/parcels/' + parcelId + '/unlock', {
       method: 'POST',
@@ -35,14 +41,14 @@
         fichaRevealAll();
       } else {
         btn.disabled = false;
-        btn.textContent = '🔓 Desbloquear Ficha Completa — 1 Crédito';
-        alert(data.error || 'No se pudo desbloquear. Verifica tus créditos.');
+        btn.textContent = i18nCta;
+        alert(data.error || i18nFailed);
       }
     })
     .catch(function() {
       btn.disabled = false;
-      btn.textContent = '🔓 Desbloquear Ficha Completa — 1 Crédito';
-      alert('Error de red. Intenta nuevamente.');
+      btn.textContent = i18nCta;
+      alert(i18nNetErr);
     });
   }
 

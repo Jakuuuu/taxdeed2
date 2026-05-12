@@ -265,6 +265,10 @@
         class: "tab-nav__btn #{'active' if @active_tab == 'notifications'}" do %>
       🔔 Notifications
     <% end %>
+    <%= link_to research_settings_path(tab: "language"),
+        class: "tab-nav__btn #{'active' if @active_tab == 'language'}" do %>
+      🌐 <%= t('settings.language', default: 'Language') %>
+    <% end %>
   </div>
 
   <!-- ══ TAB 1: Profile ════════════════════════════════════════ -->
@@ -306,7 +310,7 @@
           </div>
         </div>
         <div class="settings-card__footer">
-          <%= f.submit "Save Changes", class: "btn-sm btn-sm-primary", style: "font-size: 0.9375rem; padding: 0.6rem 1.75rem;" %>
+          <%= f.submit t('settings.save_changes'), class: "btn-sm btn-sm-primary", style: "font-size: 0.9375rem; padding: 0.6rem 1.75rem;" %>
         </div>
       </div>
     <% end %>
@@ -494,24 +498,22 @@
     <%= form_with url: notifications_research_settings_path, method: :patch, local: true do |f| %>
       <div class="settings-card">
         <div class="settings-card__header">
-          <h2 class="settings-card__title">🔔 Recordatorios de subasta</h2>
+          <h2 class="settings-card__title">🔔 <%= t('settings.auction_reminders_title') %></h2>
         </div>
         <div class="settings-card__body">
           <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
-            Cuando actives <strong>"Notificarme antes de la subasta"</strong> en la ficha de una propiedad,
-            estas son las preferencias por defecto que se aplicarán.
-            Las parcelas ya configuradas <em>no</em> se modifican retroactivamente.
+            <%= t('settings.auction_reminders_intro_html').html_safe %>
           </p>
 
           <div class="form-group" style="margin-bottom: 1.5rem;">
-            <label class="form-label" for="default_notify_days_before">Avisarme con antelación de</label>
+            <label class="form-label" for="default_notify_days_before"><%= t('settings.notify_in_advance_label') %></label>
             <select name="default_notify_days_before"
                     id="default_notify_days_before"
                     class="form-input"
                     style="max-width: 240px;">
               <% [1, 3, 7, 14, 30].each do |d| %>
                 <option value="<%= d %>" <%= "selected" if (current_user.default_notify_days_before || 7) == d %>>
-                  <%= d %> día<%= "s" if d > 1 %> antes
+                  <%= t('settings.days_before', count: d) %>
                 </option>
               <% end %>
             </select>
@@ -526,18 +528,40 @@
                      <%= "checked" if current_user.email_notifications_enabled %>
                      style="margin-top:3px; width:16px; height:16px;">
               <span>
-                <strong style="display:block; color: var(--color-text);">También enviarme por email</strong>
+                <strong style="display:block; color: var(--color-text);"><%= t('settings.email_me_too') %></strong>
                 <span style="color: var(--color-text-muted); font-size: 0.85rem;">
-                  ⚠️ El proveedor de email aún no está configurado — esta preferencia se guardará
-                  y se activará automáticamente cuando esté disponible.
+                  <%= t('settings.email_provider_warning') %>
                 </span>
               </span>
             </label>
           </div>
         </div>
         <div class="settings-card__footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--color-border); text-align: right;">
-          <%= f.submit "Save preferences", class: "btn-sm",
+          <%= f.submit t('settings.save_preferences'), class: "btn-sm",
               style: "background: var(--color-accent); color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer; font-weight: 600;" %>
+        </div>
+      </div>
+    <% end %>
+
+  <!-- ══ TAB 5: Language ═══════════════════════════════════════ -->
+  <% elsif @active_tab == "language" %>
+    <%= form_with model: current_user, url: profile_research_settings_path, method: :patch, local: true do |f| %>
+      <div class="settings-card">
+        <div class="settings-card__header">
+          <h2 class="settings-card__title">🌐 <%= t('settings.language', default: 'Language') %></h2>
+        </div>
+        <div class="settings-card__body">
+          <div class="form-group">
+            <%= f.label :locale, t('settings.language', default: 'Language'), class: 'form-label' %>
+            <%= f.select :locale,
+                  [[t('settings.locale.en', default: 'English'), 'en'], [t('settings.locale.es', default: 'Español'), 'es']],
+                  { selected: current_user.locale },
+                  class: 'form-input', style: 'max-width: 240px;' %>
+          </div>
+        </div>
+        <div class="settings-card__footer" style="text-align: right;">
+          <%= f.submit t('settings.save_language', default: 'Save Language'),
+                style: 'background:#E67E22; color:#fff; border:none; padding:10px 18px; border-radius:6px; font-weight:600; cursor:pointer;' %>
         </div>
       </div>
     <% end %>

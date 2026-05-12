@@ -36,7 +36,7 @@
             onerror: "this.style.display='none'" %>
     <% else %>
       <div class="absolute inset-0 grid place-items-center text-slate-400 text-xs">
-        Map unavailable
+        <%= t('clear_to_bid.map_unavailable') %>
       </div>
     <% end %>
 
@@ -95,7 +95,7 @@
         <%= [parcel[:county], parcel[:state]].compact.reject(&:blank?).join(" · ") %>
       </div>
       <h3 class="text-[16px] font-semibold leading-snug text-slate-900 line-clamp-2">
-        <%= parcel[:address].presence || "Address pending" %>
+        <%= parcel[:address].presence || t('clear_to_bid.card_address_pending') %>
       </h3>
       <% if subtitle %>
         <div class="text-[12.5px] text-slate-500 mt-0.5"><%= subtitle %></div>
@@ -105,7 +105,7 @@
     <%# Data table — 2x2 grid con métricas verificables %>
     <dl class="grid grid-cols-2 gap-x-4 gap-y-3 pt-3 border-t border-slate-100">
       <div>
-        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Min bid</dt>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold"><%= t('clear_to_bid.card_min_bid') %></dt>
         <dd class="font-display text-[22px] leading-none mt-1 text-slate-900">
           <% if parcel[:opening_bid].present? %>
             <%= number_to_currency(parcel[:opening_bid], precision: 0) %>
@@ -115,7 +115,7 @@
         </dd>
       </div>
       <div>
-        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Market value</dt>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold"><%= t('clear_to_bid.card_market_value') %></dt>
         <dd class="font-display text-[22px] leading-none mt-1 text-slate-900">
           <% if parcel[:market_value].present? %>
             <%= number_to_currency(parcel[:market_value], precision: 0) %>
@@ -125,13 +125,13 @@
         </dd>
       </div>
       <div>
-        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Auction</dt>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold"><%= t('clear_to_bid.card_auction') %></dt>
         <dd class="text-[13px] mt-1 font-medium text-slate-900">
           <%= sale_date ? sale_date.strftime("%b %d, %Y") : "TBD" %>
         </dd>
       </div>
       <div>
-        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold">Type</dt>
+        <dt class="text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400 font-semibold"><%= t('clear_to_bid.card_type') %></dt>
         <dd class="text-[13px] mt-1 font-mono font-semibold text-slate-700 truncate">
           <%= parcel[:property_type].presence || "—" %>
         </dd>
@@ -142,15 +142,15 @@
     <div class="flex items-center gap-2 pt-3 mt-auto border-t border-slate-100">
       <%= link_to research_parcel_path(parcel[:id]),
             class: "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 text-white text-[12.5px] font-medium hover:bg-slate-800 transition" do %>
-        View dossier
+        <%= t('clear_to_bid.card_view_dossier') %>
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <path d="M5 12h14M13 5l7 7-7 7"/>
         </svg>
       <% end %>
       <button type="button"
               class="w-9 h-9 grid place-items-center rounded-lg border border-slate-200 hover:bg-slate-50 transition"
-              title="Save"
-              aria-label="Save parcel">
+              title="<%= t('clear_to_bid.save') %>"
+              aria-label="<%= t('clear_to_bid.save') %>">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
         </svg>

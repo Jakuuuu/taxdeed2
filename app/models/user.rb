@@ -6,6 +6,8 @@ class User < ApplicationRecord
   # NOTE: :recoverable deshabilitado en M1 (requiere mailer)
   # Activar en fase posterior con SendGrid u otro provider
 
+  validates :locale, inclusion: { in: %w[en es] }
+
   # Virtual attribute — plan elegido en el formulario de registro.
   # No se persiste en users sino en subscriptions.
   attr_accessor :plan

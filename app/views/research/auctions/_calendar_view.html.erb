@@ -8,7 +8,7 @@
     <button class="r1-cal-nav-btn" title="Previous month" onclick="r1ChangeMonth(-1)">
       <i data-lucide="chevron-left" style="width:14px;height:14px;"></i>
     </button>
-    <button class="r1-cal-today-btn" onclick="r1GoToday()">Today</button>
+    <button class="r1-cal-today-btn" onclick="r1GoToday()"><%= t('common.today') %></button>
     <button class="r1-cal-nav-btn" title="Next month" onclick="r1ChangeMonth(1)">
       <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
     </button>
@@ -19,7 +19,7 @@
       </div>
     </div>
     <div class="r1-cal-view-toggle">
-      <button class="r1-cal-view-btn active" onclick="r1CalViewMode('month', this)">Month</button>
+      <button class="r1-cal-view-btn active" onclick="r1CalViewMode('month', this)"><%= t('auctions.month') %></button>
     </div>
   </div>
   <div id="r1-cal-grid" class="r1-calendar-grid">

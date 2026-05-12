@@ -3,12 +3,20 @@
      Patrón: Idéntico a Rama 2 (Drawer 95vw con fetch XHR)
      Dependencias: research_market_study_counties_path (route helper)
      REGLA: Este script DEBE estar FUERA de <div class="ms-index-container">
+
+     QA Fixes (2026-05-11):
+       BUG-3 FIX: openCountyDrawer ahora PRESERVA query params (?q=, ?state=)
+                  al hacer pushState — antes los perdía al abrir el drawer.
+       BUG-4 FIX: El listener 'popstate' se registra UNA sola vez con una
+                  variable de guardia (MS_POPSTATE_REGISTERED). El handler
+                  turbo:before-cache lo limpia y resetea la guardia para que
+                  la siguiente carga pueda registrarlo de nuevo sin duplicados.
     ═══════════════════════════════════════════════════════════════════════════ %>
 
 <script>
 var MS_BASE_PATH = '<%= research_market_study_counties_path %>';
 
-// ── COUNTY DRAWER (Overlay) ──────────────────────────────────
+// ── COUNTY DRAWER (Overlay) ──────────────────────────────────────────────
 function openCountyDrawer(url) {
   var overlay  = document.getElementById('property-detail-overlay');
   var backdrop = document.getElementById('map-backdrop');
@@ -16,7 +24,17 @@ function openCountyDrawer(url) {
 
   backdrop.classList.add('is-open');
   overlay.classList.add('is-open');
-  window.history.pushState({ path: url }, '', url);
+
+  // ✅ BUG-3 FIX: Preservar query params al abrir el drawer.
+  // Antes: pushState(url) borraba ?q= y ?state= del historial.
+  // Ahora: construimos el estado guardando los params actuales,
+  // para que closeCountyDrawer() pueda restaurarlos exactamente.
+  var currentParams = window.location.search; // e.g. "?q=miami&state=FL"
+  window.history.pushState(
+    { countyUrl: url, returnSearch: currentParams },
+    '',
+    url
+  );
 
   // Spinner mientras carga
   content.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--ink-3);"><div class="map-spinner"></div></div>';
@@ -48,16 +66,44 @@ function closeCountyDrawer() {
   if (overlay) overlay.classList.remove('is-open');
   if (backdrop) backdrop.classList.remove('is-open');
 
-  // Clean URL: restaurar a la ruta base del index (sin county_id)
-  var cleanUrl = new URL(window.location);
-  cleanUrl.pathname = MS_BASE_PATH;
-  window.history.pushState({}, '', cleanUrl.href);
+  // ✅ BUG-3 FIX: Restaurar la URL base CON los query params originales.
+  // Leemos returnSearch del estado de history que guardamos al abrir.
+  var returnSearch = (history.state && history.state.returnSearch) || '';
+  window.history.pushState({}, '', MS_BASE_PATH + returnSearch);
 }
 
-// Popstate: cerrar drawer al usar botón "Back" del navegador
-window.addEventListener('popstate', function(e) {
-  if (window.location.pathname === MS_BASE_PATH) {
-    closeCountyDrawer();
-  }
+// ── Popstate: cerrar drawer al usar botón "Back" del navegador ──────────
+// ✅ BUG-4 FIX: Guardia para evitar registrar el listener múltiples veces.
+// Turbo puede restaurar esta página del cache y ejecutar el script de nuevo;
+// sin la guardia se acumularían N handlers idénticos.
+if (!window.MS_POPSTATE_REGISTERED) {
+  window.MS_POPSTATE_REGISTERED = true;
+
+  window.addEventListener('popstate', function msPopstateHandler(e) {
+    if (window.location.pathname === MS_BASE_PATH) {
+      var overlay  = document.getElementById('property-detail-overlay');
+      var backdrop = document.getElementById('map-backdrop');
+      if (overlay) overlay.classList.remove('is-open');
+      if (backdrop) backdrop.classList.remove('is-open');
+    }
+  });
+}
+
+// ── Turbo Cache Cleanup — limpiar listener zombie antes del snapshot ────
+// ✅ BUG-4 FIX: Al salir de la página, reseteamos la guardia para que la
+// próxima vez que el script se ejecute (carga fresca o restauración de cache)
+// el listener se registre correctamente UNA sola vez.
+document.addEventListener('turbo:before-cache', function msDrawerCacheCleanup() {
+  // Resetear guardia para permitir re-registro en la próxima carga
+  window.MS_POPSTATE_REGISTERED = false;
+
+  // Cerrar drawer antes del snapshot (evita que Turbo cachée el overlay abierto)
+  var overlay  = document.getElementById('property-detail-overlay');
+  var backdrop = document.getElementById('map-backdrop');
+  if (overlay) overlay.classList.remove('is-open');
+  if (backdrop) backdrop.classList.remove('is-open');
+
+  // Auto-remove para no acumular este mismo handler en la cache
+  document.removeEventListener('turbo:before-cache', msDrawerCacheCleanup);
 });
 </script>

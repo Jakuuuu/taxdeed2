@@ -7,16 +7,15 @@
 <div class="fp-title-report-cta">
   <div class="fp-title-report-cta__inner">
     <div>
-      <h3 class="fp-title-report-cta__title">📋 Order Title Report</h3>
+      <h3 class="fp-title-report-cta__title">📋 <%= t('ficha.order_title_report_title') %></h3>
       <p class="fp-title-report-cta__desc">
-        Get a comprehensive title search report for this property.
-        Verify liens, encumbrances, and chain of title.
+        <%= t('ficha.order_title_report_desc') %>
       </p>
     </div>
     <%= link_to research_purchased_reports_path(parcel_id: @parcel.id, report_type: "title_search"),
         class: "fp-btn fp-btn--orange fp-btn--lg",
         data: { turbo_method: :post, turbo_frame: "_top" } do %>
-      🔍 Generate Title Report
+      🔍 <%= t('ficha.generate_title_report') %>
     <% end %>
   </div>
 </div>

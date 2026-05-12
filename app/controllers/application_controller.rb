@@ -2,6 +2,7 @@
 
 class ApplicationController < ActionController::Base
   before_action :authenticate_user!
+  before_action :set_locale
   before_action :set_rls_user_context
 
   # Redirige usuarios autenticados al Atlas Stage (Rama 1 — US Overview),
@@ -11,6 +12,10 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  def set_locale
+    I18n.locale = current_user&.locale&.to_sym || I18n.default_locale
+  end
 
   # ── Row Level Security context ────────────────────────────────────────────
   # Establece el user_id de la sesión actual como variable de configuración de

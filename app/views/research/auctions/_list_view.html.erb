@@ -6,10 +6,11 @@
 <div class="r1-table-container">
   <div class="r1-table-toolbar">
     <span class="r1-table-count">
-      Showing condados con subastas
-      <strong><%= ((@page - 1) * 25) + 1 %></strong>–<strong><%= [(@page * 25), @total_count].min %></strong>
-      of <strong><%= number_with_delimiter(@total_count) %></strong>
-      <span class="r1-table-count-sub">(each row = one county sale)</span>
+      <%= t('auctions.table_count_html',
+            from: ((@page - 1) * 25) + 1,
+            to: [(@page * 25), @total_count].min,
+            total: number_with_delimiter(@total_count)).html_safe %>
+      <span class="r1-table-count-sub"><%= t('auctions.table_count_sub') %></span>
     </span>
   </div>
   <div class="r1-table-wrap">
@@ -85,10 +86,10 @@
   <%# Server-side Pagination %>
   <div class="r1-pagination-wrap">
     <div class="r1-pagination-info">
-      Displaying condados
-      <strong><%= ((@page - 1) * 25) + 1 %></strong> –
-      <strong><%= [(@page * 25), @total_count].min %></strong>
-      of <strong><%= number_with_delimiter(@total_count) %></strong>
+      <%= t('auctions.pagination_displaying_html',
+            from: ((@page - 1) * 25) + 1,
+            to: [(@page * 25), @total_count].min,
+            total: number_with_delimiter(@total_count)).html_safe %>
     </div>
     <div class="r1-pagination-btns">
       <% if @page > 1 %>

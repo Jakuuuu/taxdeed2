@@ -2,25 +2,23 @@
      Rama 4 — Market Study Index: Orquestador Modular
      Regla: 18-market-study.md
      Layout: research (heredado de Research::BaseController)
-     Patrón: Grid + Drawer AJAX 95vw para ficha de condado
+     Patrón: Grid de cards → navegación full-page a counties#show (Turbo Drive)
 
-     Módulos (6 partials):
+     QA Fix (2026-05-11):
+       Eliminada la infraestructura del drawer AJAX (map-backdrop, property-detail-overlay,
+       property-detail-content). La navegación ahora es full-page vía Turbo Drive.
+       Se elimina también el render del partial _index_drawer_js (obsoleto).
+
+     Módulos (5 partials):
        1. _index_styles       → CSS design tokens (grid, cards, filters)
-       2. _index_header        → Título "Estudio de Mercado" + contador
-       3. _index_filters       → Búsqueda + select estado + botón filtrar
-       4. _index_county_card   → Template de UNA tarjeta de condado (loop)
-       5. _index_empty_state   → Estado vacío "Sin resultados"
-       6. _index_drawer_js     → JavaScript AJAX para el drawer
+       2. _index_header       → Título "Estudio de Mercado" + contador
+       3. _index_filters      → Búsqueda + select estado + botón filtrar
+       4. _index_county_card  → Template de UNA tarjeta de condado (loop) — ahora es <a>
+       5. _index_empty_state  → Estado vacío "Sin resultados"
     ═══════════════════════════════════════════════════════════════════════════ %>
 
 <%# ── 1. CSS Design Tokens ─────────────────────────────────────────────── %>
 <%= render "research/market_study/counties/index_styles" %>
-
-<%# ── Drawer Infrastructure (backdrop + overlay container) ─────────────── %>
-<div id="map-backdrop" class="map-backdrop-blur" onclick="closeCountyDrawer()"></div>
-<div id="property-detail-overlay" class="property-detail-overlay">
-  <div id="property-detail-content" style="height:100%;overflow-y:auto;"></div>
-</div>
 
 <div class="ms-index-container">
   <%# ── 2. Header — Título + contador ──────────────────────────────────── %>
@@ -44,6 +42,3 @@
     <%= render "research/market_study/counties/index_empty_state" %>
   <% end %>
 </div>
-
-<%# ── 6. Drawer JavaScript — AJAX fetch + URL management ────────────── %>
-<%= render "research/market_study/counties/index_drawer_js" %>

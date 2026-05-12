@@ -1,5 +1,5 @@
 <%# ══════════════════════════════════════════════════════════════════════
-     RAMA 6 — Clear-to-Bid Catalog
+     RAMA 6 — Hot Deals Catalog
      Pre-qualified opportunities, hand-curated by analysts.
 
      Branching server-side (NO se confía en CSS/JS para ocultar):
@@ -10,7 +10,7 @@
      Tailwind: cargado vía CDN solo en esta página (content_for :head).
      ══════════════════════════════════════════════════════════════════════ %>
 
-<% content_for :title, "Clear-to-Bid Catalog — LionTaxdeed" %>
+<% content_for :title, "Hot Deals — LionTaxdeed" %>
 
 <% content_for :head do %>
   <%# Tailwind CDN (solo Rama 6 — no afecta a otras vistas).
@@ -89,20 +89,17 @@
         <div class="flex items-center gap-2 mb-3">
           <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-amber-900 text-[10.5px] font-mono uppercase tracking-[0.12em] font-semibold">
             <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-            Branch 06
+            <%= t('clear_to_bid.branch_label') %>
           </span>
           <span class="text-[10.5px] font-mono uppercase tracking-[0.12em] text-slate-400">
-            Curated · Updated <%= I18n.l(Time.current.to_date, format: :long) rescue Time.current.to_date.strftime("%b %d, %Y") %>
+            <%= t('clear_to_bid.curated_updated_html', date: (I18n.l(Time.current.to_date, format: :long) rescue Time.current.to_date.strftime("%b %d, %Y"))) %>
           </span>
         </div>
         <h1 class="font-display text-[42px] sm:text-[56px] leading-[0.95] text-slate-900">
-          Clear-to-Bid <span class="italic text-slate-500">catalog</span>
+          <%= t('clear_to_bid.catalog_title_html').html_safe %>
         </h1>
         <p class="mt-4 text-[15px] text-slate-600 leading-relaxed max-w-xl">
-          Propiedades pre-investigadas y validadas por nuestro equipo legal.
-          Cada parcela ha pasado por verificación de título, análisis de
-          gravámenes y una clasificación interna de inversión.
-          Solo disponible para clientes <strong class="text-slate-900">Premier</strong>.
+          <%= t('clear_to_bid.catalog_subtitle').html_safe %>
         </p>
       </div>
 
@@ -110,9 +107,9 @@
       <% unless @upgrade_required %>
         <nav class="flex items-center gap-2 text-[13px]" aria-label="Grade filters" data-controller="grade-filter">
           <% [
-                ['all',    'All',    'bg-slate-100 text-slate-800 border-slate-200'],
-                ['optimo', 'Óptimo', 'bg-emerald-50 text-emerald-800 border-emerald-200'],
-                ['viable', 'Viable', 'bg-amber-50 text-amber-800 border-amber-200']
+                ['all',    t('clear_to_bid.filter_all'),     'bg-slate-100 text-slate-800 border-slate-200'],
+                ['optimo', t('clear_to_bid.filter_optimal'), 'bg-emerald-50 text-emerald-800 border-emerald-200'],
+                ['viable', t('clear_to_bid.filter_viable'),  'bg-amber-50 text-amber-800 border-amber-200']
              ].each do |(value, label, classes)| %>
             <button type="button"
                     data-grade-filter-target="pill"
@@ -128,17 +125,17 @@
     <%# ── Stats strip (4 KPIs públicos) ──────────────────────────────── %>
     <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-200 rounded-xl overflow-hidden border border-slate-200">
       <div class="bg-white px-5 py-4">
-        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold">Total parcels</div>
+        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold"><%= t('clear_to_bid.stats_total') %></div>
         <div class="font-display text-[34px] leading-none mt-1.5"><%= @stats[:total] %></div>
-        <div class="text-[11px] text-slate-500 font-mono mt-1">Across <%= @stats[:county_count] %> counties</div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1"><%= t('clear_to_bid.stats_total_sub_html', count: @stats[:county_count]) %></div>
       </div>
       <div class="bg-white px-5 py-4">
-        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold">Óptimo</div>
+        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold"><%= t('clear_to_bid.stats_optimal') %></div>
         <div class="font-display text-[34px] leading-none mt-1.5 text-emerald-700"><%= @stats[:optimo] %></div>
-        <div class="text-[11px] text-slate-500 font-mono mt-1">Highest grade</div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1"><%= t('clear_to_bid.stats_optimal_sub') %></div>
       </div>
       <div class="bg-white px-5 py-4">
-        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold">Avg. min bid</div>
+        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold"><%= t('clear_to_bid.stats_avg_min_bid') %></div>
         <div class="font-display text-[34px] leading-none mt-1.5">
           <% if @stats[:avg_min_bid] %>
             <%= number_to_currency(@stats[:avg_min_bid], precision: 0) %>
@@ -146,12 +143,12 @@
             <span class="text-slate-400">—</span>
           <% end %>
         </div>
-        <div class="text-[11px] text-slate-500 font-mono mt-1">Across catalog</div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1"><%= t('clear_to_bid.stats_avg_min_bid_sub') %></div>
       </div>
       <div class="bg-white px-5 py-4">
-        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold">Counties</div>
+        <div class="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 font-semibold"><%= t('clear_to_bid.stats_counties') %></div>
         <div class="font-display text-[34px] leading-none mt-1.5"><%= @stats[:county_count] %></div>
-        <div class="text-[11px] text-slate-500 font-mono mt-1">Florida coverage</div>
+        <div class="text-[11px] text-slate-500 font-mono mt-1"><%= t('clear_to_bid.stats_counties_sub') %></div>
       </div>
     </div>
   </section>
@@ -182,9 +179,9 @@
                   d="M3 7l9-4 9 4-9 4-9-4zm0 6l9 4 9-4M3 17l9 4 9-4"/>
           </svg>
         </div>
-        <h3 class="text-lg font-semibold text-slate-900">No clear-to-bid parcels yet</h3>
+        <h3 class="text-lg font-semibold text-slate-900"><%= t('clear_to_bid.empty_title') %></h3>
         <p class="text-slate-500 text-sm mt-1">
-          Our analysts publish new opportunities every week. Check back soon.
+          <%= t('clear_to_bid.empty_desc') %>
         </p>
       </div>
     <% end %>
@@ -199,20 +196,18 @@
             <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true">
               <path d="M12 2 9 9l-7 .5 5.5 4.5L6 22l6-3.8L18 22l-1.5-8 5.5-4.5L15 9z"/>
             </svg>
-            Premier institutional
+            <%= t('clear_to_bid.upgrade_banner_label') %>
           </div>
           <h2 class="font-display text-[28px] md:text-[36px] leading-tight max-w-2xl">
-            Desbloquea los <em class="not-italic text-amber-200"><%= @stats[:total] %> dossiers</em> verificados de este ciclo.
+            <%= t('clear_to_bid.upgrade_banner_title_html', count: @stats[:total]).html_safe %>
           </h2>
           <p class="text-slate-300 text-[14px] mt-2 max-w-2xl leading-relaxed">
-            Tax deed parcels pre-investigados por nuestro equipo legal en
-            <%= @stats[:county_count] %> condados de Florida. Clasificación interna,
-            gravámenes verificados y mapa catastral por cada propiedad.
+            <%= t('clear_to_bid.upgrade_banner_desc_html', count: @stats[:county_count]).html_safe %>
           </p>
         </div>
         <%= link_to research_settings_path(anchor: "billing"),
               class: "cta-orange relative inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg text-white text-[14px] font-semibold whitespace-nowrap" do %>
-          Upgrade a Premier
+          <%= t('clear_to_bid.upgrade_to_premier') %>
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
             <path d="M5 12h14M13 5l7 7-7 7"/>
           </svg>

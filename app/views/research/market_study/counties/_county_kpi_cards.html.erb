@@ -22,7 +22,7 @@
   <div class="fc-kpi-card" style="border-top: 3px solid oklch(0.55 0.18 300);">
     <div class="fc-kpi-icon">👥</div>
     <p class="fc-kpi-value"><%= county.format_population %></p>
-    <div class="fc-kpi-label">Población</div>
+    <div class="fc-kpi-label"><%= t('market_study.population') %></div>
   </div>
 
   <%# ── KPI 4: Crecimiento ──────────────────────────────────────────────── %>
@@ -36,13 +36,13 @@
   <div class="fc-kpi-card" style="border-top: 3px solid var(--accent-strong);">
     <div class="fc-kpi-icon">🏛️</div>
     <p class="fc-kpi-value"><%= county.format_large_currency(county.annual_budget) %></p>
-    <div class="fc-kpi-label">Presupuesto Público</div>
+    <div class="fc-kpi-label"><%= t('market_study.public_budget') %></div>
   </div>
 
   <%# ── KPI 6: Días en Mercado ──────────────────────────────────────────── %>
   <div class="fc-kpi-card" style="border-top: 3px solid var(--danger);">
     <div class="fc-kpi-icon">⏱️</div>
     <p class="fc-kpi-value"><%= county.days_on_market || "—" %></p>
-    <div class="fc-kpi-label">Días en Mercado</div>
+    <div class="fc-kpi-label"><%= t('market_study.days_on_market') %></div>
   </div>
 </div>
