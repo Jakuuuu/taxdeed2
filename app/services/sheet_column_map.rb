@@ -34,7 +34,10 @@ module SheetColumnMap
   SALE_VENUE          = 2   # col C  — Sale Venue
   PARCEL_ID           = 3   # col D  — Parcel Number
 
-  # ⛔ col E (4) — "Estatus" (IGNORADA — columna interna de gestión del equipo)
+  # ✅ col E (4) — "Estatus" → internal_status (Premier/Admin only)
+  #               Indica si la propiedad sigue disponible o fue redimida.
+  #               Texto libre del equipo de datos (no vocabulario controlado).
+  INTERNAL_STATUS     = 4
 
   # ✅ col F (5) — "NOTAS" (Rama 6: clasificación Clear-to-Bid)
   #               raw → derive_clear_to_bid_grade → "deficiente"|"viable"|"optimo"|nil
@@ -126,9 +129,9 @@ module SheetColumnMap
   # ⛔ col CD (81) — Zoning Ordinances (IGNORADA)
 
   # ── COLUMNAS IGNORADAS (documentadas para referencia) ────────────────────────
-  # Nota: 5 ("NOTAS") activo desde Rama 6 (2026-05-07) — corregido en 2026-05-12.
-  # 4 ("Estatus") es interna — ignorada siempre.
+  # Nota: 5 ("NOTAS") → clear_to_bid_grade (Rama 6, 2026-05-07, fix 2026-05-12).
+  # 4 ("Estatus") → internal_status (Premier only, 2026-05-12).
   # 6 ("Comments do VA") ignorada desde 2026-04-24.
-  IGNORED_INTERNAL  = [4, 6, 28, 29, 34, 35, 36, 38, 45, 73, 80, 81].freeze
+  IGNORED_INTERNAL  = [6, 28, 29, 34, 35, 36, 38, 45, 73, 80, 81].freeze
   IGNORED_ZILLOW    = (48..70).to_a.freeze
 end

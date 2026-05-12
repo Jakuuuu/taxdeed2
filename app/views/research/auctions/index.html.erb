@@ -145,7 +145,9 @@
           </a>
         </div>
         <div class="panel-body">
-          <%= render "research/auctions/top_opportunities", parcels: (@top_opportunity_parcels || []) %>
+          <%= render "research/auctions/top_opportunities",
+                     parcels: (@top_opportunity_parcels || []),
+                     premier_access: (current_user.admin? || current_user.subscription&.premier_active? || false) %>
         </div>
       </div>
 

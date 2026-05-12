@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_08_210000) do
+ActiveRecord::Schema[7.2].define(version: 2026_05_12_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -266,6 +266,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_08_210000) do
     t.boolean "clear_to_bid_grade_locked", default: false, null: false
     t.text "polygon_geojson"
     t.datetime "polygon_fetched_at"
+    t.string "internal_status", limit: 120, comment: "Estatus operativo de la propiedad (col E del Sheet). Ej: Disponible, Redimida. Visible solo a usuarios Premier/Admin."
     t.index ["auction_id"], name: "index_parcels_on_auction_id"
     t.index ["clear_to_bid_grade"], name: "index_parcels_on_clear_to_bid_grade_not_null", where: "(clear_to_bid_grade IS NOT NULL)"
     t.index ["latitude", "longitude"], name: "idx_parcels_lat_lng"

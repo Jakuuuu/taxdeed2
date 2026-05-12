@@ -52,6 +52,7 @@ module ClearToBidPayload
         lot_area_acres:     p.lot_area_acres,
         property_type:      p.property_type,
         clear_to_bid_grade: p.clear_to_bid_grade,
+        internal_status:    p.respond_to?(:internal_status) ? p.internal_status : nil,
         auction: p.auction && {
           id:        p.auction.id,
           sale_date: p.auction.sale_date

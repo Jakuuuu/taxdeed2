@@ -211,6 +211,13 @@ class SheetRowProcessor
     locked = parcel.persisted? && parcel.respond_to?(:clear_to_bid_grade_locked?) && parcel.clear_to_bid_grade_locked?
     attrs[:clear_to_bid_grade] = derive_clear_to_bid_grade(col(NOTAS)) unless locked
 
+    # ── 🆕 INTERNAL STATUS (col E "Estatus") — Premier/Admin only ──────────────
+    # Texto libre del equipo de datos. Indica si la propiedad sigue disponible
+    # para subasta o fue redimida. Sin vocabulario controlado: se guarda raw.
+    # Sin lock mechanism: el Sheet siempre gana (Espejo Infalible).
+    # Visible solo en payloads Premier (ClearToBidController + Top Opportunities).
+    attrs[:internal_status] = Sanitize.text(col(INTERNAL_STATUS)).presence
+
     # ── GUARD: CRM IMMUNITY CHECK ────────────────────────────────────────────
     enforce_crm_immunity!(attrs)
 

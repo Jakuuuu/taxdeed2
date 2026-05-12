@@ -170,6 +170,27 @@
       </div>
     </dl>
 
+    <%# ── Internal Status badge — visible SOLO para Premier/Admin ─────────── %>
+    <% if parcel[:internal_status].present? %>
+      <%
+        raw_status = parcel[:internal_status].to_s.downcase
+        status_color = if raw_status.include?("disponible") || raw_status.include?("available")
+                         "bg-emerald-50 text-emerald-700 border-emerald-200"
+                       elsif raw_status.include?("redimida") || raw_status.include?("redeemed") || raw_status.include?("retirada")
+                         "bg-red-50 text-red-700 border-red-200"
+                       else
+                         "bg-slate-50 text-slate-600 border-slate-200"
+                       end
+      %>
+      <div class="flex items-center gap-2 px-3 py-2 rounded-lg border <%= status_color %> text-[11.5px] font-medium">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+        </svg>
+        <span class="font-mono uppercase tracking-[0.08em] text-[10px] opacity-60">Status</span>
+        <span class="ml-auto font-semibold"><%= parcel[:internal_status] %></span>
+      </div>
+    <% end %>
+
     <%# Footer ─ View dossier (Rama 2) + save (cosmético) %>
     <div class="flex items-center gap-2 pt-3 mt-auto border-t border-slate-100">
       <%= link_to research_parcel_path(parcel[:id]),

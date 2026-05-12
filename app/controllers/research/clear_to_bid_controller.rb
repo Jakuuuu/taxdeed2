@@ -50,7 +50,7 @@ module Research
                                 :id, :auction_id, :parcel_id, :state, :county, :address,
                                 :latitude, :longitude, :polygon_encoded, :opening_bid,
                                 :market_value, :year_built, :lot_area_acres, :property_type,
-                                :clear_to_bid_grade, :updated_at
+                                :clear_to_bid_grade, :internal_status, :updated_at
                               )
                               .includes(:auction)
                               .order(updated_at: :desc)

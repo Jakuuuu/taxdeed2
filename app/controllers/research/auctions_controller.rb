@@ -202,7 +202,7 @@ module Research
         .select(
           "parcels.id, parcels.property_type, parcels.bedrooms, parcels.bathrooms,
            parcels.sqft_living, parcels.county, parcels.state,
-           parcels.address, parcels.parcel_id,
+           parcels.address, parcels.parcel_id, parcels.internal_status,
            auctions.sale_date"
         )
         .order("auctions.sale_date ASC")
