@@ -15,11 +15,17 @@
 #      - Clerk of Courts: 79→78, Tax Collector: 80→79
 #
 # ⚠️ ACTUALIZADO 2026-05-07 (Rama 6 — Clear-to-Bid):
-#    - col E (4) "Notes" deja de estar IGNORADA. Pasa a alimentar
-#      `parcels.clear_to_bid_grade` vía SheetRowProcessor#derive_clear_to_bid_grade.
-#    - Antes esta posición se llamaba "Estatus" (uso interno); el equipo de datos
-#      la reusa ahora como header "Notes" para clasificación deficiente/viable/optimo.
-#    - col F (5) "Comments" sigue ignorada (texto libre operativo).
+#    - col F (5) "NOTAS" alimenta `parcels.clear_to_bid_grade`
+#      vía SheetRowProcessor#derive_clear_to_bid_grade.
+#
+# ⚠️ CORRECCIÓN 2026-05-12 (Bug fix — índice real confirmado en prod):
+#    HEADER MAP real del Sheet (confirmado vía Render logs sync #112):
+#      0=Estado | 1=Condado | 2=Sale Venue | 3=Parcel Number |
+#      4=Estatus (IGNORADA — columna interna, ya no era col E el slot de Notes) |
+#      5=NOTAS   ← aquí viven "Optimo", "Viable", "Deficiente" |
+#      6=Comments do VA (IGNORADA)
+#    Antes el código usaba NOTAS=4 (col E) que en la BD real es "Estatus".
+#    Todos los syncs desde la migración devolvían nil para clear_to_bid_grade.
 #
 module SheetColumnMap
   # ── IDENTIFICACIÓN Y UBICACIÓN ──────────────────────────────────────────────
@@ -28,13 +34,13 @@ module SheetColumnMap
   SALE_VENUE          = 2   # col C  — Sale Venue
   PARCEL_ID           = 3   # col D  — Parcel Number
 
-  # ✅ col E (4) — "Notes" (Rama 6: clasificación Clear-to-Bid)
-  #               raw → derive_clear_to_bid_grade → "deficiente"|"viable"|"optimo"|nil
-  #               Antes se llamaba "Estatus" (IGNORADA). Reusada por el equipo de
-  #               datos como header "Notes" desde 2026-05-07.
-  NOTAS               = 4
+  # ⛔ col E (4) — "Estatus" (IGNORADA — columna interna de gestión del equipo)
 
-  # ⛔ col F (5) — Comments (uso interno, IGNORADA — texto libre operativo)
+  # ✅ col F (5) — "NOTAS" (Rama 6: clasificación Clear-to-Bid)
+  #               raw → derive_clear_to_bid_grade → "deficiente"|"viable"|"optimo"|nil
+  #               Confirmado via HEADER MAP en Render logs (sync #112, 2026-05-12).
+  NOTAS               = 5
+
   # ⛔ col G (6) — Comments do VA (IGNORADA desde 2026-04-24)
 
   # ── VALUACIÓN Y SUBASTA ──────────────────────────────────────────────────────
@@ -120,8 +126,9 @@ module SheetColumnMap
   # ⛔ col CD (81) — Zoning Ordinances (IGNORADA)
 
   # ── COLUMNAS IGNORADAS (documentadas para referencia) ────────────────────────
-  # Nota: 4 ("Notes" — antes "Estatus") salió de la lista IGNORED_INTERNAL en
-  # 2026-05-07 (Rama 6). 5 ("Comments") permanece ignorada.
-  IGNORED_INTERNAL  = [5, 6, 28, 29, 34, 35, 36, 38, 45, 73, 80, 81].freeze
+  # Nota: 5 ("NOTAS") activo desde Rama 6 (2026-05-07) — corregido en 2026-05-12.
+  # 4 ("Estatus") es interna — ignorada siempre.
+  # 6 ("Comments do VA") ignorada desde 2026-04-24.
+  IGNORED_INTERNAL  = [4, 6, 28, 29, 34, 35, 36, 38, 45, 73, 80, 81].freeze
   IGNORED_ZILLOW    = (48..70).to_a.freeze
 end

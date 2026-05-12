@@ -17,8 +17,9 @@
 #   - No retiene referencias a objetos Parcel después de save!
 #
 # 🆕 RAMA 6 (2026-05-07):
-#   - Mapea col F "Notas" → clear_to_bid_grade vía derive_clear_to_bid_grade.
+#   - Mapea col F "NOTAS" (índice 5) → clear_to_bid_grade vía derive_clear_to_bid_grade.
 #   - Vocabulario controlado: deficiente | viable | optimo (lowercase, ASCII).
+#   - Bug fix 2026-05-12: índice corregido 4→5 (confirmado via HEADER MAP en Render logs sync #112).
 #
 class SheetRowProcessor
   include SheetColumnMap
