@@ -389,10 +389,11 @@
 
     <%# ── Main Sync: Propiedades + Condados ──────────────────────────── %>
     <%= form_with url: run_now_admin_sync_path, method: :post, style: "display:inline;",
-                  data: { turbo_confirm: "Run sync now?\n\nThis will sync Properties + Counties from Google Sheets.\n(Market data is NOT included — use the separate button)\n\nCRM data (tags & notes) will NOT be affected." } do |f| %>
+                  data: { turbo: false } do |f| %>
       <button type="submit"
               class="btn-sync-trigger"
               id="sync-trigger-btn"
+              onclick="return confirm('▶ Run sync now?\n\nThis will sync Properties + Counties from Google Sheets.\nMarket data is NOT included.\nCRM data (tags & notes) will NOT be affected.');" 
               <% if @running %>disabled<% end %>>
         <span class="btn-sync-trigger__icon"><%= @running ? "⏳" : "▶" %></span>
         <%= @running ? "Sync Running…" : "Sync Propiedades" %>
@@ -401,10 +402,11 @@
 
     <%# ── Market Sync: Solo Mercados (denso, 2-5 min) ────────────────── %>
     <%= form_with url: run_markets_admin_sync_path, method: :post, style: "display:inline;",
-                  data: { turbo_confirm: "📊 Sync Market Data?\n\nThis will sync ~9,700 monthly volume records from the 'Mercados' sheet.\n\nEstimated time: 2-5 minutes.\n\nProceed?" } do |f| %>
+                  data: { turbo: false } do |f| %>
       <button type="submit"
               class="btn-sync-markets"
               id="sync-markets-btn"
+              onclick="return confirm('📊 Sync Market Data?\n\nThis will sync ~9,700 monthly volume records.\nEstimated time: 2-5 minutes.\n\nProceed?');"
               <% if @running %>disabled<% end %>>
         <span class="btn-sync-markets__icon"><%= @running ? "⏳" : "📊" %></span>
         <%= @running ? "Sync Running…" : "Sync cifras de mercados" %>
