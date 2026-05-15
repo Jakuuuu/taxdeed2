@@ -16,8 +16,8 @@
   <%# Tailwind CDN (solo Rama 6 — no afecta a otras vistas).
       Preflight DESACTIVADO para preservar el header global de research.html.erb
       (que usa estilos nativos de h1/h2/a/button + .nav-item, .rn-* del layout). %>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { corePlugins: { preflight: false } };</script>
+  <script src="https://cdn.tailwindcss.com" data-turbo-track="reload"></script>
+  <script data-turbo-track="reload">tailwind.config = { corePlugins: { preflight: false } };</script>
 
   <%# Tipografía del rediseño Claude Design (Geist + Instrument Serif) %>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:wght@400&display=swap" rel="stylesheet">

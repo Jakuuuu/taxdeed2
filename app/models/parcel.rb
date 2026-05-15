@@ -51,6 +51,11 @@ class Parcel < ApplicationRecord
     where(clear_to_bid_grade: grade) if CLEAR_TO_BID_GRADES.include?(grade.to_s)
   }
 
+  # ── Date range scopes (Filtros por fecha — Rama 2 Fase 2) ────────
+  # Filtra parcelas por la sale_date de su auction asociada.
+  scope :from_date, ->(date) { joins(:auction).where("auctions.sale_date >= ?", date) }
+  scope :to_date,   ->(date) { joins(:auction).where("auctions.sale_date <= ?", date) }
+
   # ── Time-based scopes (Motor de Tiempo) ──────────────────────────
   # Parcelas cuya subasta tiene sale_date >= hoy → activas
   scope :with_active_auction, -> {

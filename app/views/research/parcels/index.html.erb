@@ -56,6 +56,7 @@
     font-size: 0.78rem; font-family: var(--font-sans); outline: none;
     transition: border-color 0.15s; background: #fff;
   }
+  .topbar-filter-input[type="date"] { width: 140px; }
   .topbar-filter-input:focus { border-color: var(--accent); }
   .topbar-filter-select {
     padding: 0.38rem 0.5rem; border: 1.5px solid var(--border);
@@ -652,6 +653,10 @@
             <option value="<%= type %>"><%= type %></option>
           <% end %>
         </select>
+
+        <span class="topbar-filter-label" style="margin-left:0.6rem; padding-left:0.75rem; border-left:1.5px solid var(--border)">Date:</span>
+        <input type="date" class="topbar-filter-input" id="r2-filter-from-date" title="From date">
+        <input type="date" class="topbar-filter-input" id="r2-filter-to-date" title="To date">
 
         <button type="button" class="topbar-filter-apply" onclick="applyInlineFilters()">Apply</button>
         <button type="button" class="topbar-filter-clear" onclick="clearInlineFilters()">Clear</button>
@@ -1544,10 +1549,14 @@ function loadPhase2Markers(auctionId, county, state) {
   var maxBid   = document.getElementById('r2-filter-max-bid');
   var propType = document.getElementById('r2-filter-property-type');
   var search   = document.getElementById('r2-topbar-search');
+  var fromDate = document.getElementById('r2-filter-from-date');
+  var toDate   = document.getElementById('r2-filter-to-date');
   if (minBid   && minBid.value)        params.push('min_bid='       + minBid.value);
   if (maxBid   && maxBid.value)        params.push('max_bid='       + maxBid.value);
   if (propType && propType.value)      params.push('property_type=' + encodeURIComponent(propType.value));
   if (search   && search.value.trim()) params.push('q='             + encodeURIComponent(search.value.trim()));
+  if (fromDate && fromDate.value)      params.push('from_date='     + fromDate.value);
+  if (toDate   && toDate.value)        params.push('to_date='       + toDate.value);
 
   fetchUrl += '?' + params.join('&');
 
@@ -2043,10 +2052,14 @@ function loadParcelsList(page) {
   var maxBid = document.getElementById('r2-filter-max-bid');
   var propType = document.getElementById('r2-filter-property-type');
   var search = document.getElementById('r2-topbar-search');
+  var fromDate = document.getElementById('r2-filter-from-date');
+  var toDate   = document.getElementById('r2-filter-to-date');
   if (minBid && minBid.value) params.push('min_bid=' + minBid.value);
   if (maxBid && maxBid.value) params.push('max_bid=' + maxBid.value);
   if (propType && propType.value) params.push('property_type=' + encodeURIComponent(propType.value));
   if (search && search.value.trim()) params.push('q=' + encodeURIComponent(search.value.trim()));
+  if (fromDate && fromDate.value) params.push('from_date=' + fromDate.value);
+  if (toDate   && toDate.value)   params.push('to_date='   + toDate.value);
 
 
   var url = PARCELS_LIST_URL + '?' + params.join('&');
@@ -2228,10 +2241,14 @@ function clearInlineFilters() {
   var maxBid = document.getElementById('r2-filter-max-bid');
   var propType = document.getElementById('r2-filter-property-type');
   var search = document.getElementById('r2-topbar-search');
+  var fromDate = document.getElementById('r2-filter-from-date');
+  var toDate   = document.getElementById('r2-filter-to-date');
   if (minBid) minBid.value = '';
   if (maxBid) maxBid.value = '';
   if (propType) propType.value = '';
   if (search) search.value = '';
+  if (fromDate) fromDate.value = '';
+  if (toDate)   toDate.value = '';
   applyInlineFilters();
 }
 

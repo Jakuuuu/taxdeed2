@@ -1,89 +1,179 @@
-<% content_for :title, @auction.new_record? ? "New Auction" : "Edit: #{@auction.name}" %>
+<%#
+  _form.html.erb — Admin Auction form (create/edit)
+  
+  ⛔ El campo `status` NO está aquí — se controla exclusivamente via
+     `change_status` (transición secuencial upcoming→active→completed).
+  
+  Los campos mapean directamente a la tabla `auctions`:
+    county, state, sale_date, auction_type, registration_deadline,
+    bidding_start, registration_opens, end_date, bidding_url, source_url,
+    notes, latitude, longitude, parcel_count, total_amount
+%>
 
-<div class="admin-breadcrumb">
-  <%= link_to "Auctions", admin_auctions_path %>
-  <span class="admin-breadcrumb__sep">›</span>
-  <span><%= @auction.new_record? ? "New Auction" : "Edit" %></span>
-</div>
+<%= form_with(model: [:admin, @auction], local: true) do |f| %>
 
-<div class="admin-page-header">
-  <h1 class="admin-page-title"><%= @auction.new_record? ? "New Auction" : "Edit Auction" %></h1>
-</div>
-
-<div class="admin-card" style="max-width:760px;">
-  <div class="admin-card__header">
-    <h2 class="admin-card__title">Auction Details</h2>
-  </div>
-  <div class="admin-card__body">
-    <%= form_with model: [:admin, @auction], local: true do |f| %>
-
-      <% if @auction.errors.any? %>
-        <div class="admin-flash admin-flash--alert" style="margin-bottom:1rem;">
-          <span><%= @auction.errors.full_messages.to_sentence %></span>
+  <% if @auction.errors.any? %>
+    <div class="admin-card" style="margin-bottom:1.25rem;border-left:4px solid #DC2626;">
+      <div class="admin-card__body" style="padding:1rem;">
+        <div style="font-weight:600;color:#DC2626;margin-bottom:0.5rem;">
+          <%= pluralize(@auction.errors.count, "error") %> prevented this auction from being saved:
         </div>
-      <% end %>
+        <ul style="margin:0;padding-left:1.2rem;font-size:0.85rem;color:#991B1B;">
+          <% @auction.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+  <% end %>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-        <div>
-          <label class="admin-label">Name *</label>
-          <%= f.text_field :name, class: "admin-input", placeholder: "e.g. Leon County Tax Deed Sale" %>
+  <%# ── Section 1: Core Info ──────────────────────────────────── %>
+  <div class="admin-card" style="margin-bottom:1.25rem;">
+    <div class="admin-card__header">
+      <h2 class="admin-card__title">🏛️ Core Information</h2>
+    </div>
+    <div class="admin-card__body">
+      <div class="admin-form-grid">
+        <div class="admin-form-group">
+          <%= f.label :county, "County *", class: "admin-label" %>
+          <%= f.text_field :county, class: "admin-input", required: true, placeholder: "e.g. Miami-Dade" %>
         </div>
-        <div>
-          <label class="admin-label">Auction Type</label>
+        <div class="admin-form-group">
+          <%= f.label :state, "State *", class: "admin-label" %>
+          <%= f.text_field :state, class: "admin-input", required: true, placeholder: "e.g. Florida" %>
+        </div>
+        <div class="admin-form-group">
+          <%= f.label :auction_type, "Auction Type", class: "admin-label" %>
           <%= f.select :auction_type,
-                options_for_select([["Tax Deed", "tax_deed"], ["Tax Lien", "tax_lien"]], @auction.auction_type),
-                {}, class: "admin-input" %>
+                options_for_select(
+                  [["— Select —", ""], ["Tax Deed", "tax_deed"], ["Tax Lien", "tax_lien"], ["Foreclosure", "foreclosure"]],
+                  @auction.auction_type
+                ),
+                {}, class: "admin-filter-select" %>
         </div>
       </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-        <div>
-          <label class="admin-label">County *</label>
-          <%= f.text_field :county, class: "admin-input", placeholder: "e.g. Leon" %>
-        </div>
-        <div>
-          <label class="admin-label">State *</label>
-          <%= f.text_field :state, class: "admin-input", placeholder: "e.g. FL" %>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-        <div>
-          <label class="admin-label">Sale Date</label>
-          <%= f.date_field :sale_date, class: "admin-input" %>
-        </div>
-        <div>
-          <label class="admin-label">Registration Deadline</label>
-          <%= f.date_field :registration_deadline, class: "admin-input" %>
-        </div>
-      </div>
-
-      <div style="margin-bottom:1rem;">
-        <label class="admin-label">Status</label>
-        <%= f.select :status,
-              options_for_select([["Upcoming", "upcoming"], ["Active", "active"], ["Completed", "completed"]], @auction.status),
-              {}, class: "admin-input" %>
-      </div>
-
-      <div style="margin-bottom:1rem;">
-        <label class="admin-label">Official Website URL</label>
-        <%= f.url_field :website_url, class: "admin-input", placeholder: "https://..." %>
-      </div>
-
-      <div style="margin-bottom:1rem;">
-        <label class="admin-label">Description / Notes</label>
-        <%= f.text_area :description, class: "admin-textarea",
-              placeholder: "Additional notes about this auction..." %>
-      </div>
-
-      <div style="display:flex;gap:0.75rem;">
-        <button type="submit" class="btn-sm btn-sm-primary">
-          <%= @auction.new_record? ? "Create Auction" : "Save Changes" %>
-        </button>
-        <%= link_to "Cancel", @auction.new_record? ? admin_auctions_path : admin_auction_path(@auction),
-              class: "btn-sm btn-sm-outline" %>
-      </div>
-
-    <% end %>
+    </div>
   </div>
-</div>
+
+  <%# ── Section 2: Dates & Timeline ──────────────────────────── %>
+  <div class="admin-card" style="margin-bottom:1.25rem;">
+    <div class="admin-card__header">
+      <h2 class="admin-card__title">📅 Dates & Timeline</h2>
+    </div>
+    <div class="admin-card__body">
+      <div class="admin-form-grid">
+        <div class="admin-form-group">
+          <%= f.label :sale_date, "Sale Date *", class: "admin-label" %>
+          <%= f.date_field :sale_date, class: "admin-input", required: true %>
+          <span class="admin-form-help">Primary date of the auction sale</span>
+        </div>
+        <div class="admin-form-group">
+          <%= f.label :registration_opens, "Registration Opens", class: "admin-label" %>
+          <%= f.date_field :registration_opens, class: "admin-input" %>
+          <span class="admin-form-help">When bidders can start registering</span>
+        </div>
+        <div class="admin-form-group">
+          <%= f.label :registration_deadline, "Registration Deadline", class: "admin-label" %>
+          <%= f.date_field :registration_deadline, class: "admin-input" %>
+          <span class="admin-form-help">Last day to register for bidding</span>
+        </div>
+        <div class="admin-form-group">
+          <%= f.label :bidding_start, "Bidding Start", class: "admin-label" %>
+          <%= f.date_field :bidding_start, class: "admin-input" %>
+          <span class="admin-form-help">When online bidding opens</span>
+        </div>
+        <div class="admin-form-group">
+          <%= f.label :end_date, "End Date", class: "admin-label" %>
+          <%= f.date_field :end_date, class: "admin-input" %>
+          <span class="admin-form-help">When the auction closes</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Section 3: Data & Numbers ────────────────────────────── %>
+  <div class="admin-card" style="margin-bottom:1.25rem;">
+    <div class="admin-card__header">
+      <h2 class="admin-card__title">📊 Data</h2>
+    </div>
+    <div class="admin-card__body">
+      <div class="admin-form-grid">
+        <div class="admin-form-group">
+          <%= f.label :parcel_count, "Parcel Count", class: "admin-label" %>
+          <%= f.number_field :parcel_count, class: "admin-input", min: 0, placeholder: "0" %>
+          <span class="admin-form-help">Total number of parcels in auction (auto-populated by sync)</span>
+        </div>
+        <div class="admin-form-group">
+          <%= f.label :total_amount, "Total Amount ($)", class: "admin-label" %>
+          <%= f.number_field :total_amount, class: "admin-input", min: 0, step: "0.01", placeholder: "0.00" %>
+          <span class="admin-form-help">Aggregate value of all parcels (auto-populated by sync)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Section 4: External Links ────────────────────────────── %>
+  <div class="admin-card" style="margin-bottom:1.25rem;">
+    <div class="admin-card__header">
+      <h2 class="admin-card__title">🔗 External Links</h2>
+    </div>
+    <div class="admin-card__body">
+      <div class="admin-form-grid">
+        <div class="admin-form-group">
+          <%= f.label :bidding_url, "Bidding URL", class: "admin-label" %>
+          <%= f.url_field :bidding_url, class: "admin-input", placeholder: "https://..." %>
+          <span class="admin-form-help">County auction / bidding website</span>
+        </div>
+        <div class="admin-form-group">
+          <%= f.label :source_url, "Source URL", class: "admin-label" %>
+          <%= f.url_field :source_url, class: "admin-input", placeholder: "https://..." %>
+          <span class="admin-form-help">Original data source (scraped from)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Section 5: Coordinates ───────────────────────────────── %>
+  <div class="admin-card" style="margin-bottom:1.25rem;">
+    <div class="admin-card__header">
+      <h2 class="admin-card__title">📍 Coordinates <span style="font-weight:400;font-size:0.75rem;color:#9CA3AF;">(Optional)</span></h2>
+    </div>
+    <div class="admin-card__body">
+      <div class="admin-form-grid">
+        <div class="admin-form-group">
+          <%= f.label :latitude, "Latitude", class: "admin-label" %>
+          <%= f.number_field :latitude, class: "admin-input", step: "any", placeholder: "e.g. 25.7617" %>
+        </div>
+        <div class="admin-form-group">
+          <%= f.label :longitude, "Longitude", class: "admin-label" %>
+          <%= f.number_field :longitude, class: "admin-input", step: "any", placeholder: "e.g. -80.1918" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Section 6: Notes ─────────────────────────────────────── %>
+  <div class="admin-card" style="margin-bottom:1.5rem;">
+    <div class="admin-card__header">
+      <h2 class="admin-card__title">📝 Notes</h2>
+    </div>
+    <div class="admin-card__body">
+      <div class="admin-form-group" style="margin-bottom:0;">
+        <%= f.text_area :notes, class: "admin-input", rows: 4,
+              placeholder: "Internal notes about this auction...",
+              style: "resize:vertical;min-height:80px;" %>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Actions ──────────────────────────────────────────────── %>
+  <div style="display:flex;gap:0.75rem;align-items:center;">
+    <%= f.submit @auction.persisted? ? "Update Auction" : "Create Auction",
+          class: "btn-sm btn-sm-primary", style: "padding:0.5rem 1.5rem;font-size:0.9rem;" %>
+    <%= link_to "Cancel",
+          @auction.persisted? ? admin_auction_path(@auction) : admin_auctions_path,
+          class: "btn-sm btn-sm-outline",
+          style: "padding:0.5rem 1.5rem;font-size:0.9rem;" %>
+  </div>
+
+<% end %>

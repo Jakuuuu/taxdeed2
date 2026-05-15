@@ -7,14 +7,14 @@ body.admin-layout {
   background: #F0F2F5;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  margin: 0;
   overflow: hidden;
 }
 .admin-shell {
   display: flex;
   flex: 1;
-  height: calc(100vh - 56px);
-  overflow: hidden;
+  min-height: 0; /* critical: allows flex children to scroll */
 }
 
 /* ── Admin Top Bar ───────────────────────────────────────────── */
@@ -197,7 +197,9 @@ body.admin-layout {
 /* ── Admin Main Content ──────────────────────────────────────── */
 .admin-content {
   flex: 1;
+  min-height: 0; /* critical: allows overflow-y to work in flex context */
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1.75rem 2rem;
 }
 

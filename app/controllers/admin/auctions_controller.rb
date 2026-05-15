@@ -2,21 +2,43 @@
 
 # Admin::AuctionsController — CRUD completo para subastas (Tax Deed / Tax Lien)
 #
-# Flujo de estados:
+# Flujo de estados (secuencial, unidireccional):
 #   upcoming → active → completed
 #   (cambio manual por un admin via change_status)
+#
+# Reglas:
+#   - Status solo se cambia via `change_status` (no mass-assignable)
+#   - Transición es secuencial: upcoming→active→completed (no se puede saltar ni retroceder)
+#   - No se permite eliminar una subasta con parcelas asociadas
 #
 class Admin::AuctionsController < Admin::BaseController
   before_action :set_auction, only: [:show, :edit, :update, :destroy, :change_status]
 
+  # Transiciones válidas — unidireccionales
+  VALID_TRANSITIONS = { "upcoming" => "active", "active" => "completed" }.freeze
+
   # GET /admin/auctions
   def index
     scope = Auction.order(sale_date: :asc)
+
+    # Búsqueda por texto (county o state)
+    if params[:q].present?
+      term = "%#{params[:q].strip}%"
+      scope = scope.where("county ILIKE :q OR state ILIKE :q", q: term)
+    end
+
+    # Filtros
     scope = scope.where(status: params[:status]) if params[:status].present?
     scope = scope.where(state: params[:state])   if params[:state].present?
+    scope = scope.from_date(params[:from_date])   if params[:from_date].present?
+    scope = scope.to_date(params[:to_date])       if params[:to_date].present?
 
+    @search_query  = params[:q]
     @status_filter = params[:status]
     @state_filter  = params[:state]
+    @from_date     = params[:from_date]
+    @to_date       = params[:to_date]
+
     @counts = {
       all:       Auction.count,
       upcoming:  Auction.upcoming.count,
@@ -34,12 +56,13 @@ class Admin::AuctionsController < Admin::BaseController
 
   # GET /admin/auctions/new
   def new
-    @auction = Auction.new
+    @auction = Auction.new(status: "upcoming")
   end
 
   # POST /admin/auctions
   def create
     @auction = Auction.new(auction_params)
+    @auction.status = "upcoming" # Siempre inicia como upcoming
     if @auction.save
       redirect_to admin_auction_path(@auction), notice: "Auction created successfully."
     else
@@ -71,11 +94,17 @@ class Admin::AuctionsController < Admin::BaseController
   end
 
   # PATCH /admin/auctions/:id/change_status
+  #
+  # Enforce transición secuencial: upcoming → active → completed
+  # No se permiten saltos ni retrocesos.
   def change_status
-    new_status = params[:new_status]
+    new_status    = params[:new_status]
+    expected_next = VALID_TRANSITIONS[@auction.status]
 
-    unless Auction::STATUSES.include?(new_status)
-      return redirect_to admin_auction_path(@auction), alert: "Invalid status."
+    unless expected_next == new_status
+      return redirect_to admin_auction_path(@auction),
+                         alert: "Invalid transition: '#{@auction.status}' → '#{new_status}'. " \
+                                "Expected: '#{expected_next || 'none (already completed)'}'"
     end
 
     if @auction.update(status: new_status)
@@ -95,10 +124,15 @@ class Admin::AuctionsController < Admin::BaseController
     redirect_to admin_auctions_path, alert: "Auction not found."
   end
 
+  # ⛔ `status` excluido intencionalmente — solo via `change_status`
+  # ⛔ `name`, `description`, `website_url` NO existen en DB
+  # Mapeo correcto: notes (no description), bidding_url (no website_url)
   def auction_params
     params.require(:auction).permit(
-      :name, :county, :state, :sale_date, :registration_deadline,
-      :status, :auction_type, :description, :website_url
+      :county, :state, :sale_date, :auction_type,
+      :registration_deadline, :bidding_start, :registration_opens, :end_date,
+      :bidding_url, :source_url, :notes,
+      :latitude, :longitude, :parcel_count, :total_amount
     )
   end
 end

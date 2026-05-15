@@ -6,39 +6,121 @@
     <p class="admin-page-subtitle">Tax deed and tax lien auction management</p>
   </div>
   <div class="admin-page-actions">
-    <div class="admin-filters">
-      <%= form_with url: admin_auctions_path, method: :get, local: true do |f| %>
-        <%= select_tag :status,
-              options_for_select([["All Statuses", ""], ["Upcoming", "upcoming"], ["Active", "active"], ["Completed", "completed"]], @status_filter),
-              class: "admin-filter-select", onchange: "this.form.submit()" %>
-        <%= select_tag :state,
-              options_for_select([["All States", ""]] + @states.map { |s| [s, s] }, @state_filter),
-              class: "admin-filter-select", onchange: "this.form.submit()" %>
-      <% end %>
-    </div>
     <%= link_to "＋ New Auction", new_admin_auction_path, class: "btn-sm btn-sm-primary" %>
   </div>
 </div>
 
-<%# Stats %>
+<%# ── Stats ────────────────────────────────────────────────────── %>
 <div class="admin-stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.25rem;">
-  <div class="admin-stat-card"><div class="admin-stat-card__label">Total</div><div class="admin-stat-card__value"><%= @counts[:all] %></div></div>
-  <div class="admin-stat-card admin-stat-card--accent"><div class="admin-stat-card__label">Upcoming</div><div class="admin-stat-card__value"><%= @counts[:upcoming] %></div></div>
-  <div class="admin-stat-card admin-stat-card--success"><div class="admin-stat-card__label">Active</div><div class="admin-stat-card__value"><%= @counts[:active] %></div></div>
-  <div class="admin-stat-card"><div class="admin-stat-card__label">Completed</div><div class="admin-stat-card__value"><%= @counts[:completed] %></div></div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">Total</div>
+    <div class="admin-stat-card__value"><%= @counts[:all] %></div>
+  </div>
+  <div class="admin-stat-card admin-stat-card--accent">
+    <div class="admin-stat-card__label">Upcoming</div>
+    <div class="admin-stat-card__value"><%= @counts[:upcoming] %></div>
+  </div>
+  <div class="admin-stat-card admin-stat-card--success">
+    <div class="admin-stat-card__label">Active</div>
+    <div class="admin-stat-card__value"><%= @counts[:active] %></div>
+  </div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">Completed</div>
+    <div class="admin-stat-card__value"><%= @counts[:completed] %></div>
+  </div>
 </div>
 
+<%# ── Search & Filters ────────────────────────────────────────── %>
+<div class="admin-card" style="margin-bottom:1.25rem;">
+  <div class="admin-card__body" style="padding:1rem;">
+    <%= form_with url: admin_auctions_path, method: :get, local: true do |f| %>
+      <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;">
+
+        <%# Text search %>
+        <div style="flex:1;min-width:200px;">
+          <label class="admin-label" style="margin-bottom:0.25rem;font-size:0.75rem;">Search</label>
+          <%= text_field_tag :q, @search_query,
+                class: "admin-input", placeholder: "County or state...",
+                style: "height:36px;font-size:0.85rem;" %>
+        </div>
+
+        <%# Status filter %>
+        <div style="min-width:140px;">
+          <label class="admin-label" style="margin-bottom:0.25rem;font-size:0.75rem;">Status</label>
+          <%= select_tag :status,
+                options_for_select(
+                  [["All Statuses", ""], ["Upcoming", "upcoming"], ["Active", "active"], ["Completed", "completed"]],
+                  @status_filter
+                ),
+                class: "admin-filter-select", style: "height:36px;font-size:0.85rem;" %>
+        </div>
+
+        <%# State filter %>
+        <div style="min-width:140px;">
+          <label class="admin-label" style="margin-bottom:0.25rem;font-size:0.75rem;">State</label>
+          <%= select_tag :state,
+                options_for_select(
+                  [["All States", ""]] + @states.map { |s| [s, s] },
+                  @state_filter
+                ),
+                class: "admin-filter-select", style: "height:36px;font-size:0.85rem;" %>
+        </div>
+
+        <%# Date range %>
+        <div style="min-width:140px;">
+          <label class="admin-label" style="margin-bottom:0.25rem;font-size:0.75rem;">From Date</label>
+          <%= date_field_tag :from_date, @from_date,
+                class: "admin-input", style: "height:36px;font-size:0.85rem;" %>
+        </div>
+        <div style="min-width:140px;">
+          <label class="admin-label" style="margin-bottom:0.25rem;font-size:0.75rem;">To Date</label>
+          <%= date_field_tag :to_date, @to_date,
+                class: "admin-input", style: "height:36px;font-size:0.85rem;" %>
+        </div>
+
+        <%# Action buttons %>
+        <div style="display:flex;gap:0.4rem;">
+          <button type="submit" class="btn-sm btn-sm-primary" style="height:36px;">Filter</button>
+          <% if @search_query.present? || @status_filter.present? || @state_filter.present? || @from_date.present? || @to_date.present? %>
+            <%= link_to "Clear", admin_auctions_path, class: "btn-sm btn-sm-outline", style: "height:36px;line-height:24px;" %>
+          <% end %>
+        </div>
+
+      </div>
+    <% end %>
+
+    <%# Active filter pills %>
+    <% active_filters = [] %>
+    <% active_filters << "\"#{@search_query}\"" if @search_query.present? %>
+    <% active_filters << "Status: #{@status_filter.capitalize}" if @status_filter.present? %>
+    <% active_filters << "State: #{@state_filter}" if @state_filter.present? %>
+    <% active_filters << "From: #{@from_date}" if @from_date.present? %>
+    <% active_filters << "To: #{@to_date}" if @to_date.present? %>
+    <% if active_filters.any? %>
+      <div style="margin-top:0.5rem;display:flex;gap:0.4rem;flex-wrap:wrap;">
+        <% active_filters.each do |pill| %>
+          <span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.15rem 0.6rem;
+                       background:#EEF2FF;color:#1E3A5F;border-radius:12px;font-size:0.75rem;font-weight:500;">
+            <%= pill %>
+          </span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<%# ── Table ────────────────────────────────────────────────────── %>
 <div class="admin-card">
   <% if @auctions.any? %>
     <table class="admin-table">
       <thead>
         <tr>
-          <th>Auction Name</th>
-          <th>County / State</th>
+          <th>Jurisdiction</th>
           <th>Sale Date</th>
           <th>Type</th>
           <th>Status</th>
           <th>Parcels</th>
+          <th style="text-align:right;">Total Amount</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -46,17 +128,20 @@
         <% @auctions.each do |auction| %>
           <tr>
             <td>
-              <div style="font-weight:600;color:#1E3A5F;"><%= "#{auction.county}, #{auction.state}" %></div>
-              <div style="font-size:0.75rem;color:#6C757D;">
-                <%= auction.sale_date&.strftime("%b %d, %Y") || "No date" %>
-              </div>
-            </td>
-            <td style="font-size:0.875rem;">
-              <%= auction.county %><br>
-              <span style="color:#6C757D;font-size:0.78rem;"><%= auction.state %></span>
+              <div style="font-weight:600;color:#1E3A5F;"><%= auction.county %></div>
+              <div style="font-size:0.75rem;color:#6C757D;"><%= auction.state %></div>
             </td>
             <td style="white-space:nowrap;font-size:0.875rem;">
-              <%= auction.sale_date&.strftime("%m/%d/%Y") || "—" %>
+              <div><%= auction.sale_date&.strftime("%b %d, %Y") || "—" %></div>
+              <% if auction.days_until_sale %>
+                <div style="font-size:0.72rem;color:#C9A84C;font-weight:500;">
+                  in <%= auction.days_until_sale %> days
+                </div>
+              <% elsif auction.sale_date && auction.sale_date < Date.current %>
+                <div style="font-size:0.72rem;color:#6C757D;">
+                  Past
+                </div>
+              <% end %>
             </td>
             <td>
               <span style="font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">
@@ -65,15 +150,26 @@
             </td>
             <td>
               <span class="badge badge-<%= auction.status %>" style="padding:0.2rem 0.6rem;border-radius:20px;font-size:0.75rem;font-weight:600;">
-                <%= auction.status.capitalize %>
+                <%= auction.status&.capitalize || "—" %>
               </span>
             </td>
             <td style="font-weight:600;color:#1E3A5F;text-align:center;">
               <%= auction.parcel_count || auction.parcels.count %>
             </td>
+            <td style="font-size:0.875rem;text-align:right;font-family:'JetBrains Mono',monospace;">
+              <%= auction.formatted_amount || "—" %>
+            </td>
             <td style="white-space:nowrap;">
-              <%= link_to "View", admin_auction_path(auction), class: "btn-sm btn-sm-outline" %>
-              <%= link_to "Edit", edit_admin_auction_path(auction), class: "btn-sm btn-sm-outline" %>
+              <div style="display:flex;gap:0.3rem;">
+                <%= link_to "View", admin_auction_path(auction), class: "btn-sm btn-sm-outline" %>
+                <%= link_to "Edit", edit_admin_auction_path(auction), class: "btn-sm btn-sm-outline" %>
+                <% unless auction.parcels.exists? %>
+                  <%= button_to "Delete", admin_auction_path(auction), method: :delete,
+                        class: "btn-sm btn-sm-outline",
+                        style: "color:#DC2626;border-color:#DC2626;",
+                        form: { data: { turbo_confirm: "Delete this auction? This cannot be undone." } } %>
+                <% end %>
+              </div>
             </td>
           </tr>
         <% end %>
@@ -88,10 +184,18 @@
         </span>
         <div style="display:flex;gap:0.4rem;">
           <% if @auctions.prev_page %>
-            <%= link_to "← Prev", admin_auctions_path(page: @auctions.prev_page, status: @status_filter, state: @state_filter), class: "btn-sm btn-sm-outline" %>
+            <%= link_to "← Prev", admin_auctions_path(
+                  page: @auctions.prev_page, q: @search_query,
+                  status: @status_filter, state: @state_filter,
+                  from_date: @from_date, to_date: @to_date
+                ), class: "btn-sm btn-sm-outline" %>
           <% end %>
           <% if @auctions.next_page %>
-            <%= link_to "Next →", admin_auctions_path(page: @auctions.next_page, status: @status_filter, state: @state_filter), class: "btn-sm btn-sm-outline" %>
+            <%= link_to "Next →", admin_auctions_path(
+                  page: @auctions.next_page, q: @search_query,
+                  status: @status_filter, state: @state_filter,
+                  from_date: @from_date, to_date: @to_date
+                ), class: "btn-sm btn-sm-outline" %>
           <% end %>
         </div>
       </div>
@@ -102,7 +206,9 @@
       <div class="empty-state__icon">🏛️</div>
       <div class="empty-state__title">No auctions found</div>
       <div class="empty-state__desc">
-        Try a different filter, or
+        <% if @search_query.present? || @status_filter.present? || @state_filter.present? %>
+          Try adjusting your filters, or
+        <% end %>
         <%= link_to "create a new auction", new_admin_auction_path %>.
       </div>
     </div>

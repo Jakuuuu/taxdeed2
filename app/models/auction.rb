@@ -30,7 +30,8 @@ class Auction < ApplicationRecord
 
   # ── Validations ─────────────────────────────────────────────────────────────
   validates :state, :county, :sale_date, presence: true
-  validates :auction_type, inclusion: { in: ["tax_deed"] }
+  AUCTION_TYPES = %w[tax_deed tax_lien foreclosure].freeze
+  validates :auction_type, inclusion: { in: AUCTION_TYPES }, allow_blank: true
   validates :status, inclusion: { in: STATUSES }, allow_nil: true
 
   # ── Derived Attributes ──────────────────────────────────────────────────────

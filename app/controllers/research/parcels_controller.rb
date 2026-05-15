@@ -407,6 +407,8 @@ module Research
       scope = scope.by_state(params[:filter_state]) if params[:filter_state].present?
       scope = scope.min_bid(params[:min_bid])       if params[:min_bid].present?
       scope = scope.max_bid(params[:max_bid])       if params[:max_bid].present?
+      scope = scope.from_date(params[:from_date])   if params[:from_date].present?
+      scope = scope.to_date(params[:to_date])       if params[:to_date].present?
       if params[:property_type].present?
         pt = params[:property_type]
         scope = scope.where("land_use ILIKE :pt OR property_type ILIKE :pt", pt: "%#{pt}%")
